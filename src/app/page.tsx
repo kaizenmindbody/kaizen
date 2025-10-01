@@ -26,21 +26,18 @@ export default function Home() {
     modalities,
     tcms,
     tcmFaqs,
-    articles,
     personEvents,
     homeFaqs,
     conditionsLoading,
     modalitiesLoading,
     tcmsLoading,
     tcmFaqsLoading,
-    articlesLoading,
     personEventsLoading,
     homeFaqsLoading,
     conditionsError,
     modalitiesError,
     tcmsError,
     tcmFaqsError,
-    articlesError,
     personEventsError,
     homeFaqsError,
     hasErrors
@@ -74,7 +71,6 @@ export default function Home() {
           {modalitiesError && <div>Error loading modalities: {modalitiesError}</div>}
           {tcmsError && <div>Error loading TCMs: {tcmsError}</div>}
           {tcmFaqsError && <div>Error loading TCM FAQs: {tcmFaqsError}</div>}
-          {articlesError && <div>Error loading articles: {articlesError}</div>}
           {personEventsError && <div>Error loading person events: {personEventsError}</div>}
           {homeFaqsError && <div>Error loading home FAQs: {homeFaqsError}</div>}
         </div>
@@ -92,7 +88,7 @@ export default function Home() {
       <FeaturedUsers title="Featured TCM Practitioners" users={tcms} loading={tcmsLoading} />
       <PersonEvent title="Amazing Events To Check Out" events={personEvents} loading={personEventsLoading} />
       <TcmFaqSection title="Want to Learn More About Traditional Chinese Medicine?" faqItems={tcmFaqs} loading={tcmFaqsLoading} />
-      <LatestArticlesSection title="Latest Insightful Articles" articles={articles} loading={articlesLoading} />
+      <LatestArticlesSection title="Latest Insightful Articles" />
       <FAQSection title="Frequently Asked Questions" faqs={homeFaqs} loading={homeFaqsLoading} />
       <GoogleReviews embedUrl={profileData?.reviews} />
       <TestimonialsSection />

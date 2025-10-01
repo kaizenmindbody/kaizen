@@ -1,41 +1,51 @@
-import { BlogPost } from '@/types/blog';
-import { useState, useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import {
+  fetchBlogs as fetchBlogsAction,
+  addBlog as addBlogAction,
+  updateBlog as updateBlogAction,
+  deleteBlog as deleteBlogAction
+} from '@/store/slices/blogsSlice';
 import { UseBlogsReturn } from '@/types/content';
+import { BlogPost } from '@/types/blog';
 
 export function useBlogs(): UseBlogsReturn {
-  const [blogs, setBlogs] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const dispatch = useAppDispatch();
+  const { blogs, loading, error, initialized } = useAppSelector((state) => state.blogs);
 
   useEffect(() => {
-    async function fetchBlogs() {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await fetch('/api/blogs');
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        
-        if (result.error) {
-          throw new Error(result.error);
-        }
-        
-        setBlogs(result.data || []);
-      } catch (err) {
-        console.error('Error fetching blogs:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch blogs');
-      } finally {
-        setLoading(false);
-      }
+    // Only fetch if data has never been loaded before
+    if (!initialized) {
+      dispatch(fetchBlogsAction());
     }
+  }, [initialized, dispatch]);
 
-    fetchBlogs();
-  }, []);
+  const addBlog = useCallback(async (blogData: Partial<BlogPost>): Promise<boolean> => {
+    const result = await dispatch(addBlogAction(blogData));
+    return addBlogAction.fulfilled.match(result);
+  }, [dispatch]);
 
-  return { blogs, loading, error };
+  const updateBlog = useCallback(async (id: number, blogData: Partial<BlogPost>): Promise<boolean> => {
+    const result = await dispatch(updateBlogAction({ id, blogData }));
+    return updateBlogAction.fulfilled.match(result);
+  }, [dispatch]);
+
+  const deleteBlog = useCallback(async (id: number): Promise<boolean> => {
+    const result = await dispatch(deleteBlogAction(id));
+    return deleteBlogAction.fulfilled.match(result);
+  }, [dispatch]);
+
+  const refreshBlogs = useCallback(async () => {
+    await dispatch(fetchBlogsAction());
+  }, [dispatch]);
+
+  return {
+    blogs,
+    loading,
+    error,
+    addBlog,
+    updateBlog,
+    deleteBlog,
+    refreshBlogs
+  };
 }

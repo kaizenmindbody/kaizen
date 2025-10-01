@@ -85,6 +85,7 @@ const UsersComponent = ({ users, specialties, onRefreshData }: UsersProps) => {
     if (result.success) {
       showSuccess('User deleted successfully');
       closeDeleteModal();
+      onRefreshData(); // Refresh the admin page data
     } else {
       showError(result.error || 'Error deleting user');
     }
@@ -327,7 +328,7 @@ const UsersComponent = ({ users, specialties, onRefreshData }: UsersProps) => {
 
   const actionBodyTemplate = (rowData: User) => {
     return (
-      <div className="flex items-center justify-center gap-2">
+      <div className="flex items-center justify-start gap-2">
         <button
           onClick={() => openDeleteModal(rowData)}
           className="group flex items-center justify-center w-8 h-8 text-red-600 hover:text-white hover:bg-red-600 rounded-lg transition-all duration-200"
@@ -340,7 +341,6 @@ const UsersComponent = ({ users, specialties, onRefreshData }: UsersProps) => {
 
   return (
     <div className="space-y-8">
-      <ConfirmDialog />
       {/* Enhanced Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -444,7 +444,7 @@ const UsersComponent = ({ users, specialties, onRefreshData }: UsersProps) => {
             sortable
             body={userBodyTemplate}
             style={{ width: '30%' }}
-            headerStyle={{ textAlign: 'center' }}
+            headerStyle={{ textAlign: 'center', paddingLeft: '24px' }}
             headerClassName="text-center"
           />
           <Column
@@ -951,10 +951,6 @@ const UsersComponent = ({ users, specialties, onRefreshData }: UsersProps) => {
                     Account Information
                   </h5>
                   <div className="space-y-3">
-                    <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">User ID</label>
-                      <p className="text-sm text-gray-900 mt-1 font-mono">{selectedUser.id}</p>
-                    </div>
                     <div>
                       <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">User Type</label>
                       <p className="text-sm text-gray-900 mt-1 capitalize">{selectedUser.user_type || 'Unknown'}</p>

@@ -88,8 +88,7 @@ const ClinicsPage = () => {
     if (searchTerm) {
       filtered = filtered.filter(clinic =>
         clinic.service.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        clinic.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        clinic?.address?.toLowerCase().includes(searchTerm?.toLowerCase())
+        clinic.location.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -100,29 +99,22 @@ const ClinicsPage = () => {
 
       filtered = filtered.filter(clinic => {
         const clinicLocation = clinic.location?.toLowerCase() || '';
-        const clinicAddress = clinic.address?.toLowerCase() || '';
 
         // Enhanced matching - check for various formats
-        const locationMatches =
+        return (
           clinicLocation.includes(selectedStateLower) ||
           clinicLocation.includes(selectedStateCode) ||
-          clinicLocation.includes(selectedStateCode.toUpperCase());
-
-        const addressMatches =
-          clinicAddress.includes(selectedStateLower) ||
-          clinicAddress.includes(selectedStateCode) ||
-          clinicAddress.includes(selectedStateCode.toUpperCase()) ||
+          clinicLocation.includes(selectedStateCode.toUpperCase()) ||
           // Check for " STATE " pattern (space before and after)
-          clinicAddress.includes(` ${selectedStateCode} `) ||
-          clinicAddress.includes(` ${selectedStateCode.toUpperCase()} `) ||
+          clinicLocation.includes(` ${selectedStateCode} `) ||
+          clinicLocation.includes(` ${selectedStateCode.toUpperCase()} `) ||
           // Check for ", STATE" pattern (comma before)
-          clinicAddress.includes(`, ${selectedStateCode}`) ||
-          clinicAddress.includes(`, ${selectedStateCode.toUpperCase()}`) ||
-          // Check if address ends with state code
-          clinicAddress.endsWith(selectedStateCode) ||
-          clinicAddress.endsWith(selectedStateCode.toUpperCase());
-
-        return locationMatches || addressMatches;
+          clinicLocation.includes(`, ${selectedStateCode}`) ||
+          clinicLocation.includes(`, ${selectedStateCode.toUpperCase()}`) ||
+          // Check if location ends with state code
+          clinicLocation.endsWith(selectedStateCode) ||
+          clinicLocation.endsWith(selectedStateCode.toUpperCase())
+        );
       });
     }
 

@@ -9,22 +9,22 @@ import { Dialog } from 'primereact/dialog';
 import toast from 'react-hot-toast';
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 import { FilterMatchMode } from 'primereact/api';
-import { useSpecialty } from '@/hooks/useSpecialty';
-import { Specialty } from '@/types/user';
+import { useDegrees } from '@/hooks/useDegrees';
+import { Degree } from '@/types/user';
 
-const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
-  const { specialties, loading, error, addSpecialty: addSpecialtyHook, updateSpecialty: updateSpecialtyHook, deleteSpecialty: deleteSpecialtyHook } = useSpecialty();
+const Degrees = ({ onRefreshData }: { onRefreshData: () => void }) => {
+  const { degrees, loading, error, addDegree: addDegreeHook, updateDegree: updateDegreeHook, deleteDegree: deleteDegreeHook } = useDegrees();
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [newSpecialtyTitle, setNewSpecialtyTitle] = useState('');
+  const [newDegreeTitle, setNewDegreeTitle] = useState('');
   const [showEditDialog, setShowEditDialog] = useState(false);
-  const [editingSpecialty, setEditingSpecialty] = useState<Specialty | null>(null);
-  const [editSpecialtyTitle, setEditSpecialtyTitle] = useState('');
+  const [editingDegree, setEditingDegree] = useState<Degree | null>(null);
+  const [editDegreeTitle, setEditDegreeTitle] = useState('');
   const [globalFilterValue, setGlobalFilterValue] = useState('');
   const [filters, setFilters] = useState({
     global: { value: null, matchMode: FilterMatchMode.CONTAINS },
     title: { value: null, matchMode: FilterMatchMode.STARTS_WITH }
   });
-  const dt = useRef<DataTable<Specialty[]>>(null);
+  const dt = useRef<DataTable<Degree[]>>(null);
 
   const showSuccess = (message: string) => {
     toast.success(message);
@@ -54,67 +54,66 @@ const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
     setGlobalFilterValue('');
   };
 
-  const addSpecialty = async () => {
-    if (!newSpecialtyTitle.trim()) {
+  const addDegree = async () => {
+    if (!newDegreeTitle.trim()) {
       showError('Title is required');
       return;
     }
 
-    const success = await addSpecialtyHook(newSpecialtyTitle);
+    const success = await addDegreeHook(newDegreeTitle);
     if (success) {
-      setNewSpecialtyTitle('');
+      setNewDegreeTitle('');
       setShowAddDialog(false);
-      showSuccess('Specialty added successfully');
+      showSuccess('Degree added successfully');
     } else {
-      showError('Error adding specialty');
+      showError('Error adding degree');
     }
   };
 
-  const openEditDialog = (specialty: Specialty) => {
-    setEditingSpecialty(specialty);
-    setEditSpecialtyTitle(specialty.title);
+  const openEditDialog = (degree: Degree) => {
+    setEditingDegree(degree);
+    setEditDegreeTitle(degree.title);
     setShowEditDialog(true);
   };
 
   const closeEditDialog = () => {
     setShowEditDialog(false);
-    setEditingSpecialty(null);
-    setEditSpecialtyTitle('');
+    setEditingDegree(null);
+    setEditDegreeTitle('');
   };
 
-  const editSpecialty = async () => {
-    if (!editingSpecialty || !editSpecialtyTitle.trim()) {
+  const editDegree = async () => {
+    if (!editingDegree || !editDegreeTitle.trim()) {
       showError('Title is required');
       return;
     }
 
-    const success = await updateSpecialtyHook(editingSpecialty.id, editSpecialtyTitle);
+    const success = await updateDegreeHook(editingDegree.id, editDegreeTitle);
     if (success) {
       closeEditDialog();
-      showSuccess('Specialty updated successfully');
+      showSuccess('Degree updated successfully');
     } else {
-      showError('Error updating specialty');
+      showError('Error updating degree');
     }
   };
 
-
-  const confirmDeleteSpecialty = (specialty: Specialty) => {
+  const confirmDeleteDegree = (degree: Degree) => {
     confirmDialog({
-      message: `Are you sure you want to delete "${specialty.title}"?`,
+      message: `Are you sure you want to delete "${degree.title}"?`,
       header: 'Delete Confirmation',
       icon: 'pi pi-info-circle',
       defaultFocus: 'reject',
       acceptClassName: 'p-button-danger',
-      accept: () => deleteSpecialtyHandler(specialty.id),
+      accept: () => deleteDegreeHandler(degree.id),
     });
   };
 
-  const deleteSpecialtyHandler = async (specialtyId: string) => {
-    const success = await deleteSpecialtyHook(specialtyId);
+  const deleteDegreeHandler = async (degreeId: string) => {
+    const success = await deleteDegreeHook(degreeId);
     if (success) {
-      showSuccess('Specialty deleted successfully');
+      showSuccess('Degree deleted successfully');
     } else {
-      showError('Error deleting specialty');
+      showError('Error deleting degree');
     }
   };
 
@@ -127,9 +126,9 @@ const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
       <div className="px-6 py-4 border-b border-gray-200 bg-white">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <h4 className="text-lg font-semibold text-gray-900 m-0">Manage Specialties</h4>
+            <h4 className="text-lg font-semibold text-gray-900 m-0">Manage Degrees</h4>
             <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
-              {specialties.length} total
+              {degrees.length} total
             </span>
           </div>
           <div className="flex items-center gap-3">
@@ -138,7 +137,7 @@ const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
                 type="text"
                 value={globalFilterValue}
                 onChange={onGlobalFilterChange}
-                placeholder="Search specialties..."
+                placeholder="Search degrees..."
                 className="px-3 py-2 border border-gray-300 rounded-l-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm w-64"
               />
               {globalFilterValue && (
@@ -169,20 +168,20 @@ const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
   };
 
 
-  const actionBodyTemplate = (rowData: Specialty) => {
+  const actionBodyTemplate = (rowData: Degree) => {
     return (
       <div className="flex items-center justify-start gap-2">
         <button
           onClick={() => openEditDialog(rowData)}
           className="px-2 py-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded border border-transparent hover:border-blue-200 transition-colors"
-          title="Edit specialty"
+          title="Edit degree"
         >
           <i className="pi pi-pencil text-sm"></i>
         </button>
         <button
-          onClick={() => confirmDeleteSpecialty(rowData)}
+          onClick={() => confirmDeleteDegree(rowData)}
           className="px-2 py-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded border border-transparent hover:border-red-200 transition-colors"
-          title="Delete specialty"
+          title="Delete degree"
         >
           <i className="pi pi-trash text-sm"></i>
         </button>
@@ -190,7 +189,7 @@ const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
     );
   };
 
-  const titleBodyTemplate = (rowData: Specialty) => {
+  const titleBodyTemplate = (rowData: Degree) => {
     return (
       <div className="py-3 pl-6">
         <div className="font-medium text-gray-900">{rowData.title}</div>
@@ -206,14 +205,14 @@ const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
         outlined
         onClick={() => {
           setShowAddDialog(false);
-          setNewSpecialtyTitle('');
+          setNewDegreeTitle('');
         }}
       />
       <Button
         label="Add"
         icon="pi pi-check"
-        onClick={addSpecialty}
-        disabled={!newSpecialtyTitle.trim()}
+        onClick={addDegree}
+        disabled={!newDegreeTitle.trim()}
         autoFocus
       />
     </div>
@@ -230,8 +229,8 @@ const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
       <Button
         label="Update"
         icon="pi pi-check"
-        onClick={editSpecialty}
-        disabled={!editSpecialtyTitle.trim()}
+        onClick={editDegree}
+        disabled={!editDegreeTitle.trim()}
         autoFocus
       />
     </div>
@@ -241,7 +240,7 @@ const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold text-gray-900">Specialties Management</h2>
+          <h2 className="text-3xl font-bold text-gray-900">Degrees Management</h2>
           <div className="text-sm text-gray-600">Loading...</div>
         </div>
         <div className="bg-white shadow-sm rounded-lg p-8">
@@ -257,10 +256,10 @@ const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold text-gray-900">Specialties Management</h2>
+          <h2 className="text-3xl font-bold text-gray-900">Degrees Management</h2>
         </div>
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-800">Error loading specialties: {error}</p>
+          <p className="text-red-800">Error loading degrees: {error}</p>
         </div>
       </div>
     );
@@ -270,10 +269,10 @@ const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold text-gray-900">Specialties Management</h2>
+        <h2 className="text-3xl font-bold text-gray-900">Degrees Management</h2>
         <Button
           icon="pi pi-plus"
-          label="Add Specialty"
+          label="Add Degree"
           onClick={() => setShowAddDialog(true)}
           className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600 hover:border-blue-700"
         />
@@ -283,13 +282,13 @@ const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
       <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
         <DataTable
           ref={dt}
-          value={specialties}
+          value={degrees}
           dataKey="id"
           header={renderHeader()}
           filters={filters}
           filterDisplay="row"
           globalFilterFields={['title']}
-          emptyMessage="No specialties found"
+          emptyMessage="No degrees found"
           paginator
           rows={10}
           rowsPerPageOptions={[5, 10, 25, 50]}
@@ -320,28 +319,28 @@ const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
 
       {/* Add Dialog */}
       <Dialog
-        header="Add New Specialty"
+        header="Add New Degree"
         visible={showAddDialog}
         style={{ width: '450px' }}
         footer={addDialogFooter}
         onHide={() => {
           setShowAddDialog(false);
-          setNewSpecialtyTitle('');
+          setNewDegreeTitle('');
         }}
         modal
       >
         <div className="p-fluid">
           <div className="field">
             <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-              Specialty Title
+              Degree Title
             </label>
             <InputText
               id="title"
-              value={newSpecialtyTitle}
-              onChange={(e) => setNewSpecialtyTitle(e.target.value)}
-              placeholder="Enter specialty title..."
+              value={newDegreeTitle}
+              onChange={(e) => setNewDegreeTitle(e.target.value)}
+              placeholder="Enter degree title..."
               autoFocus
-              onKeyPress={(e) => e.key === 'Enter' && addSpecialty()}
+              onKeyPress={(e) => e.key === 'Enter' && addDegree()}
             />
           </div>
         </div>
@@ -349,7 +348,7 @@ const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
 
       {/* Edit Dialog */}
       <Dialog
-        header="Edit Specialty"
+        header="Edit Degree"
         visible={showEditDialog}
         style={{ width: '450px' }}
         footer={editDialogFooter}
@@ -359,15 +358,15 @@ const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
         <div className="p-fluid">
           <div className="field">
             <label htmlFor="editTitle" className="block text-sm font-medium text-gray-700 mb-2">
-              Specialty Title
+              Degree Title
             </label>
             <InputText
               id="editTitle"
-              value={editSpecialtyTitle}
-              onChange={(e) => setEditSpecialtyTitle(e.target.value)}
-              placeholder="Enter specialty title..."
+              value={editDegreeTitle}
+              onChange={(e) => setEditDegreeTitle(e.target.value)}
+              placeholder="Enter degree title..."
               autoFocus
-              onKeyPress={(e) => e.key === 'Enter' && editSpecialty()}
+              onKeyPress={(e) => e.key === 'Enter' && editDegree()}
             />
           </div>
         </div>
@@ -376,4 +375,4 @@ const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
   );
 };
 
-export default Specialties;
+export default Degrees;

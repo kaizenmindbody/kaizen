@@ -144,9 +144,18 @@ const BlogDetailsPage = () => {
   const [selectedCategory, _setSelectedCategory] = useState('All');
   const router = useRouter();
   const params = useParams();
-  
+
   // All hooks must be called before any conditional returns
   const blogId = parseInt(params.id as string);
+
+  // Format date helper
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
 
   // Find the specific blog
   const currentBlog = useMemo(() => {
@@ -177,9 +186,10 @@ const BlogDetailsPage = () => {
       .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
       .slice(0, 3)
       .map(blog => ({
+        id: blog.id,
         title: blog.title,
         image: blog.image,
-        date: blog.updated_at
+        date: formatDate(blog.updated_at)
       }));
   }, [allBlogs]);
 
@@ -245,13 +255,21 @@ const BlogDetailsPage = () => {
               </div>
               {/* Featured Image */}
               <div className="mb-8 overflow-hidden rounded-lg">
-                <div className="relative aspect-[16/9] w-full">
-                  <Image
-                    src={currentBlog.image}
-                    alt={currentBlog.title}
-                    fill
-                    className="object-cover"
-                  />
+                <div className="relative aspect-[16/9] w-full bg-gray-200">
+                  {currentBlog.image ? (
+                    <Image
+                      src={currentBlog.image}
+                      alt={currentBlog.title}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <svg className="w-24 h-24 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -260,17 +278,17 @@ const BlogDetailsPage = () => {
                 <div className="flex items-center gap-2">
                   <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                     <span className="text-sm font-medium text-primary">
-                      {currentBlog.author.charAt(0).toUpperCase()}
+                      {(currentBlog.author || 'A').charAt(0).toUpperCase()}
                     </span>
                   </div>
-                  <span className="text-body-color text-sm">{currentBlog.author}</span>
+                  <span className="text-body-color text-sm">{currentBlog.author || 'Anonymous'}</span>
                 </div>
                 <div className="flex items-center gap-1 text-body-color text-sm">
                   <svg width="14" height="14" viewBox="0 0 15 15" className="fill-current">
                     <path d="M3.89531 8.67529H3.10666C2.96327 8.67529 2.86768 8.77089 2.86768 8.91428V9.67904C2.86768 9.82243 2.96327 9.91802 3.10666 9.91802H3.89531C4.03871 9.91802 4.1343 9.82243 4.1343 9.67904V8.91428C4.1343 8.77089 4.03871 8.67529 3.89531 8.67529Z" />
                     <path d="M13.2637 3.3697H7.64754V2.58105C8.19721 2.43765 8.62738 1.91189 8.62738 1.31442C8.62738 0.597464 8.02992 0 7.28906 0C6.54821 0 5.95074 0.597464 5.95074 1.31442C5.95074 1.91189 6.35702 2.41376 6.93058 2.58105V3.3697H1.31442C0.597464 3.3697 0 3.96716 0 4.68412V13.2637C0 13.9807 0.597464 14.5781 1.31442 14.5781H13.2637C13.9807 14.5781 14.5781 13.9807 14.5781 13.2637V4.68412C14.5781 3.96716 13.9807 3.3697 13.2637 3.3697Z" />
                   </svg>
-                  <span>{currentBlog.updated_at}</span>
+                  <span>{formatDate(currentBlog.updated_at)}</span>
                 </div>
                 <div className="flex items-center gap-1 text-body-color text-sm">
                   <svg width="14" height="14" viewBox="0 0 20 12" className="fill-current">
@@ -286,7 +304,7 @@ const BlogDetailsPage = () => {
                   <span>24</span>
                 </div>
                 <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">
-                  {currentBlog.category}
+                  {currentBlog.category || 'General'}
                 </span>
               </div>
 
@@ -382,17 +400,29 @@ const BlogDetailsPage = () => {
                 </h3>
                 <div className="space-y-4">
                   {latestNews.map((news, index) => (
-                    <div key={index} className="flex gap-3">
-                      <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded">
-                        <Image
-                          src={news.image}
-                          alt={news.title}
-                          fill
-                          className="object-cover"
-                        />
+                    <div
+                      key={index}
+                      className="flex gap-3 cursor-pointer group"
+                      onClick={() => router.push(`/blog-details/${news.id}`)}
+                    >
+                      <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded bg-gray-200">
+                        {news.image ? (
+                          <Image
+                            src={news.image}
+                            alt={news.title}
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium text-black dark:text-white leading-tight mb-1 line-clamp-2">
+                        <h4 className="text-sm font-medium text-black dark:text-white group-hover:text-primary transition-colors leading-tight mb-1 line-clamp-2">
                           {news.title}
                         </h4>
                         <span className="text-xs text-body-color">

@@ -764,10 +764,10 @@ const UserDirectoryContent = () => {
     height: '100%'
   };
 
-  const defaultCenter = {
+  const defaultCenter = useMemo(() => ({
     lat: 49.2827, // Vancouver, BC coordinates (fallback only)
     lng: -123.1207
-  };
+  }), []);
 
   // Transform Supabase data to match the expected format
   const practitioners = useMemo(() => {

@@ -69,13 +69,13 @@ const PractitionerBooking = () => {
   }, [user, userProfile, authLoading, router]);
 
   // Helper functions for localStorage persistence
-  const getStorageKey = () => `booking_state_${practitionerId}`;
+  const getStorageKey = useCallback(() => `booking_state_${practitionerId}`, [practitionerId]);
 
   const saveToLocalStorage = useCallback((data) => {
     if (typeof window !== 'undefined') {
       localStorage.setItem(getStorageKey(), JSON.stringify(data));
     }
-  }, [practitionerId]);
+  }, [getStorageKey]);
 
   const loadFromLocalStorage = useCallback(() => {
     if (typeof window !== 'undefined') {
@@ -88,7 +88,7 @@ const PractitionerBooking = () => {
       }
     }
     return null;
-  }, [practitionerId]);
+  }, [getStorageKey]);
 
   const clearLocalStorage = () => {
     if (typeof window !== 'undefined') {

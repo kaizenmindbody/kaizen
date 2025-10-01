@@ -488,10 +488,6 @@ const PractitionerDetailsPage = () => {
         };
 
         setPractitioner(transformedPractitioner);
-
-        // Fetch initial availability (only today's data) for this practitioner
-        const today = new Date();
-        fetchAvailabilityForDate(practitionerId, today);
       } catch {
         toast.error('Error fetching practitioner');
         setError('Failed to fetch practitioner');
@@ -504,12 +500,12 @@ const PractitionerDetailsPage = () => {
   }, [practitionerId]);
 
   // Helper function to format date without timezone issues (matching profile page)
-  const formatDateForAPI = (date: Date) => {
+  const formatDateForAPI = useCallback((date: Date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
-  };
+  }, []);
 
   // Fetch availability when selected date changes
   useEffect(() => {
@@ -538,7 +534,7 @@ const PractitionerDetailsPage = () => {
         }
       });
     }
-  }, [selectedMonth, practitionerId, availabilities]);
+  }, [selectedMonth, practitionerId, availabilities, formatDateForAPI]);
 
   // Fetch availability for a specific date (on-demand loading for better UX)
   const fetchAvailabilityForDate = useCallback(async (id: string, date: Date) => {
@@ -624,7 +620,7 @@ const PractitionerDetailsPage = () => {
         setLoadingAvailabilities(false);
       }
     }
-  }, [availabilities, loadingDates, selectedDate, setLoadingDates, setLoadingAvailabilities, setAvailabilities]);
+  }, [availabilities, loadingDates, selectedDate, setLoadingDates, setLoadingAvailabilities, setAvailabilities, formatDateForAPI]);
 
   // Function to geocode address using Google Geocoding API
   const geocodeAddress = async (address: string): Promise<{ lat: number, lng: number } | null> => {
@@ -686,7 +682,7 @@ const PractitionerDetailsPage = () => {
     return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   };
 
-  function generateCalendarDates() {
+  const generateCalendarDates = useCallback(() => {
     const firstDay = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1);
     const lastDay = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0);
     const startDate = new Date(firstDay);
@@ -705,7 +701,7 @@ const PractitionerDetailsPage = () => {
     }
 
     return dates;
-  }
+  }, [selectedMonth]);
 
   const navigateMonth = (direction: 'prev' | 'next') => {
     const newDate = new Date(selectedMonth);
@@ -817,7 +813,6 @@ const PractitionerDetailsPage = () => {
                         {practitioner.title ? `${practitioner.title} ` : ''}{practitioner.full_name}
                       </h1>
                       <div className="flex items-start mb-3">
-                        <Award className="w-5 h-5 text-gray-400 mr-2 mt-0.5" />
                         <div className="flex flex-wrap gap-2">
                           {practitioner.specialties && practitioner.specialties.length > 0 ? (
                             practitioner.specialties.map((specialty, index) => (

@@ -1,41 +1,51 @@
-import { FAQ } from '@/types/faq';
-import { useState, useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import {
+  fetchFaqs as fetchFaqsAction,
+  addFaq as addFaqAction,
+  updateFaq as updateFaqAction,
+  deleteFaq as deleteFaqAction
+} from '@/store/slices/faqsSlice';
 import { UseFaqReturn } from '@/types/content';
+import { FAQ } from '@/types/faq';
 
 export function useFaq(): UseFaqReturn {
-  const [faqs, setFaqs] = useState<FAQ[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const dispatch = useAppDispatch();
+  const { faqs, loading, error, initialized } = useAppSelector((state) => state.faqs);
 
   useEffect(() => {
-    async function fetchFaqs() {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await fetch('/api/faq');
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        
-        if (result.error) {
-          throw new Error(result.error);
-        }
-        
-        setFaqs(result.data || []);
-      } catch (err) {
-        console.error('Error fetching FAQs:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch FAQs');
-      } finally {
-        setLoading(false);
-      }
+    // Only fetch if data has never been loaded before
+    if (!initialized) {
+      dispatch(fetchFaqsAction());
     }
+  }, [initialized, dispatch]);
 
-    fetchFaqs();
-  }, []);
+  const addFaq = useCallback(async (faqData: Partial<FAQ>): Promise<boolean> => {
+    const result = await dispatch(addFaqAction(faqData));
+    return addFaqAction.fulfilled.match(result);
+  }, [dispatch]);
 
-  return { faqs, loading, error };
+  const updateFaq = useCallback(async (id: number, faqData: Partial<FAQ>): Promise<boolean> => {
+    const result = await dispatch(updateFaqAction({ id, faqData }));
+    return updateFaqAction.fulfilled.match(result);
+  }, [dispatch]);
+
+  const deleteFaq = useCallback(async (id: number): Promise<boolean> => {
+    const result = await dispatch(deleteFaqAction(id));
+    return deleteFaqAction.fulfilled.match(result);
+  }, [dispatch]);
+
+  const refreshFaqs = useCallback(async () => {
+    await dispatch(fetchFaqsAction());
+  }, [dispatch]);
+
+  return {
+    faqs,
+    loading,
+    error,
+    addFaq,
+    updateFaq,
+    deleteFaq,
+    refreshFaqs
+  };
 }

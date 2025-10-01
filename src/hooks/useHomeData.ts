@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Icon, User as HomepageUser, FAQItem, Article, PersonEvent, FAQ as HomeFAQ } from '@/types/homepage';
+import { Icon, User as HomepageUser, FAQItem, PersonEvent, FAQ as HomeFAQ } from '@/types/homepage';
 import { UseHomeDataReturn } from '@/types/content';
 
 export function useHomeData(): UseHomeDataReturn {
@@ -22,11 +22,6 @@ export function useHomeData(): UseHomeDataReturn {
   const [tcmFaqs, setTcmFaqs] = useState<FAQItem[]>([]);
   const [tcmFaqsLoading, setTcmFaqsLoading] = useState(true);
   const [tcmFaqsError, setTcmFaqsError] = useState<string | null>(null);
-
-  // State for articles
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [articlesLoading, setArticlesLoading] = useState(true);
-  const [articlesError, setArticlesError] = useState<string | null>(null);
 
   // State for person events
   const [personEvents, setPersonEvents] = useState<PersonEvent[]>([]);
@@ -88,10 +83,6 @@ export function useHomeData(): UseHomeDataReturn {
     await fetchData('/api/home/tcm-faqs', setTcmFaqs, setTcmFaqsLoading, setTcmFaqsError, 'TCM FAQs');
   };
 
-  const fetchArticles = async () => {
-    await fetchData('/api/home/articles', setArticles, setArticlesLoading, setArticlesError, 'articles');
-  };
-
   const fetchPersonEvents = async () => {
     await fetchData('/api/home/person-events', setPersonEvents, setPersonEventsLoading, setPersonEventsError, 'person events');
   };
@@ -107,7 +98,6 @@ export function useHomeData(): UseHomeDataReturn {
       fetchModalities(),
       fetchTcms(),
       fetchTcmFaqs(),
-      fetchArticles(),
       fetchPersonEvents(),
       fetchHomeFaqs()
     ]);
@@ -120,10 +110,10 @@ export function useHomeData(): UseHomeDataReturn {
 
   // Computed states
   const isLoading = conditionsLoading || modalitiesLoading || tcmsLoading || tcmFaqsLoading ||
-                   articlesLoading || personEventsLoading || homeFaqsLoading;
+                   personEventsLoading || homeFaqsLoading;
 
   const hasErrors = !!(conditionsError || modalitiesError || tcmsError || tcmFaqsError ||
-                      articlesError || personEventsError || homeFaqsError);
+                      personEventsError || homeFaqsError);
 
   return {
     // Data
@@ -131,7 +121,6 @@ export function useHomeData(): UseHomeDataReturn {
     modalities,
     tcms,
     tcmFaqs,
-    articles,
     personEvents,
     homeFaqs,
 
@@ -140,7 +129,6 @@ export function useHomeData(): UseHomeDataReturn {
     modalitiesLoading,
     tcmsLoading,
     tcmFaqsLoading,
-    articlesLoading,
     personEventsLoading,
     homeFaqsLoading,
     isLoading,
@@ -150,7 +138,6 @@ export function useHomeData(): UseHomeDataReturn {
     modalitiesError,
     tcmsError,
     tcmFaqsError,
-    articlesError,
     personEventsError,
     homeFaqsError,
     hasErrors,
@@ -160,7 +147,6 @@ export function useHomeData(): UseHomeDataReturn {
     refreshModalities: fetchModalities,
     refreshTcms: fetchTcms,
     refreshTcmFaqs: fetchTcmFaqs,
-    refreshArticles: fetchArticles,
     refreshPersonEvents: fetchPersonEvents,
     refreshHomeFaqs: fetchHomeFaqs,
     refreshAll: fetchAllData
@@ -186,11 +172,6 @@ export const useTcms = () => {
 export const useTCMFaqs = () => {
   const { tcmFaqs, tcmFaqsLoading, tcmFaqsError } = useHomeData();
   return { tcmFaqs, loading: tcmFaqsLoading, error: tcmFaqsError };
-};
-
-export const useArticles = () => {
-  const { articles, articlesLoading, articlesError } = useHomeData();
-  return { articles, loading: articlesLoading, error: articlesError };
 };
 
 export const usePersonEvents = () => {

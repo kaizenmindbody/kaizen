@@ -1,41 +1,51 @@
+import { useEffect, useCallback } from 'react';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import {
+  fetchClinics as fetchClinicsAction,
+  addClinic as addClinicAction,
+  updateClinic as updateClinicAction,
+  deleteClinic as deleteClinicAction
+} from '@/store/slices/clinicsSlice';
 import { Clinic } from '@/types/clinic';
-import { useState, useEffect } from 'react';
 import { UseClinicsReturn } from '@/types/content';
 
 export function useClinics(): UseClinicsReturn {
-  const [clinics, setClinics] = useState<Clinic[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const dispatch = useAppDispatch();
+  const { clinics, loading, error, initialized } = useAppSelector((state) => state.clinics);
 
   useEffect(() => {
-    async function fetchClinics() {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await fetch('/api/clinics');
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        
-        if (result.error) {
-          throw new Error(result.error);
-        }
-        
-        setClinics(result.data || []);
-      } catch (err) {
-        console.error('Error fetching clinics:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch clinics');
-      } finally {
-        setLoading(false);
-      }
+    // Only fetch if data has never been loaded before
+    if (!initialized) {
+      dispatch(fetchClinicsAction());
     }
+  }, [initialized, dispatch]);
 
-    fetchClinics();
-  }, []);
+  const addClinic = useCallback(async (clinicData: Partial<Clinic>): Promise<boolean> => {
+    const result = await dispatch(addClinicAction(clinicData));
+    return addClinicAction.fulfilled.match(result);
+  }, [dispatch]);
 
-  return { clinics, loading, error };
+  const updateClinic = useCallback(async (id: number, clinicData: Partial<Clinic>): Promise<boolean> => {
+    const result = await dispatch(updateClinicAction({ id, clinicData }));
+    return updateClinicAction.fulfilled.match(result);
+  }, [dispatch]);
+
+  const deleteClinic = useCallback(async (id: number): Promise<boolean> => {
+    const result = await dispatch(deleteClinicAction(id));
+    return deleteClinicAction.fulfilled.match(result);
+  }, [dispatch]);
+
+  const refreshClinics = useCallback(async () => {
+    await dispatch(fetchClinicsAction());
+  }, [dispatch]);
+
+  return {
+    clinics,
+    loading,
+    error,
+    addClinic,
+    updateClinic,
+    deleteClinic,
+    refreshClinics
+  };
 }

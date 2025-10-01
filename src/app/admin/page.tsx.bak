@@ -4,32 +4,19 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSpecialty } from '@/hooks/useSpecialty';
-import { useDegrees } from '@/hooks/useDegrees';
-import { useClinics } from '@/hooks/useClinics';
-import { useFaq } from '@/hooks/useFaq';
-import { useBlogs } from '@/hooks/useBlogs';
 import { supabase } from '@/lib/supabase';
-import { Users as UsersIcon, FileText, Settings as SettingsIcon, BarChart3, Menu, X, Users, Settings, Building2, GraduationCap, HelpCircle, BookOpen, Calendar } from 'lucide-react';
+import { Users as UsersIcon, FileText, Settings as SettingsIcon, BarChart3, Menu, X, Users, Settings } from 'lucide-react';
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 import Image from 'next/image';
 import Overview from './components/Overview';
 import UsersComponent from './components/Users';
 import SpecialtiesComponent from './components/Specialties';
-import DegreesComponent from './components/Degrees';
-import ClinicsComponent from './components/Clinics';
-import FaqsComponent from './components/Faqs';
-import BlogsComponent from './components/Blogs';
-import EventsComponent from './components/Events';
 import SettingsComponent from './components/Settings';
 import { User, Stats } from '@/types/user';
 
 const AdminDashboard = () => {
   const { user, loading, isAdmin } = useAuth();
   const { specialties } = useSpecialty();
-  const { degrees } = useDegrees();
-  const { clinics } = useClinics();
-  const { faqs } = useFaq();
-  const { blogs } = useBlogs();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState<Stats>({ totalUsers: 0, totalPractitioners: 0, totalPatients: 0, totalSpecialties: 0 });
@@ -173,11 +160,6 @@ const AdminDashboard = () => {
                 { id: 'overview', name: 'Overview', icon: BarChart3 },
                 { id: 'users', name: 'Users', icon: UsersIcon },
                 { id: 'specialties', name: 'Specialties', icon: FileText },
-                { id: 'degrees', name: 'Degrees', icon: GraduationCap },
-                { id: 'clinics', name: 'Clinics', icon: Building2 },
-                { id: 'faqs', name: 'FAQs', icon: HelpCircle },
-                { id: 'blogs', name: 'Blogs', icon: BookOpen },
-                { id: 'events', name: 'Events', icon: Calendar },
                 { id: 'settings', name: 'Settings', icon: SettingsIcon },
               ].map((tab) => {
                 const Icon = tab.icon;
@@ -230,11 +212,6 @@ const AdminDashboard = () => {
                   { id: 'overview', name: 'Overview', icon: BarChart3 },
                   { id: 'users', name: 'Users', icon: Users },
                   { id: 'specialties', name: 'Specialties', icon: FileText },
-                  { id: 'degrees', name: 'Degrees', icon: GraduationCap },
-                  { id: 'clinics', name: 'Clinics', icon: Building2 },
-                  { id: 'faqs', name: 'FAQs', icon: HelpCircle },
-                  { id: 'blogs', name: 'Blogs', icon: BookOpen },
-                  { id: 'events', name: 'Events', icon: Calendar },
                   { id: 'settings', name: 'Settings', icon: Settings },
                 ].map((tab) => {
                   const Icon = tab.icon;
@@ -287,36 +264,6 @@ const AdminDashboard = () => {
 
             {activeTab === 'specialties' && (
               <SpecialtiesComponent
-                onRefreshData={fetchAdminData}
-              />
-            )}
-
-            {activeTab === 'degrees' && (
-              <DegreesComponent
-                onRefreshData={fetchAdminData}
-              />
-            )}
-
-            {activeTab === 'clinics' && (
-              <ClinicsComponent
-                onRefreshData={fetchAdminData}
-              />
-            )}
-
-            {activeTab === 'faqs' && (
-              <FaqsComponent
-                onRefreshData={fetchAdminData}
-              />
-            )}
-
-            {activeTab === 'blogs' && (
-              <BlogsComponent
-                onRefreshData={fetchAdminData}
-              />
-            )}
-
-            {activeTab === 'events' && (
-              <EventsComponent
                 onRefreshData={fetchAdminData}
               />
             )}

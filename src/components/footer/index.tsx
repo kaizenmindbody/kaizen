@@ -36,7 +36,7 @@ const Footer = () => {
                   <li>
                     <Link
                       href="/about-us"
-                      className="block sm:mb-4 text-sm sm:text-base duration-300 hover:text-secondary-light py-1"
+                      className="block sm:mb-4 text-sm sm:text-base duration-300 hover:text-primary py-1"
                     >
                       About Us
                     </Link>
@@ -44,7 +44,7 @@ const Footer = () => {
                   <li>
                     <Link
                       href="/faq"
-                      className="block sm:mb-4 text-sm sm:text-base duration-300 hover:text-secondary-light py-1"
+                      className="block sm:mb-4 text-sm sm:text-base duration-300 hover:text-primary py-1"
                     >
                       FAQs
                     </Link>
@@ -70,7 +70,7 @@ const Footer = () => {
                   </button>
                 </div>
                 <div className="flex items-center justify-center md:justify-start space-x-4 pt-4 pb-12">
-                  <Link href="#" className="p-2 bg-white rounded-lg hover:bg-secondary/80 transition-all duration-200">
+                  <Link href="#" className="p-2 bg-white rounded-lg hover:bg-primary transition-all duration-200">
                     <Image
                       src="/images/social/facebook.png"
                       width={40}
@@ -79,7 +79,7 @@ const Footer = () => {
                       className="w-8 h-8 object-contain"
                     />
                   </Link>
-                  <Link href="#" className="p-2 bg-white rounded-lg hover:bg-secondary/80 transition-all duration-200">
+                  <Link href="#" className="p-2 bg-white rounded-lg hover:bg-primary transition-all duration-200">
                     <Image
                       src="/images/social/instagram.png"
                       width={40}
@@ -88,7 +88,7 @@ const Footer = () => {
                       className="w-8 h-8 object-contain"
                     />
                   </Link>
-                  <Link href="#" className="p-2 bg-white rounded-lg hover:bg-secondary/80 transition-all duration-200">
+                  <Link href="#" className="p-2 bg-white rounded-lg hover:bg-primary transition-all duration-200">
                     <Image
                       src="/images/social/youtube.png"
                       width={40}
@@ -113,16 +113,16 @@ const Footer = () => {
                 Copyright &copy; {new Date().getFullYear()} Kaizen. All Rights Reserved
               </p>
               <div className="flex items-center space-x-2 sm:space-x-4 order-1 sm:order-2">
-                <a 
-                  href="/privacy-policy" 
-                  className="text-white hover:text-gray-200 transition-colors duration-200 text-sm sm:text-base"
+                <a
+                  href="/privacy-policy"
+                  className="text-white hover:text-primary transition-colors duration-200 text-sm sm:text-base"
                 >
                   Privacy Policy
                 </a>
                 <span className="text-white text-sm sm:text-base">|</span>
-                <a 
-                  href="/terms-conditions" 
-                  className="text-white hover:text-gray-200 transition-colors duration-200 text-sm sm:text-base"
+                <a
+                  href="/terms-conditions"
+                  className="text-white hover:text-primary transition-colors duration-200 text-sm sm:text-base"
                 >
                   Terms & Conditions
                 </a>

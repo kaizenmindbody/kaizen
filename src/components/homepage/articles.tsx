@@ -1,7 +1,10 @@
-import React from 'react';
+'use client';
+
+import React, { useMemo } from 'react';
 import Image from 'next/image';
 import { User, Calendar } from 'lucide-react';
-import { ArticlesProps } from '@/types/homepage';
+import { useBlogs } from '@/hooks/useBlogs';
+import { useRouter } from 'next/navigation';
 
 // Skeleton Loading Component for Article Card
 const ArticleSkeleton = () => {
@@ -47,7 +50,25 @@ const ArticleSkeleton = () => {
   );
 };
 
-const LatestArticlesSection = ({title, articles, loading}: ArticlesProps & { loading?: boolean }) => {
+const LatestArticlesSection = ({ title }: { title: string }) => {
+  const { blogs, loading } = useBlogs();
+  const router = useRouter();
+
+  // Format date helper
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
+  // Get latest 4 blogs
+  const latestBlogs = useMemo(() => {
+    return [...blogs]
+      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+      .slice(0, 4);
+  }, [blogs]);
 
   return (
     <section className="relative bg-white py-12 md:py-16 lg:py-20">
@@ -62,27 +83,36 @@ const LatestArticlesSection = ({title, articles, loading}: ArticlesProps & { loa
         {/* Loading State or Articles Grid */}
         {loading ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-6">
-            {Array.from({ length: 2 }, (_, index) => (
+            {Array.from({ length: 4 }, (_, index) => (
               <ArticleSkeleton key={`skeleton-${index}`} />
             ))}
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-6">
-            {articles?.map((article) => (
+            {latestBlogs.map((blog) => (
               <article
-                key={article.id}
-                className="font-sans group bg-white border border-[#E6E8EE] rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 p-2"
+                key={blog.id}
+                className="font-sans group bg-white border border-[#E6E8EE] rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 p-2 cursor-pointer"
+                onClick={() => router.push(`/blog-details/${blog.id}`)}
               >
                 <div className="flex flex-col sm:flex-row">
                   {/* Image */}
                   <div className="sm:w-1/3 lg:w-2/5 p-2 border-lg">
-                    <Image
-                      src={article.image}
-                      width={300}
-                      height={300}
-                      alt={article.title}
-                      className="w-full h-full rounded-lg object-cover transition-transform duration-300"
-                    />
+                    {blog.image ? (
+                      <Image
+                        src={blog.image}
+                        width={300}
+                        height={300}
+                        alt={blog.title}
+                        className="w-full h-full rounded-lg object-cover transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-48 sm:h-full bg-gray-200 rounded-lg flex items-center justify-center">
+                        <svg className="w-16 h-16 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    )}
                   </div>
 
                   {/* Content */}
@@ -91,28 +121,32 @@ const LatestArticlesSection = ({title, articles, loading}: ArticlesProps & { loa
                     <div className="flex items-center gap-4 mb-4 text-[12px] md:text-[14px] text-[#465D7C]">
                       <div className="flex items-center gap-1">
                         <User className="w-3 h-3 md:w-4 md:h-4" />
-                        <span>{article.author}</span>
+                        <span>{blog.author || 'Anonymous'}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Calendar className="w-3 h-3 md:w-4 md:h-4" />
-                        <span>{article.date}</span>
+                        <span>{formatDate(blog.updated_at)}</span>
                       </div>
                     </div>
 
                     {/* Title */}
-                    <h3 className="text-[16px] font-[600] text-[#012047] leading-tight mb-3 transition-colors duration-300">
-                      {article.title}
+                    <h3 className="text-[16px] font-[600] text-[#012047] leading-tight mb-3 group-hover:text-[#0E82FD] transition-colors duration-300">
+                      {blog.title}
                     </h3>
 
                     {/* Excerpt with 2-line limit and ellipsis */}
                     <p className="text-[12px] md:text-[14px] text-[#465D7C] leading-relaxed mb-2 flex-grow line-clamp-2 overflow-hidden">
-                      {article.description}
+                      {blog.description}
                     </p>
 
                     {/* Read More Button */}
                     <button
                       className="flex items-center text-[14px] font-[500] text-[#0E82FD] border border-[#0E82FD] rounded-full px-4 py-1 transition-all duration-300 self-start
                                 hover:bg-[#0E82FD] hover:text-white"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/blog-details/${blog.id}`);
+                      }}
                     >
                       Read More
                     </button>

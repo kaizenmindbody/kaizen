@@ -5,14 +5,14 @@ export async function GET() {
   try {
     const supabase = createServerSupabaseClient();
     const { data, error } = await supabase
-      .from('Blogs')
+      .from('Degrees')
       .select('*')
-      .order('updated_at', { ascending: false });
+      .order('title', { ascending: true });
 
     if (error) {
-      console.error('Error fetching blogs:', error);
+      console.error('Error fetching degrees:', error);
       return NextResponse.json(
-        { error: 'Failed to fetch blogs' },
+        { error: 'Failed to fetch degrees' },
         { status: 500 }
       );
     }
@@ -30,38 +30,25 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { title, description, image, author, category } = body;
+    const { title } = body;
 
     if (!title || !title.trim()) {
       return NextResponse.json(
-        { error: 'Title is required' },
-        { status: 400 }
-      );
-    }
-
-    if (!description || !description.trim()) {
-      return NextResponse.json(
-        { error: 'Description is required' },
+        { error: 'Degree title is required' },
         { status: 400 }
       );
     }
 
     const supabase = createServerSupabaseClient();
     const { data, error } = await supabase
-      .from('Blogs')
-      .insert([{
-        title: title.trim(),
-        description: description.trim(),
-        image: image || '',
-        author: author || 'Anonymous',
-        category: category || 'General'
-      }])
+      .from('Degrees')
+      .insert([{ title: title.trim() }])
       .select();
 
     if (error) {
-      console.error('Error adding blog:', error);
+      console.error('Error adding degree:', error);
       return NextResponse.json(
-        { error: 'Failed to add blog' },
+        { error: 'Failed to add degree' },
         { status: 500 }
       );
     }
@@ -79,7 +66,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, title, description, image, author, category } = body;
+    const { id, title } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -90,42 +77,29 @@ export async function PUT(request: NextRequest) {
 
     if (!title || !title.trim()) {
       return NextResponse.json(
-        { error: 'Title is required' },
-        { status: 400 }
-      );
-    }
-
-    if (!description || !description.trim()) {
-      return NextResponse.json(
-        { error: 'Description is required' },
+        { error: 'Degree title is required' },
         { status: 400 }
       );
     }
 
     const supabase = createServerSupabaseClient();
     const { data, error } = await supabase
-      .from('Blogs')
-      .update({
-        title: title.trim(),
-        description: description.trim(),
-        image: image || '',
-        author: author || 'Anonymous',
-        category: category || 'General'
-      })
+      .from('Degrees')
+      .update({ title: title.trim() })
       .eq('id', id)
       .select();
 
     if (error) {
-      console.error('Error updating blog:', error);
+      console.error('Error updating degree:', error);
       return NextResponse.json(
-        { error: 'Failed to update blog' },
+        { error: 'Failed to update degree' },
         { status: 500 }
       );
     }
 
     if (!data || data.length === 0) {
       return NextResponse.json(
-        { error: 'Blog not found' },
+        { error: 'Degree not found' },
         { status: 404 }
       );
     }
@@ -153,14 +127,14 @@ export async function DELETE(request: NextRequest) {
 
     const supabase = createServerSupabaseClient();
     const { error } = await supabase
-      .from('Blogs')
+      .from('Degrees')
       .delete()
       .eq('id', id);
 
     if (error) {
-      console.error('Error deleting blog:', error);
+      console.error('Error deleting degree:', error);
       return NextResponse.json(
-        { error: 'Failed to delete blog' },
+        { error: 'Failed to delete degree' },
         { status: 500 }
       );
     }

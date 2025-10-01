@@ -1,30 +1,37 @@
 "use client";
 
 import { useState, useRef } from 'react';
-import { DataTable, DataTableRowEditCompleteEvent } from 'primereact/datatable';
-import { Column, ColumnEditorOptions } from 'primereact/column';
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
 import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
+import { InputTextarea } from 'primereact/inputtextarea';
 import { Dialog } from 'primereact/dialog';
 import toast from 'react-hot-toast';
-import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
+import { confirmDialog } from 'primereact/confirmdialog';
 import { FilterMatchMode } from 'primereact/api';
-import { useSpecialty } from '@/hooks/useSpecialty';
-import { Specialty } from '@/types/user';
+import { useFaq } from '@/hooks/useFaq';
+import { FAQ } from '@/types/faq';
 
-const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
-  const { specialties, loading, error, addSpecialty: addSpecialtyHook, updateSpecialty: updateSpecialtyHook, deleteSpecialty: deleteSpecialtyHook } = useSpecialty();
+const Faqs = ({ onRefreshData }: { onRefreshData: () => void }) => {
+  const { faqs, loading, error, addFaq: addFaqHook, updateFaq: updateFaqHook, deleteFaq: deleteFaqHook } = useFaq();
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [newSpecialtyTitle, setNewSpecialtyTitle] = useState('');
+  const [newFaq, setNewFaq] = useState({
+    question: '',
+    answer: ''
+  });
   const [showEditDialog, setShowEditDialog] = useState(false);
-  const [editingSpecialty, setEditingSpecialty] = useState<Specialty | null>(null);
-  const [editSpecialtyTitle, setEditSpecialtyTitle] = useState('');
+  const [editingFaq, setEditingFaq] = useState<FAQ | null>(null);
+  const [editFaqData, setEditFaqData] = useState({
+    question: '',
+    answer: ''
+  });
   const [globalFilterValue, setGlobalFilterValue] = useState('');
   const [filters, setFilters] = useState({
     global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    title: { value: null, matchMode: FilterMatchMode.STARTS_WITH }
+    question: { value: null, matchMode: FilterMatchMode.CONTAINS }
   });
-  const dt = useRef<DataTable<Specialty[]>>(null);
+  const dt = useRef<DataTable<FAQ[]>>(null);
 
   const showSuccess = (message: string) => {
     toast.success(message);
@@ -49,72 +56,92 @@ const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
   const initFilters = () => {
     setFilters({
       global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-      title: { value: null, matchMode: FilterMatchMode.STARTS_WITH }
+      question: { value: null, matchMode: FilterMatchMode.CONTAINS }
     });
     setGlobalFilterValue('');
   };
 
-  const addSpecialty = async () => {
-    if (!newSpecialtyTitle.trim()) {
-      showError('Title is required');
+  const addFaq = async () => {
+    if (!newFaq.question.trim()) {
+      showError('Question is required');
       return;
     }
 
-    const success = await addSpecialtyHook(newSpecialtyTitle);
+    if (!newFaq.answer.trim()) {
+      showError('Answer is required');
+      return;
+    }
+
+    const success = await addFaqHook(newFaq);
     if (success) {
-      setNewSpecialtyTitle('');
+      setNewFaq({
+        question: '',
+        answer: ''
+      });
       setShowAddDialog(false);
-      showSuccess('Specialty added successfully');
+      showSuccess('FAQ added successfully');
     } else {
-      showError('Error adding specialty');
+      showError('Error adding FAQ');
     }
   };
 
-  const openEditDialog = (specialty: Specialty) => {
-    setEditingSpecialty(specialty);
-    setEditSpecialtyTitle(specialty.title);
+  const openEditDialog = (faq: FAQ) => {
+    setEditingFaq(faq);
+    setEditFaqData({
+      question: faq.question,
+      answer: faq.answer
+    });
     setShowEditDialog(true);
   };
 
   const closeEditDialog = () => {
     setShowEditDialog(false);
-    setEditingSpecialty(null);
-    setEditSpecialtyTitle('');
+    setEditingFaq(null);
+    setEditFaqData({
+      question: '',
+      answer: ''
+    });
   };
 
-  const editSpecialty = async () => {
-    if (!editingSpecialty || !editSpecialtyTitle.trim()) {
-      showError('Title is required');
+  const editFaq = async () => {
+    if (!editingFaq || !editFaqData.question.trim()) {
+      showError('Question is required');
       return;
     }
 
-    const success = await updateSpecialtyHook(editingSpecialty.id, editSpecialtyTitle);
+    if (!editFaqData.answer.trim()) {
+      showError('Answer is required');
+      return;
+    }
+
+    console.log('Updating FAQ:', { id: editingFaq.id, data: editFaqData });
+    const success = await updateFaqHook(editingFaq.id, editFaqData);
+    console.log('Update result:', success);
     if (success) {
       closeEditDialog();
-      showSuccess('Specialty updated successfully');
+      showSuccess('FAQ updated successfully');
     } else {
-      showError('Error updating specialty');
+      showError('Error updating FAQ');
     }
   };
 
-
-  const confirmDeleteSpecialty = (specialty: Specialty) => {
+  const confirmDeleteFaq = (faq: FAQ) => {
     confirmDialog({
-      message: `Are you sure you want to delete "${specialty.title}"?`,
+      message: `Are you sure you want to delete this FAQ?`,
       header: 'Delete Confirmation',
       icon: 'pi pi-info-circle',
       defaultFocus: 'reject',
       acceptClassName: 'p-button-danger',
-      accept: () => deleteSpecialtyHandler(specialty.id),
+      accept: () => deleteFaqHandler(faq.id),
     });
   };
 
-  const deleteSpecialtyHandler = async (specialtyId: string) => {
-    const success = await deleteSpecialtyHook(specialtyId);
+  const deleteFaqHandler = async (faqId: number) => {
+    const success = await deleteFaqHook(faqId);
     if (success) {
-      showSuccess('Specialty deleted successfully');
+      showSuccess('FAQ deleted successfully');
     } else {
-      showError('Error deleting specialty');
+      showError('Error deleting FAQ');
     }
   };
 
@@ -127,9 +154,9 @@ const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
       <div className="px-6 py-4 border-b border-gray-200 bg-white">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <h4 className="text-lg font-semibold text-gray-900 m-0">Manage Specialties</h4>
+            <h4 className="text-lg font-semibold text-gray-900 m-0">Manage FAQs</h4>
             <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
-              {specialties.length} total
+              {faqs.length} total
             </span>
           </div>
           <div className="flex items-center gap-3">
@@ -138,7 +165,7 @@ const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
                 type="text"
                 value={globalFilterValue}
                 onChange={onGlobalFilterChange}
-                placeholder="Search specialties..."
+                placeholder="Search FAQs..."
                 className="px-3 py-2 border border-gray-300 rounded-l-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm w-64"
               />
               {globalFilterValue && (
@@ -168,21 +195,20 @@ const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
     );
   };
 
-
-  const actionBodyTemplate = (rowData: Specialty) => {
+  const actionBodyTemplate = (rowData: FAQ) => {
     return (
       <div className="flex items-center justify-start gap-2">
         <button
           onClick={() => openEditDialog(rowData)}
           className="px-2 py-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded border border-transparent hover:border-blue-200 transition-colors"
-          title="Edit specialty"
+          title="Edit FAQ"
         >
           <i className="pi pi-pencil text-sm"></i>
         </button>
         <button
-          onClick={() => confirmDeleteSpecialty(rowData)}
+          onClick={() => confirmDeleteFaq(rowData)}
           className="px-2 py-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded border border-transparent hover:border-red-200 transition-colors"
-          title="Delete specialty"
+          title="Delete FAQ"
         >
           <i className="pi pi-trash text-sm"></i>
         </button>
@@ -190,10 +216,18 @@ const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
     );
   };
 
-  const titleBodyTemplate = (rowData: Specialty) => {
+  const questionBodyTemplate = (rowData: FAQ) => {
     return (
       <div className="py-3 pl-6">
-        <div className="font-medium text-gray-900">{rowData.title}</div>
+        <div className="font-medium text-gray-900">{rowData.question}</div>
+      </div>
+    );
+  };
+
+  const answerBodyTemplate = (rowData: FAQ) => {
+    return (
+      <div className="py-3">
+        <div className="text-gray-700 line-clamp-2">{rowData.answer}</div>
       </div>
     );
   };
@@ -206,14 +240,17 @@ const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
         outlined
         onClick={() => {
           setShowAddDialog(false);
-          setNewSpecialtyTitle('');
+          setNewFaq({
+            question: '',
+            answer: ''
+          });
         }}
       />
       <Button
         label="Add"
         icon="pi pi-check"
-        onClick={addSpecialty}
-        disabled={!newSpecialtyTitle.trim()}
+        onClick={addFaq}
+        disabled={!newFaq.question.trim() || !newFaq.answer.trim()}
         autoFocus
       />
     </div>
@@ -230,8 +267,8 @@ const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
       <Button
         label="Update"
         icon="pi pi-check"
-        onClick={editSpecialty}
-        disabled={!editSpecialtyTitle.trim()}
+        onClick={editFaq}
+        disabled={!editFaqData.question.trim() || !editFaqData.answer.trim()}
         autoFocus
       />
     </div>
@@ -241,7 +278,7 @@ const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold text-gray-900">Specialties Management</h2>
+          <h2 className="text-3xl font-bold text-gray-900">FAQs Management</h2>
           <div className="text-sm text-gray-600">Loading...</div>
         </div>
         <div className="bg-white shadow-sm rounded-lg p-8">
@@ -257,10 +294,10 @@ const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold text-gray-900">Specialties Management</h2>
+          <h2 className="text-3xl font-bold text-gray-900">FAQs Management</h2>
         </div>
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-800">Error loading specialties: {error}</p>
+          <p className="text-red-800">Error loading FAQs: {error}</p>
         </div>
       </div>
     );
@@ -270,10 +307,10 @@ const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold text-gray-900">Specialties Management</h2>
+        <h2 className="text-3xl font-bold text-gray-900">FAQs Management</h2>
         <Button
           icon="pi pi-plus"
-          label="Add Specialty"
+          label="Add FAQ"
           onClick={() => setShowAddDialog(true)}
           className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600 hover:border-blue-700"
         />
@@ -283,35 +320,43 @@ const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
       <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
         <DataTable
           ref={dt}
-          value={specialties}
+          value={faqs}
           dataKey="id"
           header={renderHeader()}
           filters={filters}
           filterDisplay="row"
-          globalFilterFields={['title']}
-          emptyMessage="No specialties found"
+          globalFilterFields={['question', 'answer']}
+          emptyMessage="No FAQs found"
           paginator
           rows={10}
           rowsPerPageOptions={[5, 10, 25, 50]}
           sortMode="single"
-          sortField="title"
+          sortField="id"
           sortOrder={1}
           className="p-datatable-sm"
           stripedRows
         >
           <Column
-            field="title"
-            header="Title"
+            field="question"
+            header="Question"
             sortable
-            body={titleBodyTemplate}
-            style={{ width: '70%' }}
+            body={questionBodyTemplate}
+            style={{ width: '40%' }}
             headerStyle={{ textAlign: 'center', paddingLeft: '24px' }}
+            headerClassName="text-center"
+          />
+          <Column
+            field="answer"
+            header="Answer"
+            body={answerBodyTemplate}
+            style={{ width: '45%' }}
+            headerStyle={{ textAlign: 'center' }}
             headerClassName="text-center"
           />
           <Column
             header="Actions"
             body={actionBodyTemplate}
-            headerStyle={{ width: '30%', textAlign: 'center' }}
+            headerStyle={{ width: '15%', textAlign: 'center' }}
             bodyStyle={{ textAlign: 'center' }}
             headerClassName="text-center"
           />
@@ -320,28 +365,42 @@ const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
 
       {/* Add Dialog */}
       <Dialog
-        header="Add New Specialty"
+        header="Add New FAQ"
         visible={showAddDialog}
-        style={{ width: '450px' }}
+        style={{ width: '600px' }}
         footer={addDialogFooter}
         onHide={() => {
           setShowAddDialog(false);
-          setNewSpecialtyTitle('');
+          setNewFaq({
+            question: '',
+            answer: ''
+          });
         }}
         modal
       >
-        <div className="p-fluid">
+        <div className="p-fluid space-y-4">
           <div className="field">
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-              Specialty Title
+            <label htmlFor="question" className="block text-sm font-medium text-gray-700 mb-2">
+              Question <span className="text-red-500">*</span>
             </label>
             <InputText
-              id="title"
-              value={newSpecialtyTitle}
-              onChange={(e) => setNewSpecialtyTitle(e.target.value)}
-              placeholder="Enter specialty title..."
+              id="question"
+              value={newFaq.question}
+              onChange={(e) => setNewFaq({ ...newFaq, question: e.target.value })}
+              placeholder="Enter question..."
               autoFocus
-              onKeyPress={(e) => e.key === 'Enter' && addSpecialty()}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="answer" className="block text-sm font-medium text-gray-700 mb-2">
+              Answer <span className="text-red-500">*</span>
+            </label>
+            <InputTextarea
+              id="answer"
+              value={newFaq.answer}
+              onChange={(e) => setNewFaq({ ...newFaq, answer: e.target.value })}
+              placeholder="Enter answer..."
+              rows={5}
             />
           </div>
         </div>
@@ -349,25 +408,36 @@ const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
 
       {/* Edit Dialog */}
       <Dialog
-        header="Edit Specialty"
+        header="Edit FAQ"
         visible={showEditDialog}
-        style={{ width: '450px' }}
+        style={{ width: '600px' }}
         footer={editDialogFooter}
         onHide={closeEditDialog}
         modal
       >
-        <div className="p-fluid">
+        <div className="p-fluid space-y-4">
           <div className="field">
-            <label htmlFor="editTitle" className="block text-sm font-medium text-gray-700 mb-2">
-              Specialty Title
+            <label htmlFor="editQuestion" className="block text-sm font-medium text-gray-700 mb-2">
+              Question <span className="text-red-500">*</span>
             </label>
             <InputText
-              id="editTitle"
-              value={editSpecialtyTitle}
-              onChange={(e) => setEditSpecialtyTitle(e.target.value)}
-              placeholder="Enter specialty title..."
+              id="editQuestion"
+              value={editFaqData.question}
+              onChange={(e) => setEditFaqData({ ...editFaqData, question: e.target.value })}
+              placeholder="Enter question..."
               autoFocus
-              onKeyPress={(e) => e.key === 'Enter' && editSpecialty()}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="editAnswer" className="block text-sm font-medium text-gray-700 mb-2">
+              Answer <span className="text-red-500">*</span>
+            </label>
+            <InputTextarea
+              id="editAnswer"
+              value={editFaqData.answer}
+              onChange={(e) => setEditFaqData({ ...editFaqData, answer: e.target.value })}
+              placeholder="Enter answer..."
+              rows={5}
             />
           </div>
         </div>
@@ -376,4 +446,4 @@ const Specialties = ({ onRefreshData }: { onRefreshData: () => void }) => {
   );
 };
 
-export default Specialties;
+export default Faqs;

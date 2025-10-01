@@ -138,24 +138,24 @@ const BlogGridPage = () => {
   const blogsPerPage = 6;
   const router = useRouter();
 
-  // Filter blogs by category and search query, then sort alphabetically
+  // Filter blogs by category and search query, then sort by date
   const filteredBlogs = useMemo(() => {
     let filtered = allBlogs;
-    
+
     // Filter by category
     if (selectedCategory !== 'All') {
       filtered = filtered.filter(blog => blog.category === selectedCategory);
     }
-    
+
     // Filter by search query (search in title)
     if (searchQuery.trim()) {
-      filtered = filtered.filter(blog => 
+      filtered = filtered.filter(blog =>
         blog.title.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
-    
-    // Sort alphabetically by title (A to Z)
-    return filtered.sort((a, b) => a.title.localeCompare(b.title));
+
+    // Sort by date (newest first) - create a copy before sorting to avoid mutating Redux state
+    return [...filtered].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
   }, [allBlogs, selectedCategory, searchQuery]);
 
   // Generate categories from actual blog data
@@ -210,6 +210,15 @@ const BlogGridPage = () => {
     // Search is already happening in real-time, but we can add any additional logic here
   };
 
+  // Format date helper
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
   // Get latest news (most recent blogs)
   const latestNews = useMemo(() => {
     return [...allBlogs]
@@ -218,7 +227,8 @@ const BlogGridPage = () => {
       .map(blog => ({
         title: blog.title,
         image: blog.image,
-        date: blog.updated_at
+        date: formatDate(blog.updated_at),
+        id: blog.id
       }));
   }, [allBlogs]);
 
@@ -264,18 +274,26 @@ const BlogGridPage = () => {
                   >
                     {/* Image */}
                     <div className="relative mb-4 overflow-hidden rounded-lg">
-                      <div className="relative aspect-[16/10] w-full">
-                        <Image
-                          src={post.image}
-                          alt={post.title}
-                          fill
-                          className="object-cover transition-transform duration-300 group-hover:scale-105"
-                        />
+                      <div className="relative aspect-[16/10] w-full bg-gray-200">
+                        {post.image ? (
+                          <Image
+                            src={post.image}
+                            alt={post.title}
+                            fill
+                            className="object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                            <svg className="w-16 h-16 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        )}
                       </div>
                       {/* Category Badge */}
                       <div className="absolute top-4 left-4">
                         <span className="bg-primary px-3 py-1 text-xs font-medium text-white rounded-full">
-                          {post.category}
+                          {post.category || 'General'}
                         </span>
                       </div>
                     </div>
@@ -287,20 +305,20 @@ const BlogGridPage = () => {
                         <div className="flex items-center gap-2">
                           <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
                             <span className="text-xs font-medium text-primary">
-                              {post.author.charAt(0)}
+                              {(post.author || 'A').charAt(0).toUpperCase()}
                             </span>
                           </div>
-                          <span>{post.author}</span>
+                          <span>{post.author || 'Anonymous'}</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <svg 
-                            width="14" 
-                            height="14" 
-                            viewBox="0 0 24 24" 
-                            fill="none" 
-                            stroke="currentColor" 
-                            strokeWidth="2" 
-                            strokeLinecap="round" 
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
                             strokeLinejoin="round"
                             className="text-body-color"
                           >
@@ -309,7 +327,7 @@ const BlogGridPage = () => {
                             <line x1="8" y1="2" x2="8" y2="6"></line>
                             <line x1="3" y1="10" x2="21" y2="10"></line>
                           </svg>
-                          <span>{post.updated_at}</span>
+                          <span>{formatDate(post.updated_at)}</span>
                         </div>
                       </div>
 
@@ -439,17 +457,29 @@ const BlogGridPage = () => {
                 </h3>
                 <div className="space-y-4">
                   {latestNews.map((news, index) => (
-                    <div key={index} className="flex gap-3">
-                      <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded">
-                        <Image
-                          src={news.image}
-                          alt={news.title}
-                          fill
-                          className="object-cover"
-                        />
+                    <div
+                      key={index}
+                      className="flex gap-3 cursor-pointer group"
+                      onClick={() => handleBlogClick(news.id)}
+                    >
+                      <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded bg-gray-200">
+                        {news.image ? (
+                          <Image
+                            src={news.image}
+                            alt={news.title}
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium text-black dark:text-white leading-tight mb-1 line-clamp-2">
+                        <h4 className="text-sm font-medium text-black dark:text-white group-hover:text-primary transition-colors leading-tight mb-1 line-clamp-2">
                           {news.title}
                         </h4>
                         <span className="text-xs text-body-color">

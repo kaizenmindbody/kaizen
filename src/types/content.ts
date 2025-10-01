@@ -19,6 +19,10 @@ export interface UseBlogsReturn {
   blogs: BlogPost[];
   loading: boolean;
   error: string | null;
+  addBlog: (blogData: Partial<BlogPost>) => Promise<boolean>;
+  updateBlog: (id: number, blogData: Partial<BlogPost>) => Promise<boolean>;
+  deleteBlog: (id: number) => Promise<boolean>;
+  refreshBlogs: () => Promise<void>;
 }
 
 export interface UseArticlesReturn {
@@ -31,6 +35,10 @@ export interface UseFaqReturn {
   faqs: FAQ[];
   loading: boolean;
   error: string | null;
+  addFaq: (faqData: Partial<FAQ>) => Promise<boolean>;
+  updateFaq: (id: number, faqData: Partial<FAQ>) => Promise<boolean>;
+  deleteFaq: (id: number) => Promise<boolean>;
+  refreshFaqs: () => Promise<void>;
 }
 
 export interface UseHomeFaqsReturn {
@@ -73,6 +81,10 @@ export interface UseClinicsReturn {
   clinics: Clinic[];
   loading: boolean;
   error: string | null;
+  addClinic: (clinicData: Partial<Clinic>) => Promise<boolean>;
+  updateClinic: (id: number, clinicData: Partial<Clinic>) => Promise<boolean>;
+  deleteClinic: (id: number) => Promise<boolean>;
+  refreshClinics: () => Promise<void>;
 }
 
 export interface UseAboutUsReturn {
@@ -98,7 +110,6 @@ export interface UseHomeDataReturn {
   modalities: Icon[];
   tcms: HomepageUser[];
   tcmFaqs: FAQItem[];
-  articles: Article[];
   personEvents: PersonEvent[];
   homeFaqs: HomeFAQ[];
 
@@ -107,7 +118,6 @@ export interface UseHomeDataReturn {
   modalitiesLoading: boolean;
   tcmsLoading: boolean;
   tcmFaqsLoading: boolean;
-  articlesLoading: boolean;
   personEventsLoading: boolean;
   homeFaqsLoading: boolean;
 
@@ -119,7 +129,6 @@ export interface UseHomeDataReturn {
   modalitiesError: string | null;
   tcmsError: string | null;
   tcmFaqsError: string | null;
-  articlesError: string | null;
   personEventsError: string | null;
   homeFaqsError: string | null;
 
@@ -131,7 +140,6 @@ export interface UseHomeDataReturn {
   refreshModalities: () => Promise<void>;
   refreshTcms: () => Promise<void>;
   refreshTcmFaqs: () => Promise<void>;
-  refreshArticles: () => Promise<void>;
   refreshPersonEvents: () => Promise<void>;
   refreshHomeFaqs: () => Promise<void>;
   refreshAll: () => Promise<void>;

@@ -43,6 +43,12 @@ export interface Specialty {
   created_at: string;
 }
 
+export interface Degree {
+  id: string;
+  title: string;
+  created_at: string;
+}
+
 export interface Stats {
   totalUsers: number;
   totalPractitioners: number;
@@ -87,4 +93,14 @@ export interface UseSpecialtyReturn {
   updateSpecialty: (id: string, title: string) => Promise<boolean>;
   deleteSpecialty: (id: string) => Promise<boolean>;
   refreshSpecialties: () => Promise<void>;
+}
+
+export interface UseDegreeReturn {
+  degrees: Degree[];
+  loading: boolean;
+  error: string | null;
+  addDegree: (title: string) => Promise<boolean>;
+  updateDegree: (id: string, title: string) => Promise<boolean>;
+  deleteDegree: (id: string) => Promise<boolean>;
+  refreshDegrees: () => Promise<void>;
 }

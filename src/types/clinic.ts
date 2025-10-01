@@ -3,6 +3,5 @@ export interface Clinic {
   service: string;
   location: string;
   image: string;
-  address: string;
   member: string;
 }

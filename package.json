@@ -11,6 +11,7 @@
   "dependencies": {
     "@google-cloud/local-auth": "^3.0.1",
     "@react-google-maps/api": "^2.20.7",
+    "@reduxjs/toolkit": "^2.9.0",
     "@schedule-x/calendar": "^3.1.1",
     "@schedule-x/events-service": "^3.1.1",
     "@schedule-x/react": "^3.1.0",
@@ -37,6 +38,7 @@
     "react-phone-input-2": "^2.15.1",
     "react-qr-code": "^2.0.18",
     "react-quill-new": "^3.6.0",
+    "react-redux": "^9.2.0",
     "react-select": "^5.10.2",
     "react-select-country-list": "^2.2.3",
     "react-spinners": "^0.17.0",

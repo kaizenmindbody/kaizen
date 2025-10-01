@@ -7,7 +7,7 @@ import menuData from "./menu-data";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Header = () => {
-  const { user, userProfile, loading, signOut } = useAuth();
+  const { user, userProfile, loading, signOut, isAdmin } = useAuth();
 
   // Debug auth state
   console.log('Header auth state:', { user: !!user, userProfile: !!userProfile, loading });
@@ -229,16 +229,16 @@ const Header = () => {
                         
                         <div className="py-1">
                           <Link
-                            href="/profile?section=info"
+                            href={isAdmin ? "/admin" : "/profile?section=info"}
                             className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors duration-200"
                             onClick={() => setProfileOpen(false)}
                           >
                             <svg className="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
-                            My Profile
+                            {isAdmin ? "Admin Dashboard" : "My Profile"}
                           </Link>
-                          
+
                         </div>
                         
                         <div className="border-t border-gray-100 dark:border-gray-700 pt-1">

@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from 'next/navigation';
+import Script from 'next/script';
 import Footer from "@/components/footer";
 import Header from "@/components/header";
 import ScrollToTop from "@/components/scroll-tops";
@@ -40,15 +41,13 @@ export default function RootLayout({
         <head /> will contain the components returned by the nearest parent
         head.js. Find out more at https://beta.nextjs.org/docs/api-reference/file-conventions/head
       */}
-      <head>
-        <script
-          src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAyzilLlWqrZJK6tAysGzr5n2EOZf1mHL4&libraries=places"
-          async
-          defer
-        />
-      </head>
+      <head />
 
       <body className={`bg-[#FCFCFC] dark:bg-black ${merriweather.className}`}>
+        <Script
+          src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
+          strategy="lazyOnload"
+        />
         <Providers>
           <LayoutContent>
             {children}

@@ -3,23 +3,19 @@
 export interface UserProfile {
   id: string;
   email: string;
-  full_name?: string;
-  user_type?: string;
+  firstname?: string;
+  lastname?: string;
+  full_name?: string; // Computed from firstname + lastname
+  type?: string; // Database column name
+  user_type?: string; // Alias for compatibility
   avatar?: string;
   phone?: string;
-  date_of_birth?: string;
-  gender?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  zip_code?: string;
-  specialty?: string;
+  title?: string;
+  degree?: string;
   clinic?: string;
-  bio?: string;
   website?: string;
-  years_of_experience?: number;
-  consultation_fee?: number;
-  verified?: boolean;
+  clinicpage?: string;
+  address?: string;
   created_at?: string;
   updated_at?: string;
 }

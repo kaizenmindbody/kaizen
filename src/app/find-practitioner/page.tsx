@@ -195,20 +195,6 @@ const UserCard = ({ practitioner, onNavigate, onBooking, isOwnProfile = false })
               <p className="text-sm text-gray-900">{practitioner.nextAvailable}</p>
             </div>
           </div>
-          <button 
-            onClick={isOwnProfile ? undefined : (e) => {
-              e.stopPropagation();
-              onBooking(practitioner);
-            }} 
-            disabled={isOwnProfile}
-            className={`w-full px-6 py-2 rounded-full transition-colors ${
-              isOwnProfile
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-primary text-white hover:bg-primary/90'
-            }`}
-          >
-            {isOwnProfile ? "This is You" : "Book Appointment"}
-          </button>
         </div>
       </div>
 
@@ -298,13 +284,6 @@ const UserCard = ({ practitioner, onNavigate, onBooking, isOwnProfile = false })
                   <p className="text-xs text-gray-900">{practitioner.nextAvailable}</p>
                 </div>
               </div>
-              
-              <button onClick={(e) => {
-                e.stopPropagation();
-                onBooking(practitioner);
-              }} className="w-full sm:w-20 bg-primary text-white px-4 py-1.5 rounded-full text-sm hover:bg-primary/90 transition-colors">
-                Book
-              </button>
             </div>
           </div>
         </div>
@@ -400,21 +379,6 @@ const UserCard = ({ practitioner, onNavigate, onBooking, isOwnProfile = false })
                   <p className="text-sm text-gray-900">{practitioner.nextAvailable}</p>
                 </div>
               </div>
-              
-              <button 
-                onClick={isOwnProfile ? undefined : (e) => {
-                  e.stopPropagation();
-                  onBooking(practitioner);
-                }} 
-                disabled={isOwnProfile}
-                className={`px-6 py-2 rounded-full transition-colors ${
-                  isOwnProfile
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-primary text-white hover:bg-primary/90'
-                }`}
-              >
-                {isOwnProfile ? "This is You" : "Book Appointment"}
-              </button>
             </div>
           </div>
         </div>

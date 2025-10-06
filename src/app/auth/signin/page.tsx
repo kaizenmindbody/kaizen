@@ -126,7 +126,7 @@ const SigninPage = () => {
   }
 
   return (
-    <div className="font-sans min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="font-sans min-h-screen bg-gray-50 flex items-center justify-center pt-[80px] sm:pt-[120px] pb-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-left">
@@ -236,6 +236,16 @@ const SigninPage = () => {
               'Sign In'
             )}
           </button>
+
+          {/* OTP Sign In Option */}
+          <div className="text-center">
+            <Link
+              href="/auth/otp-signin"
+              className="text-sm text-secondary hover:text-green-700"
+            >
+              Sign in with OTP instead
+            </Link>
+          </div>
 
           {/* Sign Up Link */}
           <div className="text-center">

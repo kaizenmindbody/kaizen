@@ -35,7 +35,7 @@ const BookAppointmentButton = ({ practitionerId, user, onServicesTab = false }: 
       const servicesElement = document.querySelector('.navigation-tabs');
       if (servicesElement) {
         // Set the active tab to services
-        const servicesTab = document.querySelector('[data-tab="Services, Pricing and Appointments"]');
+        const servicesTab = document.querySelector('[data-tab="Services, Pricing"]');
         if (servicesTab) {
           (servicesTab as HTMLButtonElement).click();
         }
@@ -257,7 +257,7 @@ const PractitionerDetailsPage = () => {
         console.log('Hash detected:', hash); // Debug log
         if (hash === '#services') {
           console.log('Setting active tab to Services'); // Debug log
-          setActiveTab('Services, Pricing and Appointments');
+          setActiveTab('Services, Pricing');
           // Scroll to the tabs section after a short delay to ensure DOM is ready
           setTimeout(() => {
             const tabsElement = document.querySelector('.navigation-tabs');
@@ -299,9 +299,9 @@ const PractitionerDetailsPage = () => {
       // Check for hash in the current URL
       const hash = window.location.hash;
       console.log('Router ready, checking hash:', hash); // Debug log
-      if (hash === '#services' && activeTab !== 'Services, Pricing and Appointments') {
+      if (hash === '#services' && activeTab !== 'Services, Pricing') {
         console.log('Router-based hash detection, setting tab to Services'); // Debug log
-        setActiveTab('Services, Pricing and Appointments');
+        setActiveTab('Services, Pricing');
         // Scroll after a longer delay to ensure everything is loaded
         setTimeout(() => {
           const tabsElement = document.querySelector('.navigation-tabs');
@@ -455,33 +455,13 @@ const PractitionerDetailsPage = () => {
               </div>
 
               <div>
-                <h4 class="text-lg font-semibold text-gray-900 mb-3">Specializations & Services</h4>
-                <p class="text-gray-700 leading-relaxed"><strong>Areas of Expertise:</strong> ${specialtyText}</p>
-                <p class="text-gray-700 leading-relaxed mt-2">Providing comprehensive care with personalized treatment plans tailored to each patient's unique needs and health goals.</p>
-              </div>
-
-              <div>
-                <h4 class="text-lg font-semibold text-gray-900 mb-3">Practice Information</h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p class="text-gray-700"><strong>Location:</strong> ${locationText}</p>
-                    <p class="text-gray-700 mt-1"><strong>Languages:</strong> ${languagesText}</p>
-                  </div>
-                  <div>
-                    <p class="text-gray-700"><strong>Consultation Rate:</strong> ${rateText}/hour</p>
-                    <p class="text-gray-700 mt-1"><strong>Experience:</strong> ${experienceText}</p>
-                  </div>
-                </div>
+                <h4 class="text-lg font-semibold text-gray-900 mb-3">Specialties</h4>
+                <p class="text-gray-700 leading-relaxed">${specialtyText}</p>
               </div>
 
               <div>
                 <h4 class="text-lg font-semibold text-gray-900 mb-3">Treatment Approach</h4>
                 <p class="text-gray-700 leading-relaxed">My practice focuses on evidence-based treatments combined with compassionate, patient-centered care. I believe in building strong therapeutic relationships through clear communication, collaborative treatment planning, and respect for each patient's individual journey toward optimal health.</p>
-              </div>
-
-              <div>
-                <h4 class="text-lg font-semibold text-gray-900 mb-3">Why Choose My Practice</h4>
-                <p class="text-gray-700 leading-relaxed">With expertise in ${specialtyText.toLowerCase()}, I offer comprehensive healthcare services in a welcoming environment. My commitment to professional excellence, combined with ${experienceText} of hands-on experience, ensures that each patient receives the highest quality care tailored to their specific needs.</p>
               </div>
             </div>`;
           })(),
@@ -675,7 +655,7 @@ const PractitionerDetailsPage = () => {
   // Get the map center - use geocoded location if available, otherwise default to Vancouver
   const mapCenter = practitionerLocation || defaultCenter;
 
-  const tabs = ['About', 'Location', 'Events', 'Reviews', 'Services, Pricing and Appointments'];
+  const tabs = ['About', 'Location', 'Events', 'Reviews', 'Services, Pricing'];
 
   // Calendar helper functions (matching profile page)
   const formatMonth = (date: Date) => {
@@ -880,6 +860,16 @@ const PractitionerDetailsPage = () => {
                                 >
                                   {practitioner.website}
                                 </a>
+                              </div>
+                            )}
+                            {practitioner.languages && practitioner.languages.length > 0 && (
+                              <div className="flex items-center">
+                                <Languages className="w-4 h-4 text-gray-400 mr-2" />
+                                <span>
+                                  {Array.isArray(practitioner.languages)
+                                    ? practitioner.languages.join(', ')
+                                    : practitioner.languages}
+                                </span>
                               </div>
                             )}
                           </div>
@@ -1491,29 +1481,11 @@ const PractitionerDetailsPage = () => {
                         )}
                       </div>
                     </div>
-
-                    {/* Languages */}
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-4">Languages</h3>
-                      <div className="flex space-x-2 text-gray-700">
-                        {practitioner.languages && practitioner.languages.length > 0 ? (
-                          Array.isArray(practitioner.languages) ? (
-                            practitioner.languages.map((language, index) => (
-                              <p key={index} className='bg-blue-100 text-blue-800 rounded-full px-4 py-1'>{language}</p>
-                            ))
-                          ) : (
-                            <p>{practitioner.languages}</p>
-                          )
-                        ) : (
-                          <p>English</p>
-                        )}
-                      </div>
-                    </div>
                   </div>
                 </div>
                 <div className="order-1 lg:order-2">
                   <div className="bg-gray-50 rounded-xl p-4 lg:p-6 mb-6">
-                    <h4 className="font-semibold text-gray-900 mb-4">What I Treat About</h4>
+                    <h4 className="font-semibold text-gray-900 mb-4">Specialties</h4>
 
                     <div className="space-y-2">
                       {practitioner.specialties && practitioner.specialties.length > 0 ? (
@@ -1532,10 +1504,35 @@ const PractitionerDetailsPage = () => {
                     </div>
                   </div>
 
-                  <div className="bg-gray-50 rounded-xl p-4 lg:p-6">
+                  <div className="bg-gray-50 rounded-xl p-4 lg:p-6 mb-6">
                     <h4 className="font-semibold text-gray-900 mb-4">What To Expect On Your First Visit</h4>
                     <p className="text-sm text-gray-600">
                       Your first visit will include a comprehensive consultation and treatment plan discussion.
+                    </p>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-xl p-4 lg:p-6 mb-6">
+                    <h4 className="font-semibold text-gray-900 mb-4">Insurance</h4>
+                    <div className="space-y-2">
+                      {practitioner.insurance_accepted && practitioner.insurance_accepted.length > 0 ? (
+                        practitioner.insurance_accepted.map((insurance, index) => (
+                          <div key={index} className="flex items-center gap-2 text-sm text-gray-700">
+                            <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+                            {insurance}
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-600">
+                          Please contact the office for insurance information.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-xl p-4 lg:p-6">
+                    <h4 className="font-semibold text-gray-900 mb-4">Cancellation Policy</h4>
+                    <p className="text-sm text-gray-600">
+                      {practitioner.cancellation_policy || 'Please provide 24 hours notice for cancellations. Late cancellations or no-shows may be subject to a fee.'}
                     </p>
                   </div>
                 </div>
@@ -1915,15 +1912,15 @@ const PractitionerDetailsPage = () => {
                 </div>
               </div>
             )}
-            {activeTab === 'Services, Pricing and Appointments' && (
+            {activeTab === 'Services, Pricing' && (
               <div>
                 <div>
-                  <h3 className="text-xl md:text-2xl font-bold text-orange-500 mb-4 md:mb-6">Services, Pricing and Appointments</h3>
+                  <h3 className="text-xl md:text-2xl font-bold text-orange-500 mb-4 md:mb-6">Services, Pricing</h3>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
                   {/* Left Side - Services and Pricing */}
-                  <div className="lg:col-span-1 space-y-4 md:space-y-6">
+                  <div className="space-y-4 md:space-y-6">
                     {/* Combined Services and Pricing Section */}
                     <div className="bg-white border border-gray-200 rounded-xl p-4 md:p-6">
                       <h4 className="text-lg font-semibold text-gray-800 mb-4">Available Services & Rates</h4>
@@ -1978,188 +1975,21 @@ const PractitionerDetailsPage = () => {
                     </div>
                   </div>
 
-                  {/* Right Side - Calendar and Time Slots */}
-                  <div className="lg:col-span-2">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      {/* Calendar - Matching profile page design */}
-                      <div className="bg-white border border-gray-200 rounded-lg p-2 sm:p-6">
-                        {/* Month Navigation Header */}
-                        <div className="flex items-center justify-between mb-4">
-                          <button
-                            onClick={() => navigateMonth('prev')}
-                            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                          >
-                            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                            </svg>
-                          </button>
-                          <h3 className="text-lg font-semibold text-gray-800">
-                            {formatMonth(selectedMonth)}
-                          </h3>
-                          <button
-                            onClick={() => navigateMonth('next')}
-                            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                          >
-                            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
-                          </button>
-                        </div>
-
-                        {/* Full Calendar */}
-                        <div className="space-y-2">
-                          <div className="grid grid-cols-7 gap-1 text-center text-sm text-gray-500 mb-2">
-                            <div>Sun</div>
-                            <div>Mon</div>
-                            <div>Tue</div>
-                            <div>Wed</div>
-                            <div>Thu</div>
-                            <div>Fri</div>
-                            <div>Sat</div>
-                          </div>
-
-                          <div className="grid grid-cols-7 gap-1">
-                            {generateCalendarDates().map((date, index) => {
-                              const isCurrentMonth = isDateInCurrentMonth(date);
-                              const hasSlots = hasAvailability(date);
-
-                              return (
-                                <button
-                                  key={index}
-                                  onClick={() => setSelectedDate(date)}
-                                  className={`
-                                    p-2 text-sm rounded-lg transition-all relative
-                                    ${!isCurrentMonth ? 'text-gray-300' : ''}
-                                    ${isDateSelected(date)
-                                      ? 'bg-blue-500 text-white font-semibold border-2 border-blue-600'
-                                      : hasSlots
-                                      ? 'bg-green-100 border-2 border-green-400 text-green-700 font-bold hover:bg-green-200'
-                                      : 'hover:bg-gray-100'
-                                    }
-                                    ${isDateToday(date) && !isDateSelected(date)
-                                      ? 'bg-blue-100 text-blue-700 font-medium'
-                                      : !isDateSelected(date) && isCurrentMonth ? 'text-gray-700' : ''
-                                    }
-                                  `}
-                                >
-                                  {date.getDate()}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Time Slots for Selected Date */}
-                      <div className="bg-white border border-gray-200 rounded-lg p-2 sm:p-6">
-                        {selectedDate && (
-                          <div className="mt-6 p-4 bg-blue-50 rounded-lg mb-6">
-                            <h4 className="font-medium text-blue-900 mb-1">Selected Date</h4>
-                            <p className="text-blue-700">
-                              {selectedDate.toLocaleDateString('en-US', {
-                                weekday: 'long',
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric'
-                              })}
-                            </p>
-                            <div className="mt-2 text-sm text-blue-600">
-                              {loadingAvailabilities ? (
-                                'Loading availability...'
-                              ) : (
-                                `Available slots: ${getDateAvailability(selectedDate).available_count} / 8`
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                          {selectedDate ? (
-                            `Time Slots for ${selectedDate.toLocaleDateString('en-US', {
-                              weekday: 'short',
-                              month: 'short',
-                              day: 'numeric'
-                            })}`
-                          ) : (
-                            'Select a Date'
-                          )}
-                        </h3>
-
-                        {loadingAvailabilities ? (
-                          <div className="flex items-center justify-center py-8">
-                            <div className="text-gray-500">Loading availability...</div>
-                          </div>
-                        ) : selectedDate ? (
-                          (() => {
-                            const availability = getDateAvailability(selectedDate);
-                            const morningSlots = availability.available_slots.filter(slot =>
-                              slot.includes('AM') || slot === '12:00 PM'
-                            );
-                            const afternoonSlots = availability.available_slots.filter(slot =>
-                              slot.includes('PM') && slot !== '12:00 PM'
-                            );
-
-                            return (
-                              <div className="space-y-4">
-                                {/* Morning Slots */}
-                                {morningSlots.length > 0 && (
-                                  <div>
-                                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Morning</h4>
-                                    <div className="grid grid-cols-2 gap-2">
-                                      {morningSlots.map((slot, index) => (
-                                        <button
-                                          key={index}
-                                          className="p-3 text-sm border border-gray-200 rounded-lg hover:bg-green-50 hover:border-green-300 transition-colors"
-                                        >
-                                          {slot}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-
-                                {/* Afternoon Slots */}
-                                {afternoonSlots.length > 0 && (
-                                  <div>
-                                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Afternoon</h4>
-                                    <div className="grid grid-cols-2 gap-2">
-                                      {afternoonSlots.map((slot, index) => (
-                                        <button
-                                          key={index}
-                                          className="p-3 text-sm border border-gray-200 rounded-lg hover:bg-green-50 hover:border-green-300 transition-colors"
-                                        >
-                                          {slot}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-
-                                {availability.available_slots.length === 0 && (
-                                  <div className="text-center py-8 text-gray-500">
-                                    <div className="mb-2">No available slots</div>
-                                    <div className="text-sm">This date is fully booked</div>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })()
+                  {/* Right Side - Cancellation Policy */}
+                  <div className="space-y-4 md:space-y-6">
+                    <div className="bg-white border border-gray-200 rounded-xl p-4 md:p-6">
+                      <h4 className="text-lg font-semibold text-gray-800 mb-4">Cancellation Policy</h4>
+                      <div className="text-sm md:text-base text-gray-700 leading-relaxed">
+                        {practitioner?.cancellation_policy ? (
+                          <p>{practitioner.cancellation_policy}</p>
                         ) : (
-                          <div className="text-center py-8 text-gray-500">
-                            <div className="mb-2">Select a date</div>
-                            <div className="text-sm">Choose a date from the calendar to see available times</div>
+                          <div className="space-y-3">
+                            <p>Please provide 24 hours notice for cancellations.</p>
+                            <p>Late cancellations or no-shows may be subject to a fee.</p>
+                            <p>We understand that unexpected situations arise. Please contact us as soon as possible if you need to reschedule your appointment.</p>
                           </div>
                         )}
                       </div>
-                    </div>
-
-                    {/* Book An Appointment Button */}
-                    <div className="mt-6 text-center">
-                      <BookAppointmentButton
-                        practitionerId={practitioner?.id || ''}
-                        user={user}
-                        onServicesTab={true}
-                      />
                     </div>
                   </div>
                 </div>

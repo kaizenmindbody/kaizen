@@ -14,7 +14,7 @@ const TcmPractitioner = () => {
               61 Irving Place, LLD, New York, NY 10003
             </p>
           </div>
-          
+
           {/* Main Content Grid - Custom column sizing */}
           <div className="flex flex-col lg:items-stretch gap-8 lg:flex-row lg:gap-12">
             {/* Left Column - Video Player */}
@@ -32,7 +32,7 @@ const TcmPractitioner = () => {
                 />
               </div>
             </div>
-            
+
             {/* Right Column - Article Content */}
             <div className="order-1 lg:order-2 lg:w-[32%]">
               <article className="space-y-6">
@@ -41,12 +41,12 @@ const TcmPractitioner = () => {
                     The Benefits of Facial Acupuncture to Reduce Fine Lines and Build Collagen
                   </h3>
                 </header>
-                
+
                 <div className="font-sans prose prose-lg max-w-none dark:prose-invert">
                   <p className="text-[14px] md:text-[16px] leading-relaxed text-black dark:text-gray-300">
                     Facial acupuncture is a natural, non-invasive therapy that promotes skin health and overall well-being by improving circulation, stimulating collagen production, and relaxing facial muscles. Unlike cosmetic procedures that focus only on the surface, facial acupuncture works holistically to address underlying imbalances that may contribute to premature aging, puffiness, or tension.
                   </p>
-                  
+
                   <p className="text-[14px] md:text-[16px] leading-relaxed text-black dark:text-gray-300">
                     Many people find it helps soften fine lines, improve skin tone, and give a brighter, more lifted appearance, while also supporting stress reduction and overall energy balance in the body.
                   </p>

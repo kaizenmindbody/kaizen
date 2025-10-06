@@ -5,8 +5,6 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { UserProfile, AuthContextType } from '@/types/auth';
 
-// Using UserProfile and AuthContextType from centralized types
-
 const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
@@ -90,24 +88,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       const { data, error } = await supabase
         .from('Users')
-        .select('id, full_name, avatar, user_type')
+        .select('id, email, firstname, lastname, avatar, type, phone, website, clinic, title, degree, address, clinicpage')
         .eq('id', userId)
         .single();
 
       if (error) {
-        // Only log error if it's not a "not found" error for admin
-        if (error.code !== 'PGRST116') { // PGRST116 is "not found" error
-          console.error('Error fetching user profile:', error);
-        }
+        console.error('Error fetching user profile:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
         return;
       }
 
+      if (!data) {
+        console.error('No user data returned');
+        return;
+      }
+
+      const fullName = [data.firstname, data.lastname].filter(Boolean).join(' ');
+
       setUserProfile({
         ...data,
-        email: userEmail
+        full_name: fullName || undefined,
+        user_type: data.type
       });
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error in fetchUserProfile:', error);
     }
   };
 

@@ -104,3 +104,26 @@ export interface FAQProps {
   title?: string
   faqs: FAQ[]
 }
+
+export interface Shop {
+  id: number
+  title: string
+  image: string
+}
+
+export interface BrowseShopProps {
+  title?: string
+  shops: Shop[]
+}
+
+export interface Testimonial {
+  id: number
+  client: string
+  description: string
+  location: string
+  image: string
+}
+
+export interface TestimonialsSectionProps {
+  testimonials: Testimonial[]
+}

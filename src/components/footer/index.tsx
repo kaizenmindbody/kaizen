@@ -7,7 +7,7 @@ const Footer = () => {
     <>
       <footer className="font-sans relative bg-[#8ED08380] pt-12 dark:bg-gray-dark sm:pt-16 md:pt-20 lg:pt-24">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
             {/* Logo and Description */}
             <div className="text-center md:text-left">
               <div className="max-w-[360px] mx-auto md:mx-0 lg:mb-16">
@@ -21,7 +21,7 @@ const Footer = () => {
                   />
                 </Link>
                 <p className="mb-6 sm:mb-9 text-sm sm:text-base leading-relaxed text-secondary">
-                  Effortlessly schedule your appointments with Kaizen. Prioritize your well-being by learning about your healthcare options and educate yourself on the powers of TCM and acupuncture.
+                  Effortlessly discover licensed acupuncturists, exciting wellness events and shop thoughtfully crafted TCM products with Kaizen.  Prioritize your well-being by learning about your healthcare options and educate yourself on the powers of TCM and acupuncture.
                 </p>
               </div>
             </div>
@@ -49,6 +49,41 @@ const Footer = () => {
                       FAQs
                     </Link>
                   </li>
+                  <li>
+                    <Link
+                      href="/video-consult"
+                      className="block sm:mb-4 text-sm sm:text-base duration-300 hover:text-primary py-1"
+                    >
+                      Video Consult
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Legal Links */}
+            <div className="font-semibold text-secondary text-center md:text-left mb-4 lg:mb-0">
+              <div className="lg:mb-16 md:px-8">
+                <h2 className="mb-6 sm:mb-8 lg:mb-10 text-lg sm:text-xl font-bold">
+                  Legal
+                </h2>
+                <ul className="space-y-1 sm:space-y-0">
+                  <li>
+                    <Link
+                      href="/privacy-policy"
+                      className="block sm:mb-4 text-sm sm:text-base duration-300 hover:text-primary py-1"
+                    >
+                      Data and Privacy
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/terms-conditions"
+                      className="block sm:mb-4 text-sm sm:text-base duration-300 hover:text-primary py-1"
+                    >
+                      Terms and Conditions
+                    </Link>
+                  </li>
                 </ul>
               </div>
             </div>
@@ -57,7 +92,7 @@ const Footer = () => {
             <div className="font-semibold text-secondary text-center md:text-left">
               <div className="lg:mb-16">
                 <h2 className="mb-6 sm:mb-8 lg:mb-10 text-lg sm:text-xl font-bold text-secondary">
-                  Join Our Newsletter
+                  Join Our Wellness Community
                 </h2>
                 <div className="flex gap-0 mb-4 w-full max-w-xs mx-auto md:mx-0">
                   <input
@@ -68,35 +103,6 @@ const Footer = () => {
                   <button className="px-3 sm:px-4 py-3 bg-primary text-white font-medium text-sm rounded-r-lg hover:bg-primary/90 transition-colors duration-200 flex-shrink-0">
                     Submit
                   </button>
-                </div>
-                <div className="flex items-center justify-center md:justify-start space-x-4 pt-4 pb-12">
-                  <Link href="#" className="p-2 bg-white rounded-lg hover:bg-primary transition-all duration-200">
-                    <Image
-                      src="/images/social/facebook.png"
-                      width={40}
-                      height={40}
-                      alt="Facebook"
-                      className="w-8 h-8 object-contain"
-                    />
-                  </Link>
-                  <Link href="#" className="p-2 bg-white rounded-lg hover:bg-primary transition-all duration-200">
-                    <Image
-                      src="/images/social/instagram.png"
-                      width={40}
-                      height={40}
-                      alt="Instagram"
-                      className="w-8 h-8 object-contain"
-                    />
-                  </Link>
-                  <Link href="#" className="p-2 bg-white rounded-lg hover:bg-primary transition-all duration-200">
-                    <Image
-                      src="/images/social/youtube.png"
-                      width={40}
-                      height={40}
-                      alt="Google"
-                      className="w-8 h-8 object-contain"
-                    />
-                  </Link>
                 </div>
               </div>
             </div>

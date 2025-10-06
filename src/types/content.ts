@@ -2,7 +2,7 @@
 
 import { BlogPost } from './blog';
 import { FAQ } from './faq';
-import { Article, Icon, FAQ as HomeFAQ, PersonEvent, FAQItem, User as HomepageUser } from './homepage';
+import { Article, Icon, FAQ as HomeFAQ, PersonEvent, FAQItem, User as HomepageUser, Shop, Testimonial } from './homepage';
 import { Clinic } from './clinic';
 
 // About Us data interface
@@ -112,6 +112,8 @@ export interface UseHomeDataReturn {
   tcmFaqs: FAQItem[];
   personEvents: PersonEvent[];
   homeFaqs: HomeFAQ[];
+  shops: Shop[];
+  testimonials: Testimonial[];
 
   // Loading states
   conditionsLoading: boolean;
@@ -120,6 +122,8 @@ export interface UseHomeDataReturn {
   tcmFaqsLoading: boolean;
   personEventsLoading: boolean;
   homeFaqsLoading: boolean;
+  shopsLoading: boolean;
+  testimonialsLoading: boolean;
 
   // Overall loading state
   isLoading: boolean;
@@ -131,6 +135,8 @@ export interface UseHomeDataReturn {
   tcmFaqsError: string | null;
   personEventsError: string | null;
   homeFaqsError: string | null;
+  shopsError: string | null;
+  testimonialsError: string | null;
 
   // Overall error state
   hasErrors: boolean;
@@ -142,5 +148,7 @@ export interface UseHomeDataReturn {
   refreshTcmFaqs: () => Promise<void>;
   refreshPersonEvents: () => Promise<void>;
   refreshHomeFaqs: () => Promise<void>;
+  refreshShops: () => Promise<void>;
+  refreshTestimonials: () => Promise<void>;
   refreshAll: () => Promise<void>;
 }

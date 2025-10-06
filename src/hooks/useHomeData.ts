@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Icon, User as HomepageUser, FAQItem, PersonEvent, FAQ as HomeFAQ } from '@/types/homepage';
+import { Icon, User as HomepageUser, FAQItem, PersonEvent, FAQ as HomeFAQ, Shop, Testimonial } from '@/types/homepage';
 import { UseHomeDataReturn } from '@/types/content';
 
 export function useHomeData(): UseHomeDataReturn {
@@ -32,6 +32,16 @@ export function useHomeData(): UseHomeDataReturn {
   const [homeFaqs, setHomeFaqs] = useState<HomeFAQ[]>([]);
   const [homeFaqsLoading, setHomeFaqsLoading] = useState(true);
   const [homeFaqsError, setHomeFaqsError] = useState<string | null>(null);
+
+  // State for shops
+  const [shops, setShops] = useState<Shop[]>([]);
+  const [shopsLoading, setShopsLoading] = useState(true);
+  const [shopsError, setShopsError] = useState<string | null>(null);
+
+  // State for testimonials
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [testimonialsLoading, setTestimonialsLoading] = useState(true);
+  const [testimonialsError, setTestimonialsError] = useState<string | null>(null);
 
   // Generic fetch function
   const fetchData = async <T>(
@@ -91,6 +101,14 @@ export function useHomeData(): UseHomeDataReturn {
     await fetchData('/api/home/home-faqs', setHomeFaqs, setHomeFaqsLoading, setHomeFaqsError, 'home FAQs');
   };
 
+  const fetchShops = async () => {
+    await fetchData('/api/home/shops', setShops, setShopsLoading, setShopsError, 'shops');
+  };
+
+  const fetchTestimonials = async () => {
+    await fetchData('/api/home/testimonials', setTestimonials, setTestimonialsLoading, setTestimonialsError, 'testimonials');
+  };
+
   // Fetch all data
   const fetchAllData = async () => {
     await Promise.all([
@@ -99,7 +117,9 @@ export function useHomeData(): UseHomeDataReturn {
       fetchTcms(),
       fetchTcmFaqs(),
       fetchPersonEvents(),
-      fetchHomeFaqs()
+      fetchHomeFaqs(),
+      fetchShops(),
+      fetchTestimonials()
     ]);
   };
 
@@ -110,10 +130,10 @@ export function useHomeData(): UseHomeDataReturn {
 
   // Computed states
   const isLoading = conditionsLoading || modalitiesLoading || tcmsLoading || tcmFaqsLoading ||
-                   personEventsLoading || homeFaqsLoading;
+                   personEventsLoading || homeFaqsLoading || shopsLoading || testimonialsLoading;
 
   const hasErrors = !!(conditionsError || modalitiesError || tcmsError || tcmFaqsError ||
-                      personEventsError || homeFaqsError);
+                      personEventsError || homeFaqsError || shopsError || testimonialsError);
 
   return {
     // Data
@@ -123,6 +143,8 @@ export function useHomeData(): UseHomeDataReturn {
     tcmFaqs,
     personEvents,
     homeFaqs,
+    shops,
+    testimonials,
 
     // Loading states
     conditionsLoading,
@@ -131,6 +153,8 @@ export function useHomeData(): UseHomeDataReturn {
     tcmFaqsLoading,
     personEventsLoading,
     homeFaqsLoading,
+    shopsLoading,
+    testimonialsLoading,
     isLoading,
 
     // Error states
@@ -140,6 +164,8 @@ export function useHomeData(): UseHomeDataReturn {
     tcmFaqsError,
     personEventsError,
     homeFaqsError,
+    shopsError,
+    testimonialsError,
     hasErrors,
 
     // Refresh functions
@@ -149,6 +175,8 @@ export function useHomeData(): UseHomeDataReturn {
     refreshTcmFaqs: fetchTcmFaqs,
     refreshPersonEvents: fetchPersonEvents,
     refreshHomeFaqs: fetchHomeFaqs,
+    refreshShops: fetchShops,
+    refreshTestimonials: fetchTestimonials,
     refreshAll: fetchAllData
   };
 }

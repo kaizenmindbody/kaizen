@@ -1,8 +1,11 @@
 export interface User {
   id: string;
   email: string;
-  full_name?: string;
-  user_type?: string;
+  firstname?: string;
+  lastname?: string;
+  full_name?: string; // Computed field
+  type?: string; // Database column
+  user_type?: string; // Alias for compatibility
   avatar?: string;
   created_at: string;
   updated_at?: string;
@@ -19,10 +22,12 @@ export interface User {
   specialty_id?: string;
   specialty?: string;
   clinic?: string;
+  clinicpage?: string;
   license_number?: string;
   years_of_experience?: number;
   education?: string;
   degree?: string;
+  title?: string;
   certifications?: string;
   languages?: string[];
   insurance_accepted?: string[];
@@ -64,8 +69,6 @@ export interface UsersProps {
 
 // Extended profile interface for profile page with additional fields
 export interface ProfileData extends Omit<User, 'specialty_rate'> {
-  degrees?: string[];
-  title?: string;
   rate?: number;
   experience?: string;
   aboutme?: string;

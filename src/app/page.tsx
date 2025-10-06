@@ -12,6 +12,7 @@ import PersonEvent from "../components/homepage/person-event";
 import FAQSection from "../components/homepage/faq";
 import TestimonialsSection from "../components/homepage/tetimonials";
 import GoogleReviews from "../components/homepage/google-reviews";
+import BrowseShop from "../components/homepage/browse-shop";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { ProfileData } from "@/types/user";
@@ -28,18 +29,24 @@ export default function Home() {
     tcmFaqs,
     personEvents,
     homeFaqs,
+    shops,
+    testimonials,
     conditionsLoading,
     modalitiesLoading,
     tcmsLoading,
     tcmFaqsLoading,
     personEventsLoading,
     homeFaqsLoading,
+    shopsLoading,
+    testimonialsLoading,
     conditionsError,
     modalitiesError,
     tcmsError,
     tcmFaqsError,
     personEventsError,
     homeFaqsError,
+    shopsError,
+    testimonialsError,
     hasErrors
   } = useHomeData();
 
@@ -73,6 +80,8 @@ export default function Home() {
           {tcmFaqsError && <div>Error loading TCM FAQs: {tcmFaqsError}</div>}
           {personEventsError && <div>Error loading person events: {personEventsError}</div>}
           {homeFaqsError && <div>Error loading home FAQs: {homeFaqsError}</div>}
+          {shopsError && <div>Error loading shops: {shopsError}</div>}
+          {testimonialsError && <div>Error loading testimonials: {testimonialsError}</div>}
         </div>
       </div>
     );
@@ -84,14 +93,15 @@ export default function Home() {
       <Hero />
       <IconSearchCard title="Search By Condition" data={conditions} loading={conditionsLoading} />
       <IconSearchCard title="Search By Modality" data={modalities} bgColor="#8ED0834D" loading={modalitiesLoading} />
+      <BrowseShop title="Browse and Shop - Nourish Your Mind and Body" shops={shops} loading={shopsLoading} />
+      <PersonEvent title="Explore Events - Experience Wellness Together" events={personEvents} loading={personEventsLoading} />
       <TcmPractitioner />
       <FeaturedUsers title="Featured TCM Practitioners" users={tcms} loading={tcmsLoading} />
-      <PersonEvent title="Amazing Events To Check Out" events={personEvents} loading={personEventsLoading} />
       <TcmFaqSection title="Want to Learn More About Traditional Chinese Medicine?" faqItems={tcmFaqs} loading={tcmFaqsLoading} />
       <LatestArticlesSection title="Latest Insightful Articles" />
       <FAQSection title="Frequently Asked Questions" faqs={homeFaqs} loading={homeFaqsLoading} />
       <GoogleReviews embedUrl={profileData?.reviews} />
-      <TestimonialsSection />
+      <TestimonialsSection testimonials={testimonials} loading={testimonialsLoading} />
     </>
   );
 }

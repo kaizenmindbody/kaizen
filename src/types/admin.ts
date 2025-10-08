@@ -4,6 +4,7 @@ import { User, Specialty, Stats } from './user';
 export interface OverviewProps {
   stats: Stats;
   onTabChange: (tab: string) => void;
+  loading?: boolean;
 }
 
 export interface SpecialtiesProps {

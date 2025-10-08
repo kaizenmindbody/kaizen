@@ -28,6 +28,7 @@ export interface User {
   education?: string;
   degree?: string;
   title?: string;
+  ptype?: string; // Practitioner type (e.g., Acupuncturist, Chiropractor)
   certifications?: string;
   languages?: string[];
   insurance_accepted?: string[];
@@ -80,6 +81,13 @@ export interface ProfileData extends Omit<User, 'specialty_rate'> {
   emergency_contact_phone?: string;
   medical_conditions?: string[];
   insurance_provider?: string;
+  professional_background?: string;
+  education_credentials?: string;
+  treatment_approach?: string;
+  first_visit_expectations?: string;
+  insurance_policy?: string;
+  cancellation_policy?: string;
+  practitioner_type?: string;
 }
 
 // Hook interfaces for user-related hooks

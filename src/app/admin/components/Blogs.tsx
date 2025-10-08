@@ -13,6 +13,7 @@ import { FilterMatchMode } from 'primereact/api';
 import { useBlogs } from '@/hooks/useBlogs';
 import { BlogPost } from '@/types/blog';
 import { supabase } from '@/lib/supabase';
+import Image from 'next/image';
 
 const Blogs = ({ onRefreshData }: { onRefreshData: () => void }) => {
   const { blogs, loading, error, addBlog: addBlogHook, updateBlog: updateBlogHook, deleteBlog: deleteBlogHook } = useBlogs();
@@ -371,9 +372,11 @@ const Blogs = ({ onRefreshData }: { onRefreshData: () => void }) => {
     return (
       <div className="py-3 flex justify-center">
         {rowData.image ? (
-          <img
+          <Image
             src={rowData.image}
             alt={rowData.title}
+            width={64}
+            height={64}
             className="w-16 h-16 object-cover rounded-md"
           />
         ) : (
@@ -635,10 +638,12 @@ const Blogs = ({ onRefreshData }: { onRefreshData: () => void }) => {
               />
               {imagePreview && (
                 <div className="relative w-full h-48 border border-gray-300 rounded-lg overflow-hidden">
-                  <img
+                  <Image
                     src={imagePreview}
                     alt="Preview"
-                    className="w-full h-full object-cover"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    className="object-cover"
                   />
                 </div>
               )}
@@ -724,10 +729,12 @@ const Blogs = ({ onRefreshData }: { onRefreshData: () => void }) => {
               />
               {imagePreview && (
                 <div className="relative w-full h-48 border border-gray-300 rounded-lg overflow-hidden">
-                  <img
+                  <Image
                     src={imagePreview}
                     alt="Preview"
-                    className="w-full h-full object-cover"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    className="object-cover"
                   />
                 </div>
               )}

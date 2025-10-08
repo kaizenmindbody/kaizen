@@ -74,7 +74,7 @@ const ProfilePageSkeleton = () => {
       <div className="font-sans min-h-screen bg-gray-50">
         <div className="flex flex-col lg:flex-row min-h-screen animate-pulse">
           {/* Left Sidebar Skeleton */}
-          <div className="lg:w-64 lg:fixed lg:h-screen bg-white border-r border-gray-200 flex-shrink-0">
+          <div className="fixed lg:w-64 lg:h-screen bg-white border-r border-gray-200 flex-shrink-0 w-64 top-0 left-0 z-50">
             <div className="p-4 h-full flex flex-col">
               {/* User Info Skeleton */}
               <div className="mb-6 pb-4 border-b border-gray-200">
@@ -181,6 +181,7 @@ const ProfilePage = () => {
   const [isClient, setIsClient] = useState(false);
   const [expandedMenu, setExpandedMenu] = useState<string | null>('Profile');
   const [availableDegrees, setAvailableDegrees] = useState<string[]>([]);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Fetch degrees from database
   useEffect(() => {
@@ -584,7 +585,7 @@ const ProfilePage = () => {
 
         const profileData = {
           ...data,
-          degrees: data.degree ? JSON.parse(data.degree) : [],
+          degree: data.degree || '',
           languages: data.languages ? JSON.parse(data.languages) : [],
           specialty: (() => {
             if (!data.specialty) return [];
@@ -993,8 +994,20 @@ const ProfilePage = () => {
 
       {/* Layout with Sidebar - Full Width */}
       <div className="flex flex-col lg:flex-row min-h-screen">
+        {/* Mobile Overlay */}
+        {isMobileMenuOpen && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+            onClick={() => setIsMobileMenuOpen(false)}
+          ></div>
+        )}
+
         {/* Left Sidebar Navigation - Fixed */}
-        <div className="lg:w-64 lg:fixed lg:h-screen bg-white border-r border-gray-200 flex-shrink-0">
+        <div className={`
+          fixed top-0 left-0 h-screen w-64 bg-white border-r border-gray-200 flex-shrink-0 z-50
+          transform transition-transform duration-300 ease-in-out overflow-y-auto
+          ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}>
           <div className="p-4 h-full flex flex-col">
             {/* User Info */}
             <div className="mb-6 pb-4 border-b border-gray-200">
@@ -1009,16 +1022,18 @@ const ProfilePage = () => {
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h1 className="text-base font-bold text-gray-900 truncate">{profile?.full_name || 'User'}</h1>
-                  <p className="text-xs text-gray-500 truncate">
-                    {profile?.user_type === 'practitioner' ? 'Practitioner' : 'Patient'}
+                  <h1 className="text-base font-bold text-gray-900 truncate">
+                    {profile?.full_name || profile?.firstname || profile?.email?.split('@')[0] || 'User'}
+                  </h1>
+                  <p className="text-xs text-gray-500 truncate capitalize">
+                    {profile?.type || 'User'}
                   </p>
                 </div>
               </div>
             </div>
 
             {/* Navigation */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto scrollbar-thin">
               <nav className="space-y-6">
                 {/* Menu Section */}
                 <div>
@@ -1076,10 +1091,12 @@ const ProfilePage = () => {
                         return (
                           <div key={tab}>
                             <button
-                              onClick={() => setExpandedMenu(expandedMenu === 'Profile' ? null : 'Profile')}
+                              onClick={() => {
+                                setExpandedMenu(expandedMenu === 'Profile' ? null : 'Profile');
+                              }}
                               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg font-medium transition-all text-sm ${
                                 activeTab.includes('Profile') || profileSubItems.includes(activeTab)
-                                  ? 'bg-[#D4A574] text-white shadow-sm'
+                                  ? 'bg-primary text-white shadow-sm'
                                   : 'text-gray-700 hover:bg-gray-50'
                               }`}
                             >
@@ -1099,19 +1116,63 @@ const ProfilePage = () => {
 
                             {expandedMenu === 'Profile' && (
                               <div className="mt-1 ml-8 space-y-1">
-                                {profileSubItems.map((subItem) => (
-                                  <button
-                                    key={subItem}
-                                    onClick={() => handleTabChange(subItem)}
-                                    className={`w-full text-left px-3 py-2 rounded-lg font-medium transition-all text-xs ${
-                                      activeTab === subItem
-                                        ? 'bg-[#D4A574]/20 text-[#D4A574]'
-                                        : 'text-gray-600 hover:bg-gray-50'
-                                    }`}
-                                  >
-                                    {subItem}
-                                  </button>
-                                ))}
+                                {profileSubItems.map((subItem) => {
+                                  const getSubItemIcon = (subItemName: string) => {
+                                    switch(subItemName) {
+                                      case 'View Profile':
+                                        return (
+                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                          </svg>
+                                        );
+                                      case 'Manage Basic Information':
+                                        return (
+                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                          </svg>
+                                        );
+                                      case 'Manage Services and Pricing':
+                                        return (
+                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                          </svg>
+                                        );
+                                      case 'Manage Descriptions':
+                                        return (
+                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                          </svg>
+                                        );
+                                      case 'Manage Images and Video':
+                                        return (
+                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                          </svg>
+                                        );
+                                      default:
+                                        return null;
+                                    }
+                                  };
+
+                                  return (
+                                    <button
+                                      key={subItem}
+                                      onClick={() => {
+                                        handleTabChange(subItem);
+                                        setIsMobileMenuOpen(false);
+                                      }}
+                                      className={`w-full flex items-center space-x-2 text-left px-3 py-2 rounded-lg font-medium transition-all text-xs ${
+                                        activeTab === subItem
+                                          ? 'bg-primary/20 text-primary'
+                                          : 'text-gray-600 hover:bg-gray-50'
+                                      }`}
+                                    >
+                                      {getSubItemIcon(subItem)}
+                                      <span>{subItem}</span>
+                                    </button>
+                                  );
+                                })}
                               </div>
                             )}
                           </div>
@@ -1121,10 +1182,13 @@ const ProfilePage = () => {
                       return (
                         <button
                           key={tab}
-                          onClick={() => handleTabChange(tab)}
+                          onClick={() => {
+                            handleTabChange(tab);
+                            setIsMobileMenuOpen(false);
+                          }}
                           className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg font-medium transition-all text-sm ${
                             activeTab === tab
-                              ? 'bg-[#D4A574] text-white shadow-sm'
+                              ? 'bg-primary text-white shadow-sm'
                               : 'text-gray-700 hover:bg-gray-50'
                           }`}
                         >
@@ -1143,10 +1207,13 @@ const ProfilePage = () => {
                   </h3>
                   <div className="space-y-1">
                     <button
-                      onClick={() => handleTabChange('Help Center')}
+                      onClick={() => {
+                        handleTabChange('Help Center');
+                        setIsMobileMenuOpen(false);
+                      }}
                       className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg font-medium transition-all text-sm ${
                         activeTab === 'Help Center'
-                          ? 'bg-[#D4A574] text-white shadow-sm'
+                          ? 'bg-primary text-white shadow-sm'
                           : 'text-gray-700 hover:bg-gray-50'
                       }`}
                     >
@@ -1156,10 +1223,13 @@ const ProfilePage = () => {
                       <span>Help Center</span>
                     </button>
                     <button
-                      onClick={() => handleTabChange('Support')}
+                      onClick={() => {
+                        handleTabChange('Support');
+                        setIsMobileMenuOpen(false);
+                      }}
                       className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg font-medium transition-all text-sm ${
                         activeTab === 'Support'
-                          ? 'bg-[#D4A574] text-white shadow-sm'
+                          ? 'bg-primary text-white shadow-sm'
                           : 'text-gray-700 hover:bg-gray-50'
                       }`}
                     >
@@ -1173,18 +1243,31 @@ const ProfilePage = () => {
               </nav>
             </div>
 
-            {/* User Email at bottom */}
+            {/* Action Buttons at bottom */}
             <div className="p-3 border-t border-gray-200 mt-auto">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              <div className="space-y-2">
+                <button
+                  onClick={() => router.push('/')}
+                  className="w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg font-medium transition-all text-sm text-gray-700 hover:bg-gray-100 border border-gray-300"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                   </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-gray-900 font-medium truncate">{profile?.email || 'user@email.com'}</p>
-                  <p className="text-xs text-gray-500">Your email</p>
-                </div>
+                  <span>Back to Main</span>
+                </button>
+
+                <button
+                  onClick={async () => {
+                    await supabase.auth.signOut();
+                    router.push('/');
+                  }}
+                  className="w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg font-medium transition-all text-sm text-white bg-red-600 hover:bg-red-700"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  <span>Sign Out</span>
+                </button>
               </div>
             </div>
           </div>
@@ -1193,10 +1276,24 @@ const ProfilePage = () => {
         {/* Main Content Area - Full Width with offset for sidebar */}
         <div className="flex-1 lg:ml-64">
           {/* Top Header Bar */}
-          <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
-            <div>
-              <h1 className="text-xl font-semibold text-gray-900">{activeTab}</h1>
-              <p className="text-sm text-gray-500">
+          <div className="bg-white border-b border-gray-200 px-4 lg:px-6 py-4 flex items-center justify-between sticky top-0 z-10">
+            {/* Hamburger Menu Button (Mobile Only) */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {isMobileMenuOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
+
+            <div className="flex-1 lg:flex-none">
+              <h1 className="text-lg lg:text-xl font-semibold text-gray-900">{activeTab}</h1>
+              <p className="text-xs lg:text-sm text-gray-500 hidden lg:block">
                 {activeTab === 'Dashboard' ? 'Overview and statistics' :
                  activeTab === 'Profile' ? 'Manage your profile information' :
                  activeTab === 'View Profile' ? 'View your public profile' :
@@ -1211,24 +1308,25 @@ const ProfilePage = () => {
                  activeTab === 'Support' ? 'Contact support' : ''}
               </p>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
+            <div className="flex items-center space-x-2 lg:space-x-4">
+              <div className="text-right hidden md:block">
                 <p className="text-sm font-medium text-gray-900">{profile?.full_name || 'User'}</p>
                 <p className="text-xs text-gray-500">{profile?.email || ''}</p>
               </div>
-              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-200">
+              <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full overflow-hidden border-2 border-gray-200">
                 <Image
                   src={currentAvatarUrl}
                   alt="Profile"
                   width={40}
                   height={40}
                   className="w-full h-full object-cover"
+                  priority
                 />
               </div>
             </div>
           </div>
 
-          <div className="p-6 lg:p-8">
+          <div className="p-4 md:p-6 lg:pl-4 lg:pr-8 lg:py-8">
             {activeTab === 'Profile' && (
               <div className="space-y-6">
                 {/* Avatar Section */}

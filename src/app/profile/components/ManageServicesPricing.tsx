@@ -1,17 +1,325 @@
 "use client";
 
 import { ProfileData } from '@/types/user';
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useService } from '@/hooks/useService';
+import { supabase } from '@/lib/supabase';
 
 interface ManageServicesPricingProps {
   profile: ProfileData | null;
 }
 
+interface ServicePricing {
+  id?: string;
+  service_id?: string;
+  service_name: string;
+  first_time_price: string;
+  first_time_duration: string;
+  returning_price: string;
+  returning_duration: string;
+  is_sliding_scale: boolean;
+  sliding_scale_info?: string;
+  service_category?: string;
+}
+
+interface PackagePricing {
+  id?: string;
+  service_id?: string;
+  service_name: string;
+  no_of_sessions: string;
+  price: string;
+  service_category?: string;
+}
+
 const ManageServicesPricing: React.FC<ManageServicesPricingProps> = ({ profile }) => {
-  const [services, setServices] = useState([
-    { id: 1, name: 'Initial Consultation', price: '150', duration: '60' },
-    { id: 2, name: 'Follow-up Session', price: '100', duration: '45' },
+  const { services: availableServices, loading: servicesLoading } = useService();
+
+  // Filter services to only show real visit types for In-Person / Clinic Visit
+  const realServices = useMemo(() => {
+    return availableServices.filter(service => service.type === 'real');
+  }, [availableServices]);
+
+  // Filter services to only show virtual visit types for Virtual Visit
+  const virtualServices = useMemo(() => {
+    return availableServices.filter(service => service.type === 'virtual');
+  }, [availableServices]);
+
+  const [servicePricings, setServicePricings] = useState<ServicePricing[]>([
+    {
+      service_name: '',
+      first_time_price: '',
+      first_time_duration: '',
+      returning_price: '',
+      returning_duration: '',
+      is_sliding_scale: false,
+      sliding_scale_info: '',
+      service_category: 'In-Person / Clinic Visit',
+    },
   ]);
+
+  const [virtualPricings, setVirtualPricings] = useState<ServicePricing[]>([
+    {
+      service_name: '',
+      first_time_price: '',
+      first_time_duration: '',
+      returning_price: '',
+      returning_duration: '',
+      is_sliding_scale: false,
+      sliding_scale_info: '',
+      service_category: 'Virtual Visit',
+    },
+  ]);
+
+  const [packagePricings, setPackagePricings] = useState<PackagePricing[]>([
+    {
+      service_name: '',
+      no_of_sessions: '',
+      price: '',
+      service_category: 'Packages',
+    },
+  ]);
+
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  // Fetch existing pricing
+  useEffect(() => {
+    if (profile?.id) {
+      loadServicePricing(profile.id);
+    }
+  }, [profile?.id]);
+
+  const loadServicePricing = async (practitionerId: string) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/service-pricing?practitionerId=${practitionerId}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to load service pricing');
+      }
+
+      const data = await response.json();
+
+      if (data.servicePricing && data.servicePricing.length > 0) {
+        const inPersonServices = data.servicePricing
+          .filter((sp: any) => sp.service_category === 'In-Person / Clinic Visit')
+          .map((sp: any) => ({
+            id: sp.id,
+            service_id: sp.service_id,
+            service_name: sp.service_name,
+            first_time_price: sp.first_time_price || '',
+            first_time_duration: sp.first_time_duration?.toString() || '',
+            returning_price: sp.returning_price || '',
+            returning_duration: sp.returning_duration?.toString() || '',
+            is_sliding_scale: sp.is_sliding_scale || false,
+            sliding_scale_info: sp.sliding_scale_info || '',
+            service_category: sp.service_category || 'In-Person / Clinic Visit',
+          }));
+
+        const virtualServicesList = data.servicePricing
+          .filter((sp: any) => sp.service_category === 'Virtual Visit')
+          .map((sp: any) => ({
+            id: sp.id,
+            service_id: sp.service_id,
+            service_name: sp.service_name,
+            first_time_price: sp.first_time_price || '',
+            first_time_duration: sp.first_time_duration?.toString() || '',
+            returning_price: sp.returning_price || '',
+            returning_duration: sp.returning_duration?.toString() || '',
+            is_sliding_scale: sp.is_sliding_scale || false,
+            sliding_scale_info: sp.sliding_scale_info || '',
+            service_category: sp.service_category || 'Virtual Visit',
+          }));
+
+        if (inPersonServices.length > 0) {
+          setServicePricings(inPersonServices);
+        }
+
+        if (virtualServicesList.length > 0) {
+          setVirtualPricings(virtualServicesList);
+        }
+
+        const packagesList = data.servicePricing
+          .filter((sp: any) => sp.service_category === 'Packages')
+          .map((sp: any) => ({
+            id: sp.id,
+            service_id: sp.service_id,
+            service_name: sp.service_name,
+            no_of_sessions: sp.no_of_sessions?.toString() || '',
+            price: sp.price || '',
+            service_category: sp.service_category || 'Packages',
+          }));
+
+        if (packagesList.length > 0) {
+          setPackagePricings(packagesList);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading service pricing:', error);
+      setMessage({ type: 'error', text: 'Failed to load existing service pricing' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddService = (category: 'In-Person / Clinic Visit' | 'Virtual Visit') => {
+    const newService = {
+      service_name: '',
+      first_time_price: '',
+      first_time_duration: '',
+      returning_price: '',
+      returning_duration: '',
+      is_sliding_scale: false,
+      sliding_scale_info: '',
+      service_category: category,
+    };
+
+    if (category === 'In-Person / Clinic Visit') {
+      setServicePricings([...servicePricings, newService]);
+    } else {
+      setVirtualPricings([...virtualPricings, newService]);
+    }
+  };
+
+  const handleAddPackage = () => {
+    const newPackage = {
+      service_name: '',
+      no_of_sessions: '',
+      price: '',
+      service_category: 'Packages',
+    };
+    setPackagePricings([...packagePricings, newPackage]);
+  };
+
+  const handleRemoveService = (index: number, category: 'In-Person / Clinic Visit' | 'Virtual Visit') => {
+    if (category === 'In-Person / Clinic Visit') {
+      if (servicePricings.length === 1) {
+        setMessage({ type: 'error', text: 'You must have at least one in-person service' });
+        return;
+      }
+      setServicePricings(servicePricings.filter((_, i) => i !== index));
+    } else {
+      if (virtualPricings.length === 1) {
+        setMessage({ type: 'error', text: 'You must have at least one virtual service' });
+        return;
+      }
+      setVirtualPricings(virtualPricings.filter((_, i) => i !== index));
+    }
+  };
+
+  const handleRemovePackage = (index: number) => {
+    if (packagePricings.length === 1) {
+      setMessage({ type: 'error', text: 'You must have at least one package' });
+      return;
+    }
+    setPackagePricings(packagePricings.filter((_, i) => i !== index));
+  };
+
+  const handleServiceChange = (index: number, field: keyof ServicePricing, value: any, category: 'In-Person / Clinic Visit' | 'Virtual Visit') => {
+    const serviceList = category === 'In-Person / Clinic Visit' ? realServices : virtualServices;
+    const pricingList = category === 'In-Person / Clinic Visit' ? servicePricings : virtualPricings;
+    const setPricingList = category === 'In-Person / Clinic Visit' ? setServicePricings : setVirtualPricings;
+
+    const updated = [...pricingList];
+
+    // If service name is changed, find and set the service_id
+    if (field === 'service_name') {
+      const selectedService = serviceList.find(s => s.title === value);
+      updated[index] = {
+        ...updated[index],
+        [field]: value,
+        service_id: selectedService?.id
+      };
+    } else {
+      updated[index] = { ...updated[index], [field]: value };
+    }
+
+    setPricingList(updated);
+  };
+
+  const handlePackageChange = (index: number, field: keyof PackagePricing, value: any) => {
+    const updated = [...packagePricings];
+
+    // If service name is changed, find and set the service_id
+    if (field === 'service_name') {
+      const selectedService = realServices.find(s => s.title === value);
+      updated[index] = {
+        ...updated[index],
+        [field]: value,
+        service_id: selectedService?.id
+      };
+    } else {
+      updated[index] = { ...updated[index], [field]: value };
+    }
+
+    setPackagePricings(updated);
+  };
+
+  const handleSave = async () => {
+    if (!profile?.id) {
+      setMessage({ type: 'error', text: 'Profile not found' });
+      return;
+    }
+
+    // Validate required fields
+    const hasEmptyInPersonService = servicePricings.some(sp => !sp.service_name);
+    const hasEmptyVirtualService = virtualPricings.some(sp => !sp.service_name);
+    const hasEmptyPackage = packagePricings.some(pkg => !pkg.service_name);
+
+    if (hasEmptyInPersonService || hasEmptyVirtualService || hasEmptyPackage) {
+      setMessage({ type: 'error', text: 'Please select a service for all entries' });
+      return;
+    }
+
+    setSaving(true);
+    setMessage(null);
+
+    try {
+      // Get the session token
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      if (!token) {
+        throw new Error('Not authenticated. Please sign in again.');
+      }
+
+      const response = await fetch('/api/service-pricing', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          practitionerId: profile.id,
+          servicePricings: [...servicePricings, ...virtualPricings],
+          packagePricings: packagePricings,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Server error response:', errorData);
+        throw new Error(errorData.error || 'Failed to save service pricing');
+      }
+
+      const result = await response.json();
+      console.log('Save successful:', result);
+
+      setMessage({ type: 'success', text: 'Service pricing saved successfully!' });
+
+      // Reload the data
+      await loadServicePricing(profile.id);
+    } catch (error) {
+      console.error('Error saving service pricing:', error);
+      setMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Failed to save service pricing'
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -20,53 +328,337 @@ const ManageServicesPricing: React.FC<ManageServicesPricingProps> = ({ profile }
         <p className="text-gray-600">Configure your services and set pricing for each specialty.</p>
       </div>
 
+      {/* Success/Error Message */}
+      {message && (
+        <div
+          className={`p-4 rounded-lg ${
+            message.type === 'success'
+              ? 'bg-green-50 border border-green-200 text-green-800'
+              : 'bg-red-50 border border-red-200 text-red-800'
+          }`}
+        >
+          {message.text}
+        </div>
+      )}
+
       <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-lg font-semibold text-gray-900">Your Services</h3>
-          <button className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+        {/* Services and Pricing Section */}
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Services and Pricing*</h3>
+
+          {/* Sliding Scale Dropdown */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Sliding Scale? For sliding scale, please enter the price range into the Pricing field. i.e. $85 - $100
+            </label>
+            <select
+              value={servicePricings[0]?.is_sliding_scale ? 'yes' : 'no'}
+              onChange={(e) => {
+                const isSliding = e.target.value === 'yes';
+                setServicePricings(servicePricings.map(sp => ({ ...sp, is_sliding_scale: isSliding })));
+              }}
+              className="w-full md:w-64 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+            >
+              <option value="no">No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </div>
+        </div>
+
+        {/* In-Person / Clinic Visit Section */}
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">In-Person / Clinic Visit</h3>
+
+          <div className="space-y-4">
+            {servicePricings.map((pricing, index) => (
+              <div key={index} className="border border-gray-200 rounded-lg p-4">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                  {/* Service Dropdown */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Service(s)
+                    </label>
+                    <select
+                      value={pricing.service_name}
+                      onChange={(e) => handleServiceChange(index, 'service_name', e.target.value, 'In-Person / Clinic Visit')}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    >
+                      <option value="">Select a service</option>
+                      {realServices.map((service) => (
+                        <option key={service.id} value={service.title}>
+                          {service.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* First Time Patient - Price */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      First Time Patient - Price
+                    </label>
+                    <input
+                      type="text"
+                      value={pricing.first_time_price}
+                      onChange={(e) => handleServiceChange(index, 'first_time_price', e.target.value, 'In-Person / Clinic Visit')}
+                      placeholder={pricing.is_sliding_scale ? "$85 - $100" : "$85"}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    />
+                  </div>
+
+                  {/* First Time Patient - Duration */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Duration (in minutes)
+                    </label>
+                    <input
+                      type="number"
+                      value={pricing.first_time_duration}
+                      onChange={(e) => handleServiceChange(index, 'first_time_duration', e.target.value, 'In-Person / Clinic Visit')}
+                      placeholder="60"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    />
+                  </div>
+
+                  {/* Returning Patient - Price */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Returning Patient - Price
+                    </label>
+                    <input
+                      type="text"
+                      value={pricing.returning_price}
+                      onChange={(e) => handleServiceChange(index, 'returning_price', e.target.value, 'In-Person / Clinic Visit')}
+                      placeholder={pricing.is_sliding_scale ? "$75 - $90" : "$75"}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    />
+                  </div>
+
+                  {/* Returning Patient - Duration */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Duration (in minutes)
+                    </label>
+                    <input
+                      type="number"
+                      value={pricing.returning_duration}
+                      onChange={(e) => handleServiceChange(index, 'returning_duration', e.target.value, 'In-Person / Clinic Visit')}
+                      placeholder="45"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    />
+                  </div>
+                </div>
+
+                {/* Remove Button */}
+                <div className="mt-4 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveService(index, 'In-Person / Clinic Visit')}
+                    className="text-red-600 hover:text-red-700 text-sm font-medium"
+                  >
+                    Remove Service
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Add Service Button */}
+          <button
+            type="button"
+            onClick={() => handleAddService('In-Person / Clinic Visit')}
+            className="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+          >
             Add New Service
           </button>
         </div>
 
-        <div className="space-y-4">
-          {services.map((service) => (
-            <div key={service.id} className="border border-gray-200 rounded-lg p-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Service Name</label>
-                  <input
-                    type="text"
-                    defaultValue={service.name}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  />
+        {/* Virtual Visit Section */}
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Virtual Visit</h3>
+
+          <div className="space-y-4">
+            {virtualPricings.map((pricing, index) => (
+              <div key={index} className="border border-gray-200 rounded-lg p-4">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                  {/* Service Dropdown */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Service(s)
+                    </label>
+                    <select
+                      value={pricing.service_name}
+                      onChange={(e) => handleServiceChange(index, 'service_name', e.target.value, 'Virtual Visit')}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    >
+                      <option value="">Select a service</option>
+                      {virtualServices.map((service) => (
+                        <option key={service.id} value={service.title}>
+                          {service.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* First Time Patient - Price */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      First Time Patient - Price
+                    </label>
+                    <input
+                      type="text"
+                      value={pricing.first_time_price}
+                      onChange={(e) => handleServiceChange(index, 'first_time_price', e.target.value, 'Virtual Visit')}
+                      placeholder={pricing.is_sliding_scale ? "$85 - $100" : "$85"}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    />
+                  </div>
+
+                  {/* First Time Patient - Duration */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Duration (in minutes)
+                    </label>
+                    <input
+                      type="number"
+                      value={pricing.first_time_duration}
+                      onChange={(e) => handleServiceChange(index, 'first_time_duration', e.target.value, 'Virtual Visit')}
+                      placeholder="60"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    />
+                  </div>
+
+                  {/* Returning Patient - Price */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Returning Patient - Price
+                    </label>
+                    <input
+                      type="text"
+                      value={pricing.returning_price}
+                      onChange={(e) => handleServiceChange(index, 'returning_price', e.target.value, 'Virtual Visit')}
+                      placeholder={pricing.is_sliding_scale ? "$75 - $90" : "$75"}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    />
+                  </div>
+
+                  {/* Returning Patient - Duration */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Duration (in minutes)
+                    </label>
+                    <input
+                      type="number"
+                      value={pricing.returning_duration}
+                      onChange={(e) => handleServiceChange(index, 'returning_duration', e.target.value, 'Virtual Visit')}
+                      placeholder="45"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Price ($)</label>
-                  <input
-                    type="number"
-                    defaultValue={service.price}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Duration (min)</label>
-                  <input
-                    type="number"
-                    defaultValue={service.duration}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  />
+                {/* Remove Button */}
+                <div className="mt-4 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveService(index, 'Virtual Visit')}
+                    className="text-red-600 hover:text-red-700 text-sm font-medium"
+                  >
+                    Remove Service
+                  </button>
                 </div>
               </div>
+            ))}
+          </div>
 
-              <div className="mt-4 flex justify-end">
-                <button className="text-red-600 hover:text-red-700 text-sm font-medium">
-                  Remove Service
-                </button>
+          {/* Add Virtual Service Button */}
+          <button
+            type="button"
+            onClick={() => handleAddService('Virtual Visit')}
+            className="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            Add New Service
+          </button>
+        </div>
+
+        {/* Packages Section */}
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Packages</h3>
+
+          <div className="space-y-4">
+            {packagePricings.map((packagePricing, index) => (
+              <div key={index} className="border border-gray-200 rounded-lg p-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                  {/* Service Dropdown */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Service(s)
+                    </label>
+                    <select
+                      value={packagePricing.service_name}
+                      onChange={(e) => handlePackageChange(index, 'service_name', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    >
+                      <option value="">Select a service</option>
+                      {realServices.map((service) => (
+                        <option key={service.id} value={service.title}>
+                          {service.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* No. of Sessions */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      No. of Sessions
+                    </label>
+                    <input
+                      type="number"
+                      value={packagePricing.no_of_sessions}
+                      onChange={(e) => handlePackageChange(index, 'no_of_sessions', e.target.value)}
+                      placeholder="e.g., 5, 10"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    />
+                  </div>
+
+                  {/* Price */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Price
+                    </label>
+                    <input
+                      type="text"
+                      value={packagePricing.price}
+                      onChange={(e) => handlePackageChange(index, 'price', e.target.value)}
+                      placeholder="$400"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    />
+                  </div>
+                </div>
+
+                {/* Remove Button */}
+                <div className="mt-4 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => handleRemovePackage(index)}
+                    className="text-red-600 hover:text-red-700 text-sm font-medium"
+                  >
+                    Remove Package
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          {/* Add Package Button */}
+          <button
+            type="button"
+            onClick={handleAddPackage}
+            className="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            Add New Package
+          </button>
         </div>
 
         <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -81,15 +673,29 @@ const ManageServicesPricing: React.FC<ManageServicesPricingProps> = ({ profile }
         <div className="flex justify-end space-x-4 pt-6 border-t mt-6">
           <button
             type="button"
-            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            onClick={() => profile?.id && loadServicePricing(profile.id)}
+            disabled={saving}
+            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Cancel
+            Reset
           </button>
           <button
-            type="submit"
-            className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+            type="button"
+            onClick={handleSave}
+            disabled={saving || servicesLoading}
+            className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
           >
-            Save Changes
+            {saving ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Saving...
+              </>
+            ) : (
+              'Save Changes'
+            )}
           </button>
         </div>
       </div>

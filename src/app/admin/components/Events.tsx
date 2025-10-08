@@ -13,6 +13,7 @@ import { FilterMatchMode } from 'primereact/api';
 import { useEvents } from '@/hooks/useEvents';
 import { Event } from '@/types/event';
 import { supabase } from '@/lib/supabase';
+import Image from 'next/image';
 
 const Events = ({ onRefreshData }: { onRefreshData: () => void }) => {
   const { events, loading, error, addEvent: addEventHook, updateEvent: updateEventHook, deleteEvent: deleteEventHook } = useEvents();
@@ -397,9 +398,11 @@ const Events = ({ onRefreshData }: { onRefreshData: () => void }) => {
     return (
       <div className="py-3 flex justify-center">
         {rowData.image ? (
-          <img
+          <Image
             src={rowData.image}
             alt={rowData.title}
+            width={64}
+            height={64}
             className="w-16 h-16 object-cover rounded-md"
           />
         ) : (
@@ -661,10 +664,12 @@ const Events = ({ onRefreshData }: { onRefreshData: () => void }) => {
               />
               {imagePreview && (
                 <div className="relative w-full h-48 border border-gray-300 rounded-lg overflow-hidden">
-                  <img
+                  <Image
                     src={imagePreview}
                     alt="Preview"
-                    className="w-full h-full object-cover"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    className="object-cover"
                   />
                 </div>
               )}
@@ -775,10 +780,12 @@ const Events = ({ onRefreshData }: { onRefreshData: () => void }) => {
               />
               {imagePreview && (
                 <div className="relative w-full h-48 border border-gray-300 rounded-lg overflow-hidden">
-                  <img
+                  <Image
                     src={imagePreview}
                     alt="Preview"
-                    className="w-full h-full object-cover"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    className="object-cover"
                   />
                 </div>
               )}

@@ -139,7 +139,7 @@ const UserCard = ({ practitioner, onNavigate, onBooking, isOwnProfile = false })
 
           {/* Degrees */}
           <div className="text-center">
-            <p className="text-xs text-gray-500">{practitioner.degrees}</p>
+            <p className="text-xs text-gray-500">{practitioner.degree}</p>
           </div>
 
           {/* Address */}
@@ -231,7 +231,7 @@ const UserCard = ({ practitioner, onNavigate, onBooking, isOwnProfile = false })
               >
                 {practitioner.full_name}
               </button>
-              <p className="text-xs text-gray-500 mb-3">{practitioner.degrees}</p>
+              <p className="text-xs text-gray-500 mb-3">{practitioner.degree}</p>
               <div className="flex items-center space-x-1 mb-2 mt-2 text-sm text-gray-600">
                 <MapPin className="w-3 h-3 flex-shrink-0" />
                 <span className="text-xs">{practitioner.address}</span>
@@ -323,7 +323,7 @@ const UserCard = ({ practitioner, onNavigate, onBooking, isOwnProfile = false })
                 >
                   {practitioner.full_name}
                 </button>
-                <p className="text-xs text-gray-500 mb-3">{practitioner.degrees}</p>
+                <p className="text-xs text-gray-500 mb-3">{practitioner.degree}</p>
                 <div className="flex items-center space-x-1 mb-3 mt-3 text-sm text-gray-600">
                   <MapPin className="w-4 h-4 flex-shrink-0" />
                   <span>{practitioner.address}</span>
@@ -745,7 +745,7 @@ const UserDirectoryContent = () => {
         url: getAvatarUrl(practitioner.avatar),
         alt: practitioner.full_name || "Practitioner"
       },
-      degrees: Array.isArray(practitioner.degrees) ? practitioner.degrees.join(', ') : (practitioner.degrees || ''),
+      degree: practitioner.degree || '',
       languages: Array.isArray(practitioner.languages) ? practitioner.languages : ['English'],
       clinic: practitioner.clinic || 'Private Practice',
       address: practitioner.address || 'Address not available',

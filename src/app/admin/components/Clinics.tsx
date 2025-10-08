@@ -22,6 +22,7 @@ import { supabase } from '@/lib/supabase';
 import { MultiSelect } from 'primereact/multiselect';
 import dynamic from 'next/dynamic';
 import { useAppSelector } from '@/store/hooks';
+import Image from 'next/image';
 
 const Autocomplete = dynamic(
   () => import('@react-google-maps/api').then(mod => ({ default: mod.Autocomplete })),
@@ -471,9 +472,11 @@ const Clinics = ({ onRefreshData }: { onRefreshData: () => void | Promise<void> 
     return (
       <div className="py-3">
         {rowData.image ? (
-          <img
+          <Image
             src={rowData.image}
             alt={rowData.service}
+            width={40}
+            height={40}
             className="h-10 w-10 object-cover rounded"
             onError={(e) => {
               (e.target as HTMLImageElement).src = '/images/placeholder.png';
@@ -724,11 +727,13 @@ const Clinics = ({ onRefreshData }: { onRefreshData: () => void | Promise<void> 
                 className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
               />
               {imagePreview && (
-                <div className="relative mt-2">
-                  <img
+                <div className="relative mt-2 w-full h-48">
+                  <Image
                     src={imagePreview}
                     alt="Preview"
-                    className="w-full h-48 object-cover rounded border border-gray-200"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    className="object-cover rounded border border-gray-200"
                   />
                   <button
                     type="button"
@@ -829,11 +834,15 @@ const Clinics = ({ onRefreshData }: { onRefreshData: () => void | Promise<void> 
             <div className="space-y-2">
               {editClinicData.image && !imagePreview && (
                 <div className="relative">
-                  <img
-                    src={editClinicData.image}
-                    alt="Current"
-                    className="w-full h-48 object-cover rounded border border-gray-200"
-                  />
+                  <div className="relative w-full h-48">
+                    <Image
+                      src={editClinicData.image}
+                      alt="Current"
+                      fill
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      className="object-cover rounded border border-gray-200"
+                    />
+                  </div>
                   <p className="text-xs text-gray-500 mt-1">Current image</p>
                 </div>
               )}
@@ -846,11 +855,15 @@ const Clinics = ({ onRefreshData }: { onRefreshData: () => void | Promise<void> 
               />
               {imagePreview && (
                 <div className="relative mt-2">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="w-full h-48 object-cover rounded border border-gray-200"
-                  />
+                  <div className="relative w-full h-48">
+                    <Image
+                      src={imagePreview}
+                      alt="Preview"
+                      fill
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      className="object-cover rounded border border-gray-200"
+                    />
+                  </div>
                   <p className="text-xs text-gray-500 mt-1">New image preview</p>
                   <button
                     type="button"

@@ -13,7 +13,7 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, handleTabChange }) => {
       {/* Header */}
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h2>
-        <p className="text-gray-500">Welcome back, <span className="font-medium text-gray-900">{profile?.full_name || 'User'}</span>! Here's your overview.</p>
+        <p className="text-gray-500">Welcome back, <span className="font-medium text-gray-900">{profile?.full_name || 'User'}</span>! Here&apos;s your overview.</p>
       </div>
 
       {/* Stats Grid */}

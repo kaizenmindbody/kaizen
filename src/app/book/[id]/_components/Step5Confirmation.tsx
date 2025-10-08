@@ -115,7 +115,6 @@ const Step5Confirmation: React.FC<Step5ConfirmationProps> = ({
 
   // Function to create Google Calendar URL
   const createGoogleCalendarUrl = (booking: any) => {
-    console.log('Creating calendar URL for booking:', booking); // Debug log
 
     // Handle date parsing more robustly - extract START time only from time range
     let startDate;
@@ -186,14 +185,6 @@ This appointment was booked through the Kaizen medical platform.
     const startTime = formatDateTime(startDate);
     const endTime = formatDateTime(endDate);
 
-    console.log('Generated calendar URL times:', {
-      booking: booking.timeSlot,
-      startTime,
-      endTime,
-      startDate: startDate.toLocaleString(),
-      endDate: endDate.toLocaleString()
-    }); // Debug log
-
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startTime}/${endTime}&details=${details}&location=Wellness%20Path`;
   };
 
@@ -204,13 +195,10 @@ This appointment was booked through the Kaizen medical platform.
       return;
     }
 
-    console.log('Selected bookings for calendar:', selectedBookings); // Debug log
-
     try {
       if (selectedBookings.length === 1) {
         // Single booking - open directly
         const calendarUrl = createGoogleCalendarUrl(selectedBookings[0]);
-        console.log('Opening single calendar URL:', calendarUrl); // Debug log
         window.open(calendarUrl, '_blank');
         toast.success('Opening Google Calendar...');
       } else {

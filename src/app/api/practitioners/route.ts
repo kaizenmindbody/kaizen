@@ -12,9 +12,6 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get('sortBy') || 'created_at';
     const order = searchParams.get('order') || 'asc';
 
-    // Debug logging
-    console.log('Search parameters:', { search, specialty, location, page, limit, sortBy, order });
-
     // Calculate offset for pagination
     const offset = (page - 1) * limit;
 
@@ -69,17 +66,8 @@ export async function GET(request: NextRequest) {
 
     // Process the data to parse JSON fields
     const processedData = data?.map(practitioner => {
-      let degrees = [];
+      const degree = practitioner.degree || '';
       let languages = [];
-
-      try {
-        degrees = practitioner.degree ?
-          (typeof practitioner.degree === 'string' ?
-            JSON.parse(practitioner.degree) : practitioner.degree) : [];
-      } catch (e) {
-        console.error('Error parsing degrees:', e);
-        degrees = [];
-      }
 
       try {
         languages = practitioner.languages ?
@@ -92,7 +80,7 @@ export async function GET(request: NextRequest) {
 
       return {
         ...practitioner,
-        degrees,
+        degree,
         languages,
       };
     }) || [];

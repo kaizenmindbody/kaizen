@@ -9,7 +9,7 @@ import { useClinics } from '@/hooks/useClinics';
 import { useFaq } from '@/hooks/useFaq';
 import { useBlogs } from '@/hooks/useBlogs';
 import { supabase } from '@/lib/supabase';
-import { Users as UsersIcon, FileText, Settings as SettingsIcon, BarChart3, Menu, X, Users, Settings, Building2, GraduationCap, HelpCircle, BookOpen, Calendar } from 'lucide-react';
+import { Users as UsersIcon, FileText, Settings as SettingsIcon, BarChart3, Menu, X, Users, Settings, Building2, GraduationCap, HelpCircle, BookOpen, Calendar, Briefcase, LogOut, UserCircle } from 'lucide-react';
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 import Image from 'next/image';
 import Overview from './components/Overview';
@@ -17,6 +17,8 @@ import UsersComponent from './components/Users';
 import SpecialtiesComponent from './components/Specialties';
 import DegreesComponent from './components/Degrees';
 import ClinicsComponent from './components/Clinics';
+import ServicesComponent from './components/Services';
+import PractitionerTypesComponent from './components/PractitionerTypes';
 import FaqsComponent from './components/Faqs';
 import BlogsComponent from './components/Blogs';
 import EventsComponent from './components/Events';
@@ -24,7 +26,7 @@ import SettingsComponent from './components/Settings';
 import { User, Stats } from '@/types/user';
 
 const AdminDashboard = () => {
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading, isAdmin, signOut } = useAuth();
   const { specialties } = useSpecialty();
   const { degrees } = useDegrees();
   const { clinics } = useClinics();
@@ -36,6 +38,27 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Sync activeTab with URL on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      if (tab) {
+        setActiveTab(tab);
+      }
+    }
+  }, []);
+
+  // Update URL when tab changes
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', tab);
+      window.history.pushState({}, '', url.toString());
+    }
+  };
 
   // Redirect if not admin
   useEffect(() => {
@@ -93,19 +116,22 @@ const AdminDashboard = () => {
     });
   };
 
+  const handleSignOut = () => {
+    confirmDialog({
+      message: 'Are you sure you want to sign out?',
+      header: 'Sign Out',
+      icon: 'pi pi-exclamation-triangle',
+      defaultFocus: 'reject',
+      acceptClassName: 'p-button-danger',
+      accept: async () => {
+        await signOut();
+        router.push('/');
+      },
+    });
+  };
 
-  if (loading || loadingData) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading Admin Dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user || !isAdmin) {
+  // Redirect if not admin (but don't block rendering while loading)
+  if (!loading && (!user || !isAdmin)) {
     return null; // Will redirect
   }
 
@@ -139,6 +165,13 @@ const AdminDashboard = () => {
                 className="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-md transition-colors"
               >
                 Back to Site
+              </button>
+              <button
+                onClick={handleSignOut}
+                className="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded-md transition-colors flex items-center space-x-1"
+              >
+                <LogOut className="w-3 h-3" />
+                <span>Sign Out</span>
               </button>
             </div>
           </div>
@@ -175,6 +208,8 @@ const AdminDashboard = () => {
                 { id: 'specialties', name: 'Specialties', icon: FileText },
                 { id: 'degrees', name: 'Degrees', icon: GraduationCap },
                 { id: 'clinics', name: 'Clinics', icon: Building2 },
+                { id: 'services', name: 'Services', icon: Briefcase },
+                { id: 'practitioner-types', name: 'Practitioner Types', icon: UserCircle },
                 { id: 'faqs', name: 'FAQs', icon: HelpCircle },
                 { id: 'blogs', name: 'Blogs', icon: BookOpen },
                 { id: 'events', name: 'Events', icon: Calendar },
@@ -185,7 +220,7 @@ const AdminDashboard = () => {
                   <button
                     key={tab.id}
                     onClick={() => {
-                      setActiveTab(tab.id);
+                      handleTabChange(tab.id);
                       setSidebarOpen(false);
                     }}
                     className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg font-medium text-sm transition-colors ${
@@ -232,6 +267,8 @@ const AdminDashboard = () => {
                   { id: 'specialties', name: 'Specialties', icon: FileText },
                   { id: 'degrees', name: 'Degrees', icon: GraduationCap },
                   { id: 'clinics', name: 'Clinics', icon: Building2 },
+                  { id: 'services', name: 'Services', icon: Briefcase },
+                  { id: 'practitioner-types', name: 'Practitioner Types', icon: UserCircle },
                   { id: 'faqs', name: 'FAQs', icon: HelpCircle },
                   { id: 'blogs', name: 'Blogs', icon: BookOpen },
                   { id: 'events', name: 'Events', icon: Calendar },
@@ -241,7 +278,7 @@ const AdminDashboard = () => {
                   return (
                     <button
                       key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
+                      onClick={() => handleTabChange(tab.id)}
                       className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg font-medium text-sm transition-colors ${
                         activeTab === tab.id
                           ? 'bg-primary text-white'
@@ -261,19 +298,27 @@ const AdminDashboard = () => {
                 >
                   Back to Site
                 </button>
+                <button
+                  onClick={handleSignOut}
+                  className="w-full bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center space-x-2 mt-2"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Sign Out</span>
+                </button>
               </div>
             </div>
           </div>
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-1 lg:ml-64">
+        <div className="flex-1 ">
           <div className="w-full px-4 sm:px-6 py-6 lg:py-8">
             {/* Tab Content */}
             {activeTab === 'overview' && (
               <Overview
                 stats={stats}
-                onTabChange={setActiveTab}
+                onTabChange={handleTabChange}
+                loading={loadingData}
               />
             )}
 
@@ -299,6 +344,18 @@ const AdminDashboard = () => {
 
             {activeTab === 'clinics' && (
               <ClinicsComponent
+                onRefreshData={fetchAdminData}
+              />
+            )}
+
+            {activeTab === 'services' && (
+              <ServicesComponent
+                onRefreshData={fetchAdminData}
+              />
+            )}
+
+            {activeTab === 'practitioner-types' && (
+              <PractitionerTypesComponent
                 onRefreshData={fetchAdminData}
               />
             )}

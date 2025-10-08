@@ -46,8 +46,7 @@ export async function GET(
     // Process the data to parse JSON fields
     const processedData = {
       ...data,
-      degrees: data.degree ?
-        (typeof data.degree === 'string' ? JSON.parse(data.degree) : data.degree) : [],
+      degree: data.degree || '',
       languages: data.languages ?
         (typeof data.languages === 'string' ? JSON.parse(data.languages) : data.languages) : [],
       specialty_rate: data.specialty_rate ?

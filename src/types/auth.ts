@@ -6,8 +6,8 @@ export interface UserProfile {
   firstname?: string;
   lastname?: string;
   full_name?: string; // Computed from firstname + lastname
-  type?: string; // Database column name
-  user_type?: string; // Alias for compatibility
+  type?: string; // Database column name (practitioner | patient)
+  user_type?: string; // Mapped from type for compatibility
   avatar?: string;
   phone?: string;
   title?: string;

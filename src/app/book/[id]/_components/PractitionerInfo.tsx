@@ -36,13 +36,11 @@ const PractitionerInfo: React.FC<PractitionerInfoProps> = ({
               </div>
             </div>
 
-            {/* Degrees */}
+            {/* Degree */}
             {practitioner.degrees && (
               <div className="flex flex-wrap justify-center lg:justify-start gap-2 mb-4">
                 <span className="text-sm text-[#8ED083]">
-                  {Array.isArray(practitioner.degrees)
-                    ? practitioner.degrees.join(', ')
-                    : practitioner.degrees}
+                  {typeof practitioner.degrees === 'string' ? practitioner.degrees : practitioner.degrees.join(', ')}
                 </span>
               </div>
             )}

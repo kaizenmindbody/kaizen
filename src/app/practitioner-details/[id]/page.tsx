@@ -254,14 +254,11 @@ const PractitionerDetailsPage = () => {
     const checkHashAndSetTab = () => {
       if (typeof window !== 'undefined') {
         const hash = window.location.hash;
-        console.log('Hash detected:', hash); // Debug log
         if (hash === '#services') {
-          console.log('Setting active tab to Services'); // Debug log
           setActiveTab('Services, Pricing');
           // Scroll to the tabs section after a short delay to ensure DOM is ready
           setTimeout(() => {
             const tabsElement = document.querySelector('.navigation-tabs');
-            console.log('Tabs element found:', tabsElement); // Debug log
             if (tabsElement) {
               tabsElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
@@ -298,9 +295,7 @@ const PractitionerDetailsPage = () => {
     if (typeof window !== 'undefined') {
       // Check for hash in the current URL
       const hash = window.location.hash;
-      console.log('Router ready, checking hash:', hash); // Debug log
       if (hash === '#services' && activeTab !== 'Services, Pricing') {
-        console.log('Router-based hash detection, setting tab to Services'); // Debug log
         setActiveTab('Services, Pricing');
         // Scroll after a longer delay to ensure everything is loaded
         setTimeout(() => {
@@ -362,7 +357,7 @@ const PractitionerDetailsPage = () => {
               return [];
             }
           })(),
-          degrees: Array.isArray(found.degrees) ? found.degrees.join(', ') : (found.degrees || ''),
+          degree: found.degree || '',
           languages: Array.isArray(found.languages) ? found.languages : ['English'],
           clinic: found.clinic || 'Private Practice',
           address: found.address || 'Address not available',
@@ -424,12 +419,7 @@ const PractitionerDetailsPage = () => {
               return Array.isArray(found.specialty) ? found.specialty.join(', ') : 'General Healthcare';
             })();
 
-            const degreesText = (() => {
-              if (!found.degrees || (Array.isArray(found.degrees) && found.degrees.length === 0)) {
-                return 'Licensed Healthcare Professional';
-              }
-              return Array.isArray(found.degrees) ? found.degrees.join(', ') : found.degrees;
-            })();
+            const degreesText = found.degree || 'Licensed Healthcare Professional';
 
             const experienceText = found.experience || 'Several years';
             const locationText = found.address || 'Available for consultations';
@@ -810,10 +800,10 @@ const PractitionerDetailsPage = () => {
                           )}
                         </div>
                       </div>
-                      {practitioner.degrees && (
+                      {practitioner.degree && (
                         <div className="flex items-center mb-4">
                           <CheckCircle className="w-4 h-4 text-gray-400 mr-2" />
-                          <p className="text-sm text-gray-500">{practitioner.degrees}</p>
+                          <p className="text-sm text-gray-500">{practitioner.degree}</p>
                         </div>
                       )}
 

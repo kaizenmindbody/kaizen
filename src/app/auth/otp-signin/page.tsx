@@ -29,7 +29,7 @@ const OTPSigninPage = () => {
         localStorage.removeItem('redirectAfterLogin');
         router.push(redirectUrl);
       } else {
-        router.push('/profile?section=info');
+        router.push('/profile');
       }
     }
   }, [user, loading, isAdmin, router]);

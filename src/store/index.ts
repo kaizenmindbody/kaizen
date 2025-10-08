@@ -6,6 +6,8 @@ import clinicsReducer from './slices/clinicsSlice';
 import faqsReducer from './slices/faqsSlice';
 import blogsReducer from './slices/blogsSlice';
 import eventsReducer from './slices/eventsSlice';
+import servicesReducer from './slices/servicesSlice';
+import practitionerTypesReducer from './slices/practitionerTypesSlice';
 
 export const store = configureStore({
   reducer: {
@@ -16,6 +18,8 @@ export const store = configureStore({
     faqs: faqsReducer,
     blogs: blogsReducer,
     events: eventsReducer,
+    services: servicesReducer,
+    practitionerTypes: practitionerTypesReducer,
   },
 });
 

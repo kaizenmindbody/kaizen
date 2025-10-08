@@ -36,7 +36,7 @@ const SigninPage = () => {
         router.push(redirectUrl);
       } else {
         // Default redirect to profile
-        router.push('/profile?section=info');
+        router.push('/profile');
       }
     }
   }, [user, loading, isAdmin, router]);

@@ -1,11 +1,17 @@
 "use client";
 
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Users as UsersIcon, Shield, FileText, Eye, TrendingUp, Activity, Clock, BarChart } from 'lucide-react';
 import { OverviewProps } from '@/types/admin';
 
-const Overview = ({ stats, onTabChange }: OverviewProps) => {
+const Overview = ({ stats, onTabChange, loading = false }: OverviewProps) => {
   const router = useRouter();
+  const [currentTime, setCurrentTime] = useState<string>('');
+
+  useEffect(() => {
+    setCurrentTime(new Date().toLocaleTimeString());
+  }, []);
 
   const statsCards = [
     {
@@ -60,59 +66,83 @@ const Overview = ({ stats, onTabChange }: OverviewProps) => {
         </div>
         <div className="flex items-center space-x-2 bg-white rounded-lg px-4 py-2 shadow-sm border">
           <Clock className="w-5 h-5 text-gray-400" />
-          <span className="text-sm text-gray-600">Last updated: {new Date().toLocaleTimeString()}</span>
+          <span className="text-sm text-gray-600">Last updated: {currentTime}</span>
         </div>
       </div>
 
       {/* Enhanced Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        {statsCards.map((card, index) => {
-          const IconComponent = card.icon;
-          return (
+        {loading ? (
+          // Skeleton loading state
+          Array.from({ length: 4 }).map((_, index) => (
             <div
-              key={card.title}
-              className="group relative bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100 overflow-hidden"
-              style={{ animationDelay: `${index * 100}ms` }}
+              key={index}
+              className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
             >
-              {/* Gradient Background */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${card.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`}></div>
-
-              <div className="relative p-6">
+              <div className="p-6 animate-pulse">
                 <div className="flex items-center justify-between mb-4">
-                  <div className={`p-3 rounded-xl ${card.bgColor} group-hover:scale-110 transition-transform duration-300`}>
-                    <IconComponent className={`w-6 h-6 ${card.iconColor}`} />
-                  </div>
-                  <div className="flex items-center space-x-1 text-green-500">
-                    <TrendingUp className="w-4 h-4" />
-                    <span className="text-sm font-medium">{card.change}</span>
-                  </div>
+                  <div className="w-12 h-12 bg-gray-200 rounded-xl"></div>
+                  <div className="w-16 h-4 bg-gray-200 rounded"></div>
                 </div>
-
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">{card.title}</h3>
-                  <div className="flex items-baseline space-x-2">
-                    <p className="text-3xl font-bold text-gray-900 group-hover:scale-105 transition-transform duration-300">
-                      {card.value.toLocaleString()}
-                    </p>
-                  </div>
+                  <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
+                  <div className="h-8 bg-gray-200 rounded w-16"></div>
                 </div>
-
-                {/* Progress Bar */}
                 <div className="mt-4">
-                  <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full bg-gradient-to-r ${card.color} rounded-full transition-all duration-1000 ease-out`}
-                      style={{
-                        width: `${Math.min(100, (card.value / Math.max(...statsCards.map(c => c.value))) * 100)}%`,
-                        animationDelay: `${index * 200 + 500}ms`
-                      }}
-                    ></div>
-                  </div>
+                  <div className="h-1 bg-gray-200 rounded-full"></div>
                 </div>
               </div>
             </div>
-          );
-        })}
+          ))
+        ) : (
+          statsCards.map((card, index) => {
+            const IconComponent = card.icon;
+            return (
+              <div
+                key={card.title}
+                className="group relative bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100 overflow-hidden"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                {/* Gradient Background */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${card.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`}></div>
+
+                <div className="relative p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`p-3 rounded-xl ${card.bgColor} group-hover:scale-110 transition-transform duration-300`}>
+                      <IconComponent className={`w-6 h-6 ${card.iconColor}`} />
+                    </div>
+                    <div className="flex items-center space-x-1 text-green-500">
+                      <TrendingUp className="w-4 h-4" />
+                      <span className="text-sm font-medium">{card.change}</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500 mb-1">{card.title}</h3>
+                    <div className="flex items-baseline space-x-2">
+                      <p className="text-3xl font-bold text-gray-900 group-hover:scale-105 transition-transform duration-300">
+                        {card.value.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="mt-4">
+                    <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full bg-gradient-to-r ${card.color} rounded-full transition-all duration-1000 ease-out`}
+                        style={{
+                          width: `${Math.min(100, (card.value / Math.max(...statsCards.map(c => c.value))) * 100)}%`,
+                          animationDelay: `${index * 200 + 500}ms`
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
       {/* Enhanced Quick Actions */}

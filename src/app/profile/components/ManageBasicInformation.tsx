@@ -1,14 +1,16 @@
 "use client";
 
 import { ProfileData } from '@/types/user';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 import Select from 'react-select';
 import { useDegrees } from '@/hooks/useDegrees';
+import { usePractitionerTypes } from '@/hooks/usePractitionerTypes';
 import PlacesAutocomplete, { geocodeByAddress, getLatLng } from 'react-places-autocomplete';
+import Image from 'next/image';
 import 'react-phone-input-2/lib/style.css';
 
 const PhoneInput = dynamic(() => import('react-phone-input-2'), {
@@ -23,6 +25,7 @@ interface ManageBasicInformationProps {
 const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile }) => {
   const { user, refreshProfile } = useAuth();
   const { degrees } = useDegrees();
+  const { practitionerTypes } = usePractitionerTypes();
 
   // Parse address from database format "line1, line2, city, state, zip"
   const parseAddress = (address: string | undefined) => {
@@ -47,7 +50,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
     last_name: profile?.lastname || '',
     title: profile?.title || '',
     degree: profile?.degree || '',
-    type_of_practitioner: '',
+    type_of_practitioner: profile?.ptype || '',
     clinic_name: profile?.clinic || '',
     create_clinic_page: profile?.clinicpage || 'no',
     website: profile?.website || '',
@@ -61,9 +64,108 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
   });
 
   const [isSaving, setIsSaving] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(profile?.avatar || null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleAvatarSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select a valid image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB');
+      return;
+    }
+
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+  };
+
+  const handleAvatarUpload = async () => {
+    if (!avatarFile || !user?.id) return;
+
+    setUploadingAvatar(true);
+    try {
+      // Delete old avatar if exists
+      if (profile?.avatar) {
+        const oldAvatarPath = profile.avatar.split('/').slice(-2).join('/');
+        await supabase.storage.from('kaizen').remove([oldAvatarPath]);
+      }
+
+      // Upload new avatar
+      const fileExt = avatarFile.name.split('.').pop();
+      const fileName = `${user.id}_avatar_${Date.now()}.${fileExt}`;
+      const filePath = `usermedia/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('kaizen')
+        .upload(filePath, avatarFile);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('kaizen')
+        .getPublicUrl(filePath);
+
+      // Update database
+      const { error } = await supabase
+        .from('Users')
+        .update({ avatar: publicUrl })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      toast.success('Avatar updated successfully!');
+      setAvatarFile(null);
+      await refreshProfile();
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+      toast.error('Failed to upload avatar');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleAvatarRemove = async () => {
+    if (!user?.id || !profile?.avatar) return;
+
+    setUploadingAvatar(true);
+    try {
+      // Delete from storage
+      const avatarPath = profile.avatar.split('/').slice(-2).join('/');
+      await supabase.storage.from('kaizen').remove([avatarPath]);
+
+      // Update database
+      const { error } = await supabase
+        .from('Users')
+        .update({ avatar: null })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      toast.success('Avatar removed successfully!');
+      setAvatarPreview(null);
+      setAvatarFile(null);
+      await refreshProfile();
+    } catch (error) {
+      console.error('Avatar remove error:', error);
+      toast.error('Failed to remove avatar');
+    } finally {
+      setUploadingAvatar(false);
+    }
   };
 
   // Handle address selection from Google Places
@@ -109,7 +211,6 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
         zip_code: zipCode,
       }));
     } catch (error) {
-      console.error('Error selecting address:', error);
       toast.error('Failed to parse address. Please try again.');
     }
   };
@@ -136,14 +237,14 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
     setIsSaving(true);
 
     try {
-      // Construct full address from parts
+      // Construct full address from parts (keep empty address_line2 to maintain positions)
       const addressParts = [
         formData.address_line1,
-        formData.address_line2,
+        formData.address_line2, // Keep even if empty to maintain position
         formData.city,
         formData.state,
         formData.zip_code
-      ].filter(part => part.trim()).join(', ');
+      ].map(part => part.trim()).join(', ');
 
       // Update user data in database
       const updateData = {
@@ -151,6 +252,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
         lastname: formData.last_name.trim(),
         title: formData.title.trim() || null,
         degree: formData.degree || null,
+        ptype: formData.type_of_practitioner.trim() || null,
         clinic: formData.clinic_name.trim() || null,
         clinicpage: formData.create_clinic_page || null,
         website: formData.website.trim() || null,
@@ -158,26 +260,20 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
         address: addressParts || null,
       };
 
-      console.log('Saving profile data:', updateData);
-
       const { error } = await supabase
         .from('Users')
         .update(updateData)
         .eq('id', user.id);
 
       if (error) {
-        console.error('Database update error:', error);
         throw error;
       }
-
-      console.log('Profile saved successfully');
 
       // Refresh profile data in AuthContext
       await refreshProfile();
 
       toast.success('Account updated successfully!');
     } catch (error) {
-      console.error('Error saving profile:', error);
       toast.error('Failed to update account. Please try again.');
     } finally {
       setIsSaving(false);
@@ -194,7 +290,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
         last_name: profile.lastname || '',
         title: profile.title || '',
         degree: profile.degree || '',
-        type_of_practitioner: '',
+        type_of_practitioner: profile.ptype || '',
         clinic_name: profile.clinic || '',
         create_clinic_page: profile.clinicpage || 'no',
         website: profile.website || '',
@@ -219,7 +315,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
         last_name: profile.lastname || '',
         title: profile.title || '',
         degree: profile.degree || '',
-        type_of_practitioner: '',
+        type_of_practitioner: profile.ptype || '',
         clinic_name: profile.clinic || '',
         create_clinic_page: profile.clinicpage || 'no',
         website: profile.website || '',
@@ -231,6 +327,8 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
         state: addressParts.state,
         zip_code: addressParts.zip_code,
       });
+
+      setAvatarPreview(profile.avatar || null);
     }
   }, [profile]);
 
@@ -260,6 +358,93 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
       <div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Manage Your Account</h2>
         <p className="text-gray-600">Update your account information and professional credentials.</p>
+      </div>
+
+      {/* Avatar Upload Section */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Profile Avatar</h3>
+        <div className="flex items-center space-x-6">
+          {/* Avatar Preview */}
+          <div className="relative">
+            {avatarPreview ? (
+              <Image
+                src={avatarPreview}
+                alt="Avatar"
+                width={120}
+                height={120}
+                className="w-30 h-30 rounded-full object-cover border-4 border-gray-200"
+              />
+            ) : (
+              <div className="w-30 h-30 rounded-full bg-gray-200 flex items-center justify-center border-4 border-gray-300">
+                <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+            )}
+          </div>
+
+          {/* Upload Controls */}
+          <div className="flex-1">
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarSelect}
+              className="hidden"
+            />
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={uploadingAvatar}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <i className="pi pi-upload mr-2"></i>
+                  Choose Avatar
+                </button>
+
+                {avatarFile && (
+                  <button
+                    type="button"
+                    onClick={handleAvatarUpload}
+                    disabled={uploadingAvatar}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {uploadingAvatar ? (
+                      <>
+                        <i className="pi pi-spin pi-spinner mr-2"></i>
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <i className="pi pi-check mr-2"></i>
+                        Save Avatar
+                      </>
+                    )}
+                  </button>
+                )}
+
+                {avatarPreview && !avatarFile && (
+                  <button
+                    type="button"
+                    onClick={handleAvatarRemove}
+                    disabled={uploadingAvatar}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <i className="pi pi-trash mr-2"></i>
+                    Remove Avatar
+                  </button>
+                )}
+              </div>
+
+              <p className="text-sm text-gray-500">
+                Recommended: Square image, at least 200x200px. Max size: 5MB
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="bg-white border border-gray-200 rounded-lg p-6">
@@ -328,13 +513,14 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
           {/* Practitioner Information */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Type of Practitioner</label>
-            <input
-              type="text"
-              value={formData.type_of_practitioner}
-              onChange={(e) => handleInputChange('type_of_practitioner', e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-              placeholder="e.g., Acupuncturist, Herbalist, Massage Therapist"
-              disabled={isSaving}
+            <Select
+              value={formData.type_of_practitioner ? { value: formData.type_of_practitioner, label: formData.type_of_practitioner } : null}
+              onChange={(option) => handleInputChange('type_of_practitioner', option?.value || '')}
+              options={practitionerTypes.map(type => ({ value: type.title, label: type.title }))}
+              styles={customSelectStyles}
+              placeholder="Select practitioner type"
+              isClearable
+              isDisabled={isSaving}
             />
           </div>
 
@@ -450,49 +636,14 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Address Line 1</label>
-              <PlacesAutocomplete
+              <input
+                type="text"
                 value={formData.address_line1}
-                onChange={(value) => handleInputChange('address_line1', value)}
-                onSelect={handleAddressSelect}
-                searchOptions={{
-                  componentRestrictions: { country: 'us' },
-                  types: ['address']
-                }}
-              >
-                {({ getInputProps, suggestions, getSuggestionItemProps, loading }) => (
-                  <div className="relative">
-                    <input
-                      {...getInputProps({
-                        placeholder: 'Start typing an address...',
-                        className: 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed',
-                        disabled: isSaving,
-                      })}
-                    />
-                    {suggestions.length > 0 && (
-                      <div className="absolute z-50 w-full bg-white border border-gray-300 rounded-lg mt-1 shadow-lg max-h-60 overflow-auto">
-                        {loading && (
-                          <div className="px-4 py-2 text-sm text-gray-500">Loading...</div>
-                        )}
-                        {suggestions.map((suggestion) => {
-                          const className = suggestion.active
-                            ? 'px-4 py-2 cursor-pointer bg-primary/10 text-gray-900 text-sm'
-                            : 'px-4 py-2 cursor-pointer hover:bg-gray-50 text-gray-700 text-sm';
-                          return (
-                            <div
-                              key={suggestion.placeId}
-                              {...getSuggestionItemProps(suggestion, {
-                                className,
-                              })}
-                            >
-                              {suggestion.description}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </PlacesAutocomplete>
+                onChange={(e) => handleInputChange('address_line1', e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                placeholder="Enter your address"
+                disabled={isSaving}
+              />
             </div>
 
             <div>

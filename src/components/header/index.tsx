@@ -9,9 +9,6 @@ import { useAuth } from "@/contexts/AuthContext";
 const Header = () => {
   const { user, userProfile, loading, signOut, isAdmin } = useAuth();
 
-  // Debug auth state
-  console.log('Header auth state:', { user: !!user, userProfile: !!userProfile, loading });
-
   // Navbar toggle
   const [navbarOpen, setNavbarOpen] = useState(false);
   const navbarToggleHandler = () => {
@@ -229,7 +226,7 @@ const Header = () => {
                         
                         <div className="py-1">
                           <Link
-                            href={isAdmin ? "/admin" : "/profile?section=info"}
+                            href={isAdmin ? "/admin" : "/profile"}
                             className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors duration-200"
                             onClick={() => setProfileOpen(false)}
                           >

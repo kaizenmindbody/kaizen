@@ -4,25 +4,60 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSpecialty } from '@/hooks/useSpecialty';
+import { useDegrees } from '@/hooks/useDegrees';
+import { useClinics } from '@/hooks/useClinics';
+import { useFaq } from '@/hooks/useFaq';
+import { useBlogs } from '@/hooks/useBlogs';
 import { supabase } from '@/lib/supabase';
-import { Users as UsersIcon, FileText, Settings as SettingsIcon, BarChart3, Menu, X, Users, Settings } from 'lucide-react';
+import { Users as UsersIcon, FileText, Settings as SettingsIcon, BarChart3, Menu, X, Users, Settings, Building2, GraduationCap, HelpCircle, BookOpen, Calendar, Briefcase } from 'lucide-react';
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 import Image from 'next/image';
 import Overview from './components/Overview';
 import UsersComponent from './components/Users';
 import SpecialtiesComponent from './components/Specialties';
+import DegreesComponent from './components/Degrees';
+import ClinicsComponent from './components/Clinics';
+import ServicesComponent from './components/Services';
+import FaqsComponent from './components/Faqs';
+import BlogsComponent from './components/Blogs';
+import EventsComponent from './components/Events';
 import SettingsComponent from './components/Settings';
 import { User, Stats } from '@/types/user';
 
 const AdminDashboard = () => {
   const { user, loading, isAdmin } = useAuth();
   const { specialties } = useSpecialty();
+  const { degrees } = useDegrees();
+  const { clinics } = useClinics();
+  const { faqs } = useFaq();
+  const { blogs } = useBlogs();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState<Stats>({ totalUsers: 0, totalPractitioners: 0, totalPatients: 0, totalSpecialties: 0 });
   const [users, setUsers] = useState<User[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Sync activeTab with URL on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      if (tab) {
+        setActiveTab(tab);
+      }
+    }
+  }, []);
+
+  // Update URL when tab changes
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', tab);
+      window.history.pushState({}, '', url.toString());
+    }
+  };
 
   // Redirect if not admin
   useEffect(() => {
@@ -81,18 +116,8 @@ const AdminDashboard = () => {
   };
 
 
-  if (loading || loadingData) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading Admin Dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user || !isAdmin) {
+  // Redirect if not admin (but don't block rendering while loading)
+  if (!loading && (!user || !isAdmin)) {
     return null; // Will redirect
   }
 
@@ -160,6 +185,12 @@ const AdminDashboard = () => {
                 { id: 'overview', name: 'Overview', icon: BarChart3 },
                 { id: 'users', name: 'Users', icon: UsersIcon },
                 { id: 'specialties', name: 'Specialties', icon: FileText },
+                { id: 'degrees', name: 'Degrees', icon: GraduationCap },
+                { id: 'clinics', name: 'Clinics', icon: Building2 },
+                { id: 'services', name: 'Services', icon: Briefcase },
+                { id: 'faqs', name: 'FAQs', icon: HelpCircle },
+                { id: 'blogs', name: 'Blogs', icon: BookOpen },
+                { id: 'events', name: 'Events', icon: Calendar },
                 { id: 'settings', name: 'Settings', icon: SettingsIcon },
               ].map((tab) => {
                 const Icon = tab.icon;
@@ -167,7 +198,7 @@ const AdminDashboard = () => {
                   <button
                     key={tab.id}
                     onClick={() => {
-                      setActiveTab(tab.id);
+                      handleTabChange(tab.id);
                       setSidebarOpen(false);
                     }}
                     className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg font-medium text-sm transition-colors ${
@@ -212,13 +243,19 @@ const AdminDashboard = () => {
                   { id: 'overview', name: 'Overview', icon: BarChart3 },
                   { id: 'users', name: 'Users', icon: Users },
                   { id: 'specialties', name: 'Specialties', icon: FileText },
+                  { id: 'degrees', name: 'Degrees', icon: GraduationCap },
+                  { id: 'clinics', name: 'Clinics', icon: Building2 },
+                  { id: 'services', name: 'Services', icon: Briefcase },
+                  { id: 'faqs', name: 'FAQs', icon: HelpCircle },
+                  { id: 'blogs', name: 'Blogs', icon: BookOpen },
+                  { id: 'events', name: 'Events', icon: Calendar },
                   { id: 'settings', name: 'Settings', icon: Settings },
                 ].map((tab) => {
                   const Icon = tab.icon;
                   return (
                     <button
                       key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
+                      onClick={() => handleTabChange(tab.id)}
                       className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg font-medium text-sm transition-colors ${
                         activeTab === tab.id
                           ? 'bg-primary text-white'
@@ -250,7 +287,8 @@ const AdminDashboard = () => {
             {activeTab === 'overview' && (
               <Overview
                 stats={stats}
-                onTabChange={setActiveTab}
+                onTabChange={handleTabChange}
+                loading={loadingData}
               />
             )}
 
@@ -264,6 +302,42 @@ const AdminDashboard = () => {
 
             {activeTab === 'specialties' && (
               <SpecialtiesComponent
+                onRefreshData={fetchAdminData}
+              />
+            )}
+
+            {activeTab === 'degrees' && (
+              <DegreesComponent
+                onRefreshData={fetchAdminData}
+              />
+            )}
+
+            {activeTab === 'clinics' && (
+              <ClinicsComponent
+                onRefreshData={fetchAdminData}
+              />
+            )}
+
+            {activeTab === 'services' && (
+              <ServicesComponent
+                onRefreshData={fetchAdminData}
+              />
+            )}
+
+            {activeTab === 'faqs' && (
+              <FaqsComponent
+                onRefreshData={fetchAdminData}
+              />
+            )}
+
+            {activeTab === 'blogs' && (
+              <BlogsComponent
+                onRefreshData={fetchAdminData}
+              />
+            )}
+
+            {activeTab === 'events' && (
+              <EventsComponent
                 onRefreshData={fetchAdminData}
               />
             )}

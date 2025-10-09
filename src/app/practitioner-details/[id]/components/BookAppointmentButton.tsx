@@ -41,7 +41,7 @@ export const BookAppointmentButton = ({
       const servicesElement = document.querySelector('.navigation-tabs');
       if (servicesElement) {
         // Set the active tab to services
-        const servicesTab = document.querySelector('[data-tab="Services, Pricing"]');
+        const servicesTab = document.querySelector('[data-tab="Services & Pricing"]');
         if (servicesTab) {
           (servicesTab as HTMLButtonElement).click();
         }

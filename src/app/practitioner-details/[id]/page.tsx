@@ -54,7 +54,7 @@ const PractitionerDetailsPage = () => {
       if (typeof window !== 'undefined') {
         const hash = window.location.hash;
         if (hash === '#services') {
-          setActiveTab('Services, Pricing');
+          setActiveTab('Services & Pricing');
           // Scroll to the tabs section after a short delay to ensure DOM is ready
           setTimeout(() => {
             const tabsElement = document.querySelector('.navigation-tabs');
@@ -94,8 +94,8 @@ const PractitionerDetailsPage = () => {
     if (typeof window !== 'undefined') {
       // Check for hash in the current URL
       const hash = window.location.hash;
-      if (hash === '#services' && activeTab !== 'Services, Pricing') {
-        setActiveTab('Services, Pricing');
+      if (hash === '#services' && activeTab !== 'Services & Pricing') {
+        setActiveTab('Services & Pricing');
         // Scroll after a longer delay to ensure everything is loaded
         setTimeout(() => {
           const tabsElement = document.querySelector('.navigation-tabs');
@@ -380,7 +380,7 @@ const PractitionerDetailsPage = () => {
   // Get the map center - use geocoded location if available, otherwise default to Vancouver
   const mapCenter = practitionerLocation || defaultCenter;
 
-  const tabs = ['About', 'Location', 'Events', 'Reviews', 'Services, Pricing'];
+  const tabs = ['About', 'Location', 'Events', 'Reviews', 'Services & Pricing'];
 
   if (loading) {
     return <PractitionerDetailsSkeleton />;
@@ -439,7 +439,9 @@ const PractitionerDetailsPage = () => {
 
           {/* Tab Content */}
           <div className="p-4 md:p-8">
-            {activeTab === 'About' && <About practitioner={practitioner} />}
+            {activeTab === 'About' && (
+              <About practitioner={practitioner} />
+            )}
 
             {activeTab === 'Location' && (
               <Location
@@ -453,7 +455,7 @@ const PractitionerDetailsPage = () => {
             {activeTab === 'Events' && <Events />}
 
             {activeTab === 'Reviews' && <Reviews />}
-            {activeTab === 'Services, Pricing' && (
+            {activeTab === 'Services & Pricing' && (
               <ServicesPricing practitioner={practitioner} />
             )}
           </div>

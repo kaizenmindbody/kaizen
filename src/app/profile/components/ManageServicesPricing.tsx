@@ -3,36 +3,31 @@
 import { ProfileData } from '@/types/user';
 import { useState, useEffect, useMemo } from 'react';
 import { useService } from '@/hooks/useService';
-import { supabase } from '@/lib/supabase';
+import { useServicePricing, type UseServicePricingReturn } from '@/hooks/useServicePricing';
+import { ServicePricing, PackagePricing } from '@/store/slices/servicePricingSlice';
 
 interface ManageServicesPricingProps {
   profile: ProfileData | null;
 }
 
-interface ServicePricing {
-  id?: string;
-  service_id?: string;
-  service_name: string;
-  first_time_price: string;
-  first_time_duration: string;
-  returning_price: string;
-  returning_duration: string;
-  is_sliding_scale: boolean;
-  sliding_scale_info?: string;
-  service_category?: string;
-}
-
-interface PackagePricing {
-  id?: string;
-  service_id?: string;
-  service_name: string;
-  no_of_sessions: string;
-  price: string;
-  service_category?: string;
-}
-
 const ManageServicesPricing: React.FC<ManageServicesPricingProps> = ({ profile }) => {
   const { services: availableServices, loading: servicesLoading } = useService();
+
+  // Use the service pricing hook
+  const {
+    servicePricings: storePricings,
+    packagePricings: storePackagePricings,
+    loading,
+    saving,
+    error,
+    successMessage,
+    fetchServicePricing,
+    saveServicePricing,
+    updateServicePricings,
+    updatePackagePricings,
+    clearError,
+    clearSuccessMessage,
+  } = useServicePricing(profile?.id);
 
   // Filter services to only show real visit types for In-Person / Clinic Visit
   const realServices = useMemo(() => {
@@ -44,6 +39,7 @@ const ManageServicesPricing: React.FC<ManageServicesPricingProps> = ({ profile }
     return availableServices.filter(service => service.type === 'virtual');
   }, [availableServices]);
 
+  // Local state for editing
   const [servicePricings, setServicePricings] = useState<ServicePricing[]>([
     {
       service_name: '',
@@ -79,89 +75,25 @@ const ManageServicesPricing: React.FC<ManageServicesPricingProps> = ({ profile }
     },
   ]);
 
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
-
-  // Fetch existing pricing
+  // Sync local state with store data when loaded
   useEffect(() => {
-    if (profile?.id) {
-      loadServicePricing(profile.id);
-    }
-  }, [profile?.id]);
+    if (storePricings.length > 0) {
+      const inPersonServices = storePricings.filter(sp => sp.service_category === 'In-Person / Clinic Visit');
+      const virtualServicesList = storePricings.filter(sp => sp.service_category === 'Virtual Visit');
 
-  const loadServicePricing = async (practitionerId: string) => {
-    setLoading(true);
-    try {
-      const response = await fetch(`/api/service-pricing?practitionerId=${practitionerId}`);
-
-      if (!response.ok) {
-        throw new Error('Failed to load service pricing');
+      if (inPersonServices.length > 0) {
+        setServicePricings(inPersonServices);
       }
 
-      const data = await response.json();
-
-      if (data.servicePricing && data.servicePricing.length > 0) {
-        const inPersonServices = data.servicePricing
-          .filter((sp: any) => sp.service_category === 'In-Person / Clinic Visit')
-          .map((sp: any) => ({
-            id: sp.id,
-            service_id: sp.service_id,
-            service_name: sp.service_name,
-            first_time_price: sp.first_time_price || '',
-            first_time_duration: sp.first_time_duration?.toString() || '',
-            returning_price: sp.returning_price || '',
-            returning_duration: sp.returning_duration?.toString() || '',
-            is_sliding_scale: sp.is_sliding_scale || false,
-            sliding_scale_info: sp.sliding_scale_info || '',
-            service_category: sp.service_category || 'In-Person / Clinic Visit',
-          }));
-
-        const virtualServicesList = data.servicePricing
-          .filter((sp: any) => sp.service_category === 'Virtual Visit')
-          .map((sp: any) => ({
-            id: sp.id,
-            service_id: sp.service_id,
-            service_name: sp.service_name,
-            first_time_price: sp.first_time_price || '',
-            first_time_duration: sp.first_time_duration?.toString() || '',
-            returning_price: sp.returning_price || '',
-            returning_duration: sp.returning_duration?.toString() || '',
-            is_sliding_scale: sp.is_sliding_scale || false,
-            sliding_scale_info: sp.sliding_scale_info || '',
-            service_category: sp.service_category || 'Virtual Visit',
-          }));
-
-        if (inPersonServices.length > 0) {
-          setServicePricings(inPersonServices);
-        }
-
-        if (virtualServicesList.length > 0) {
-          setVirtualPricings(virtualServicesList);
-        }
-
-        const packagesList = data.servicePricing
-          .filter((sp: any) => sp.service_category === 'Packages')
-          .map((sp: any) => ({
-            id: sp.id,
-            service_id: sp.service_id,
-            service_name: sp.service_name,
-            no_of_sessions: sp.no_of_sessions?.toString() || '',
-            price: sp.price || '',
-            service_category: sp.service_category || 'Packages',
-          }));
-
-        if (packagesList.length > 0) {
-          setPackagePricings(packagesList);
-        }
+      if (virtualServicesList.length > 0) {
+        setVirtualPricings(virtualServicesList);
       }
-    } catch (error) {
-      console.error('Error loading service pricing:', error);
-      setMessage({ type: 'error', text: 'Failed to load existing service pricing' });
-    } finally {
-      setLoading(false);
     }
-  };
+
+    if (storePackagePricings.length > 0) {
+      setPackagePricings(storePackagePricings);
+    }
+  }, [storePricings, storePackagePricings]);
 
   const handleAddService = (category: 'In-Person / Clinic Visit' | 'Virtual Visit') => {
     const newService = {
@@ -195,13 +127,13 @@ const ManageServicesPricing: React.FC<ManageServicesPricingProps> = ({ profile }
   const handleRemoveService = (index: number, category: 'In-Person / Clinic Visit' | 'Virtual Visit') => {
     if (category === 'In-Person / Clinic Visit') {
       if (servicePricings.length === 1) {
-        setMessage({ type: 'error', text: 'You must have at least one in-person service' });
+        // Don't allow removing the last service
         return;
       }
       setServicePricings(servicePricings.filter((_, i) => i !== index));
     } else {
       if (virtualPricings.length === 1) {
-        setMessage({ type: 'error', text: 'You must have at least one virtual service' });
+        // Don't allow removing the last service
         return;
       }
       setVirtualPricings(virtualPricings.filter((_, i) => i !== index));
@@ -210,7 +142,7 @@ const ManageServicesPricing: React.FC<ManageServicesPricingProps> = ({ profile }
 
   const handleRemovePackage = (index: number) => {
     if (packagePricings.length === 1) {
-      setMessage({ type: 'error', text: 'You must have at least one package' });
+      // Don't allow removing the last package
       return;
     }
     setPackagePricings(packagePricings.filter((_, i) => i !== index));
@@ -258,7 +190,6 @@ const ManageServicesPricing: React.FC<ManageServicesPricingProps> = ({ profile }
 
   const handleSave = async () => {
     if (!profile?.id) {
-      setMessage({ type: 'error', text: 'Profile not found' });
       return;
     }
 
@@ -268,56 +199,17 @@ const ManageServicesPricing: React.FC<ManageServicesPricingProps> = ({ profile }
     const hasEmptyPackage = packagePricings.some(pkg => !pkg.service_name);
 
     if (hasEmptyInPersonService || hasEmptyVirtualService || hasEmptyPackage) {
-      setMessage({ type: 'error', text: 'Please select a service for all entries' });
       return;
     }
 
-    setSaving(true);
-    setMessage(null);
+    const success = await saveServicePricing(
+      profile.id,
+      [...servicePricings, ...virtualPricings],
+      packagePricings
+    );
 
-    try {
-      // Get the session token
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-
-      if (!token) {
-        throw new Error('Not authenticated. Please sign in again.');
-      }
-
-      const response = await fetch('/api/service-pricing', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          practitionerId: profile.id,
-          servicePricings: [...servicePricings, ...virtualPricings],
-          packagePricings: packagePricings,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Server error response:', errorData);
-        throw new Error(errorData.error || 'Failed to save service pricing');
-      }
-
-      const result = await response.json();
-      console.log('Save successful:', result);
-
-      setMessage({ type: 'success', text: 'Service pricing saved successfully!' });
-
-      // Reload the data
-      await loadServicePricing(profile.id);
-    } catch (error) {
-      console.error('Error saving service pricing:', error);
-      setMessage({
-        type: 'error',
-        text: error instanceof Error ? error.message : 'Failed to save service pricing'
-      });
-    } finally {
-      setSaving(false);
+    if (success) {
+      console.log('Service pricing saved successfully');
     }
   };
 
@@ -329,15 +221,14 @@ const ManageServicesPricing: React.FC<ManageServicesPricingProps> = ({ profile }
       </div>
 
       {/* Success/Error Message */}
-      {message && (
-        <div
-          className={`p-4 rounded-lg ${
-            message.type === 'success'
-              ? 'bg-green-50 border border-green-200 text-green-800'
-              : 'bg-red-50 border border-red-200 text-red-800'
-          }`}
-        >
-          {message.text}
+      {successMessage && (
+        <div className="p-4 rounded-lg bg-green-50 border border-green-200 text-green-800">
+          {successMessage}
+        </div>
+      )}
+      {error && (
+        <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-red-800">
+          {error}
         </div>
       )}
 
@@ -673,8 +564,8 @@ const ManageServicesPricing: React.FC<ManageServicesPricingProps> = ({ profile }
         <div className="flex justify-end space-x-4 pt-6 border-t mt-6">
           <button
             type="button"
-            onClick={() => profile?.id && loadServicePricing(profile.id)}
-            disabled={saving}
+            onClick={() => profile?.id && fetchServicePricing(profile.id)}
+            disabled={saving || loading}
             className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Reset

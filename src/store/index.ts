@@ -8,6 +8,7 @@ import blogsReducer from './slices/blogsSlice';
 import eventsReducer from './slices/eventsSlice';
 import servicesReducer from './slices/servicesSlice';
 import practitionerTypesReducer from './slices/practitionerTypesSlice';
+import servicePricingReducer from './slices/servicePricingSlice';
 
 export const store = configureStore({
   reducer: {
@@ -20,6 +21,7 @@ export const store = configureStore({
     events: eventsReducer,
     services: servicesReducer,
     practitionerTypes: practitionerTypesReducer,
+    servicePricing: servicePricingReducer,
   },
 });
 

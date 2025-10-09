@@ -180,23 +180,27 @@ export const Location = ({ practitioner, mapCenter, showInfoWindow, setShowInfoW
 
             {/* Address Card */}
             <div className="bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 rounded-2xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0">
-                  <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
-                    <Building2 className="w-6 h-6 text-white" />
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex items-start gap-4 flex-1 min-w-0">
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
+                      <Building2 className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-xl font-bold text-gray-900 mb-3">Practice Address</h4>
+                    <div className="flex items-start gap-3">
+                      <MapPin className="w-5 h-5 text-indigo-500 mt-0.5 flex-shrink-0" />
+                      <span className="text-gray-700 leading-relaxed text-base">{practitioner.address}</span>
+                    </div>
                   </div>
                 </div>
-                <div className="flex-1">
-                  <h4 className="text-xl font-bold text-gray-900 mb-3">Practice Address</h4>
-                  <div className="flex items-start gap-3 mb-4">
-                    <MapPin className="w-5 h-5 text-indigo-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-gray-700 leading-relaxed text-base">{practitioner.address}</span>
-                  </div>
+                <div className="flex-shrink-0">
                   <a
                     href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(practitioner.address)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-md hover:shadow-lg"
+                    className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-md hover:shadow-lg whitespace-nowrap"
                   >
                     <Navigation className="w-4 h-4" />
                     Get Directions

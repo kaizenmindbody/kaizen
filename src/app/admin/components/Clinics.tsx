@@ -37,7 +37,11 @@ const Autocomplete = dynamic(
   }
 );
 
-const Clinics = () => {
+interface ClinicsProps {
+  onRefreshData?: () => void;
+}
+
+const Clinics = ({ onRefreshData }: ClinicsProps) => {
   const { clinics, loading, error, addClinic: addClinicHook, updateClinic: updateClinicHook, deleteClinic: deleteClinicHook } = useClinics();
   const users = useAppSelector((state) => state.users.users);
   const practitioners = users.filter(user => user.user_type === 'practitioner');
@@ -253,6 +257,7 @@ const Clinics = () => {
         setImagePreview(null);
         setShowAddDialog(false);
         showSuccess('Clinic added successfully');
+        onRefreshData?.();
       } else {
         showError('Error adding clinic');
       }
@@ -328,6 +333,7 @@ const Clinics = () => {
       if (success) {
         closeEditDialog();
         showSuccess('Clinic updated successfully');
+        onRefreshData?.();
       } else {
         showError('Error updating clinic');
       }
@@ -351,6 +357,7 @@ const Clinics = () => {
     const success = await deleteClinicHook(clinicId);
     if (success) {
       showSuccess('Clinic deleted successfully');
+      onRefreshData?.();
     } else {
       showError('Error deleting clinic');
     }

@@ -1,13 +1,27 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
-
 export async function GET() {
   try {
+    // Check if environment variables are available
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('Missing Supabase environment variables');
+      return NextResponse.json(
+        {
+          error: 'Server configuration error',
+          success: false,
+          data: []
+        },
+        { status: 500 }
+      );
+    }
+
+    // Initialize Supabase client
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
     // Fetch AboutUs data from Supabase
     const { data: aboutUsItems, error } = await supabase
       .from('AboutUs')
@@ -19,7 +33,8 @@ export async function GET() {
       return NextResponse.json(
         {
           error: 'Failed to fetch about us data from database',
-          success: false
+          success: false,
+          data: []
         },
         { status: 500 }
       );
@@ -34,9 +49,13 @@ export async function GET() {
     return NextResponse.json(
       {
         error: 'Failed to fetch about us data',
-        success: false
+        success: false,
+        data: []
       },
       { status: 500 }
     );
   }
 }
+
+// Mark this route as dynamic to prevent build-time execution
+export const dynamic = 'force-dynamic';

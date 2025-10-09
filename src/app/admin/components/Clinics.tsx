@@ -14,7 +14,7 @@ import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 import { Dialog } from 'primereact/dialog';
 import toast from 'react-hot-toast';
-import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
+import { confirmDialog } from 'primereact/confirmdialog';
 import { FilterMatchMode } from 'primereact/api';
 import { useClinics } from '@/hooks/useClinics';
 import { Clinic } from '@/types/clinic';
@@ -37,7 +37,7 @@ const Autocomplete = dynamic(
   }
 );
 
-const Clinics = ({ onRefreshData }: { onRefreshData: () => void | Promise<void> }) => {
+const Clinics = () => {
   const { clinics, loading, error, addClinic: addClinicHook, updateClinic: updateClinicHook, deleteClinic: deleteClinicHook } = useClinics();
   const users = useAppSelector((state) => state.users.users);
   const practitioners = users.filter(user => user.user_type === 'practitioner');
@@ -59,7 +59,7 @@ const Clinics = ({ onRefreshData }: { onRefreshData: () => void | Promise<void> 
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [uploadingImage, setUploadingImage] = useState(false);
+  const [, setUploadingImage] = useState(false);
 
   // Google Maps Autocomplete states
   const [autocompleteAdd, setAutocompleteAdd] = useState<google.maps.places.Autocomplete | null>(null);
@@ -161,7 +161,7 @@ const Clinics = ({ onRefreshData }: { onRefreshData: () => void | Promise<void> 
       const filePath = `clinics/${fileName}`;
 
       // Upload to Supabase Storage
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('images')
         .upload(filePath, imageFile, {
           cacheControl: '3600',
@@ -256,7 +256,7 @@ const Clinics = ({ onRefreshData }: { onRefreshData: () => void | Promise<void> 
       } else {
         showError('Error adding clinic');
       }
-    } catch (error) {
+    } catch {
       showError('Error adding clinic');
     }
   };
@@ -275,7 +275,7 @@ const Clinics = ({ onRefreshData }: { onRefreshData: () => void | Promise<void> 
     try {
       const members = clinic.member ? JSON.parse(clinic.member) : [];
       setEditSelectedPractitioners(Array.isArray(members) ? members : []);
-    } catch (e) {
+    } catch {
       // If member is not JSON, treat as empty array
       setEditSelectedPractitioners([]);
     }
@@ -331,7 +331,7 @@ const Clinics = ({ onRefreshData }: { onRefreshData: () => void | Promise<void> 
       } else {
         showError('Error updating clinic');
       }
-    } catch (error) {
+    } catch {
       showError('Error updating clinic');
     }
   };
@@ -455,7 +455,7 @@ const Clinics = ({ onRefreshData }: { onRefreshData: () => void | Promise<void> 
           })
           .filter(name => name !== null) as string[];
       }
-    } catch (e) {
+    } catch {
       // If not JSON, show raw value
       practitionerNames = rowData.member ? [rowData.member] : [];
     }

@@ -124,8 +124,7 @@ const PatientSignup = () => {
             lastname: formData.lastname,
             email: formData.email,
             phone: formData.phone,
-            user_type: 'patient',
-            languages: ['English']
+            type: 'eventhost',
           });
 
         if (insertError) {

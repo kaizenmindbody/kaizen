@@ -110,7 +110,7 @@ const Blogs = ({ onRefreshData }: { onRefreshData: () => void }) => {
       const filePath = `blogs/${fileName}`;
 
       // Upload to Supabase Storage
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('kaizen')
         .upload(filePath, imageFile, {
           cacheControl: '3600',

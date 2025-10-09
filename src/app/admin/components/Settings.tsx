@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Database, FileText, Calendar, ExternalLink } from 'lucide-react';
-import { User, Specialty, Stats } from '@/types/user';
 import { SettingsProps } from '@/types/admin';
 import toast from 'react-hot-toast';
 

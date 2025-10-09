@@ -1,9 +1,9 @@
 'use client'
 
-import React, { useState, useMemo, useEffect, Suspense, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, MapPin, X, Filter, Building, Phone, Eye, Star, Heart, ExternalLink } from 'lucide-react';
+import { Search, MapPin, X, Filter, Building, Phone } from 'lucide-react';
 import { GoogleMap, Marker, InfoWindow } from '@react-google-maps/api';
 import Select from 'react-select';
 import Breadcrumb from '@/components/commons/breadcrumb';

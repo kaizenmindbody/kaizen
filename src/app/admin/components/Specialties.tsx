@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useRef } from 'react';
-import { DataTable, DataTableRowEditCompleteEvent } from 'primereact/datatable';
-import { Column, ColumnEditorOptions } from 'primereact/column';
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
 import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 import { Dialog } from 'primereact/dialog';
 import toast from 'react-hot-toast';
-import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
+import { confirmDialog } from 'primereact/confirmdialog';
 import { FilterMatchMode } from 'primereact/api';
 import { useSpecialty } from '@/hooks/useSpecialty';
 import { Specialty } from '@/types/user';

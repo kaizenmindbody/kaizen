@@ -98,8 +98,7 @@ const PractitionerSignup = () => {
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
-            firstname: formData.firstname,
-            lastname: formData.lastname,
+            full_name: `${formData.firstname} ${formData.lastname}`,
             phone: formData.phone,
             type: 'Practitioner'
           }

@@ -35,12 +35,12 @@ export interface User {
   consultation_fee?: number;
   specialty_rate?: number;
   availability?: any;
-  rating?: number;
-  total_reviews?: number;
   verified?: boolean;
   status?: string;
   last_login?: string;
   profile_completed?: boolean;
+  rating?: number;
+  total_reviews?: number;
 }
 
 export interface Specialty {
@@ -68,13 +68,32 @@ export interface UsersProps {
   onRefreshData: () => void;
 }
 
+// User/Practitioner Data Interface for Find Practitioner page
+export interface UserData {
+  id: string;
+  created_at: string;
+  firstname: string;
+  lastname: string;
+  email: string;
+  phone?: string;
+  type: 'Practitioner' | 'Patient';
+  address?: string;
+  degree?: string;
+  title?: string;
+  ptype?: string; // Practitioner type (specialty)
+  clinic?: string;
+  website?: string;
+  avatar?: string;
+  clinicpage?: string;
+  updated_at?: string;
+  background?: string;
+  description_languages?: string;
+}
+
 // Extended profile interface for profile page with additional fields
 export interface ProfileData extends Omit<User, 'specialty_rate'> {
-  rate?: number;
-  experience?: string;
   aboutme?: string;
   specialty_rate?: {[key: string]: number};
-  reviews?: string;
   video?: string;
   images?: string;
   emergency_contact_name?: string;
@@ -88,6 +107,7 @@ export interface ProfileData extends Omit<User, 'specialty_rate'> {
   insurance_policy?: string;
   cancellation_policy?: string;
   practitioner_type?: string;
+  reviews?: string;
 }
 
 // Hook interfaces for user-related hooks

@@ -39,11 +39,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Apply sorting
-    if (sortBy === 'rate') {
-      query = query.order('rate', { ascending: order === 'asc'});
-    } else {
-      query = query.order(sortBy, { ascending: order === 'asc' });
-    }
+    query = query.order(sortBy, { ascending: order === 'asc' });
 
     // Apply pagination
     query = query.range(offset, offset + limit - 1);

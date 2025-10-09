@@ -14,14 +14,11 @@ export async function PUT(request: NextRequest) {
       specialty,
       clinic,
       website,
-      rate,
       languages,
       avatar,
-      experience,
       aboutme,
       gender,
-      specialty_rate,
-      reviews
+      specialty_rate
     } = body;
 
     if (!user_id) {
@@ -44,14 +41,11 @@ export async function PUT(request: NextRequest) {
     if (specialty !== undefined) updateData.specialty = specialty;
     if (clinic !== undefined) updateData.clinic = clinic;
     if (website !== undefined) updateData.website = website;
-    if (rate !== undefined) updateData.rate = rate || null;
     if (languages !== undefined) updateData.languages = languages ? JSON.stringify(languages) : JSON.stringify([]);
     if (avatar !== undefined) updateData.avatar = avatar;
-    if (experience !== undefined) updateData.experience = experience || null;
     if (aboutme !== undefined) updateData.aboutme = aboutme;
     if (gender !== undefined) updateData.gender = gender;
     if (specialty_rate !== undefined) updateData.specialty_rate = specialty_rate ? JSON.stringify(specialty_rate) : null;
-    if (reviews !== undefined) updateData.reviews = reviews || null;
 
     // Update profile in database
     const { error } = await supabase

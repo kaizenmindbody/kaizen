@@ -8,7 +8,6 @@ import makeAnimated from 'react-select/animated';
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { useProfile } from "@/hooks/useProfile";
-import { useSpecialty } from "@/hooks/useSpecialty";
 import dynamic from 'next/dynamic';
 import toast from 'react-hot-toast';
 import 'react-phone-input-2/lib/style.css';
@@ -163,23 +162,23 @@ const ProfilePageSkeleton = () => {
 };
 
 const ProfilePage = () => {
-  const { user, loading: authLoading, refreshProfile } = useAuth();
+  const { user, loading: authLoading, refreshProfile, userProfile } = useAuth();
   const router = useRouter();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileVersion, setProfileVersion] = useState(0); // Track profile updates
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [originalProfile, setOriginalProfile] = useState<ProfileData | null>(null);
-  const { specialties, loading: specialtiesLoading, error: specialtiesError } = useSpecialty();
   const { updateProfile, isUpdating } = useProfile();
   const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
   const [addressInput, setAddressInput] = useState('');
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [isClient, setIsClient] = useState(false);
-  const [expandedMenu, setExpandedMenu] = useState<string | null>('Profile');
+  const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
   const [availableDegrees, setAvailableDegrees] = useState<string[]>([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -603,7 +602,6 @@ const ProfilePage = () => {
             }
             return [data.specialty];
           })(),
-          rate: data.rate || 0,
           gender: data.gender || '',
           user_type: data.user_type || 'patient',
           date_of_birth: data.date_of_birth || '',
@@ -611,7 +609,7 @@ const ProfilePage = () => {
           emergency_contact_phone: data.emergency_contact_phone || '',
           medical_conditions: data.medical_conditions ? (Array.isArray(data.medical_conditions) ? data.medical_conditions : JSON.parse(data.medical_conditions || '[]')) : [],
           insurance_provider: data.insurance_provider || '',
-          years_of_experience: data.experience || 0,
+          years_of_experience: data.years_of_experience || 0,
           specialty_rate: (() => {
             if (!data.specialty_rate) return {};
             try {
@@ -636,7 +634,14 @@ const ProfilePage = () => {
     };
 
     fetchProfile();
-  }, [user]);
+  }, [user, profileVersion]); // Add profileVersion to refetch when needed
+
+  // Refetch profile when switching to View Profile tab or when AuthContext profile updates
+  useEffect(() => {
+    if (activeTab === 'View Profile' && user) {
+      setProfileVersion(prev => prev + 1); // Trigger profile refetch
+    }
+  }, [activeTab, user]);
 
   const handleInputChange = (field: string, value: string | number | string[]) => {
     if (!profile) return;
@@ -684,10 +689,6 @@ const ProfilePage = () => {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(profile.email)) {
       newErrors.email = 'Email is invalid';
-    }
-
-    if (profile?.rate && profile.rate < 0) {
-      newErrors.rate = 'Rate cannot be negative';
     }
 
     if (profile?.website && !profile.website.startsWith('http')) {
@@ -813,8 +814,6 @@ const ProfilePage = () => {
           specialty: JSON.stringify(Array.isArray(profile.specialty) ? profile.specialty.filter(Boolean).filter((spec, index, arr) => arr.indexOf(spec) === index) : []),
           clinic: profile.clinic,
           website: profile.website,
-          rate: profile.rate || null,
-          experience: profile.years_of_experience?.toString() || null,
         }),
         // ...(profile.user_type === 'patient' && {
         //   date_of_birth: profile.date_of_birth || null,
@@ -876,7 +875,7 @@ const ProfilePage = () => {
 
     const fieldsToCompare = [
       'full_name', 'phone', 'address', 'title',
-      'clinic', 'website', 'rate', 'gender', 'years_of_experience',
+      'clinic', 'website', 'gender', 'years_of_experience',
       'date_of_birth', 'emergency_contact_name', 'emergency_contact_phone', 'insurance_provider'
     ];
 
@@ -954,7 +953,7 @@ const ProfilePage = () => {
   };
 
   // Don't render until client-side hydration is complete
-  if (!isClient || authLoading || loading || specialtiesLoading) {
+  if (!isClient || authLoading || loading) {
     return <ProfilePageSkeleton />;
   }
 
@@ -1327,450 +1326,15 @@ const ProfilePage = () => {
           </div>
 
           <div className="p-4 md:p-6 lg:pl-4 lg:pr-8 lg:py-8">
-            {activeTab === 'Profile' && (
-              <div className="space-y-6">
-                {/* Avatar Section */}
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-semibold text-[#012047]">Profile Avatar</h2>
-                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-                      {!isEditing ? (
-                        <button
-                          onClick={() => {
-                            setIsEditing(true);
-                            setAddressInput(profile?.address || '');
-                          }}
-                          className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg transition-colors text-center w-full sm:w-auto"
-                        >
-                          Edit Profile
-                        </button>
-                      ) : (
-                        <>
-                          <button
-                            onClick={handleCancel}
-                            className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg transition-colors text-center w-full sm:w-auto"
-                            disabled={isSaving}
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={handleSave}
-                            disabled={isSaving || isUpdating || !hasChanges()}
-                            className="bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-colors text-center w-full sm:w-auto"
-                          >
-                            {isSaving || isUpdating ? 'Saving...' : 'Save Changes'}
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-6">
-                    <div className="relative">
-                      <Image
-                        src={currentAvatarUrl}
-                        alt={previewUrl ? "Profile Avatar Preview" : "Profile Avatar"}
-                        width={300}
-                        height={300}
-                        className={`w-24 h-24 rounded-full object-cover border-4 ${previewUrl ? 'border-green-300' : 'border-gray-200'
-                          }`}
-                      />
-
-                      {isEditing && (
-                        <label className="absolute inset-0 w-24 h-24 rounded-full cursor-pointer">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleAvatarSelect}
-                            className="hidden"
-                            disabled={isSaving}
-                          />
-                        </label>
-                      )}
-                    </div>
-
-                    <div className="flex-1">
-                      <h3 className="text-sm font-medium text-[#012047] mb-1">
-                        Profile Picture
-                      </h3>
-                      <p className="text-sm text-gray-600 mb-2">
-                        {isEditing
-                          ? "Click on your avatar to select a new photo. It will be uploaded when you save changes."
-                          : "Your profile picture will be displayed in the header and throughout the application."
-                        }
-                      </p>
-                      {isEditing && (
-                        <p className="text-xs text-gray-500">
-                          Supported formats: JPG, PNG, GIF. Max size: 5MB
-                        </p>
-                      )}
-                      {errors.avatar && (
-                        <p className="mt-1 text-sm text-red-600">{errors.avatar}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Basic Information */}
-                <div>
-                  <h2 className="text-xl font-semibold text-[#012047] mb-4">Basic Information</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-[#012047] mb-2">
-                        Full Name <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={profile.full_name}
-                        onChange={(e) => handleInputChange('full_name', e.target.value)}
-                        disabled={!isEditing}
-                        className={`w-full px-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${isEditing ? 'bg-white' : 'bg-gray-100'
-                          } ${errors.full_name ? 'border-red-300' : 'border-gray-300'}`}
-                      />
-                      {errors.full_name && (
-                        <p className="mt-1 text-sm text-red-600">{errors.full_name}</p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-[#012047] mb-2">
-                        Email <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="email"
-                        value={profile.email}
-                        disabled={true}
-                        className="w-full px-3 py-3 border border-gray-300 rounded-lg bg-gray-100"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-[#012047] mb-2">
-                        Phone Number
-                      </label>
-                      <PhoneInput
-                        country={'us'}
-                        value={profile.phone || ''}
-                        onChange={handlePhoneChange}
-                        disabled={!isEditing}
-                        inputProps={{
-                          name: 'phone',
-                          autoFocus: false,
-                          disabled: !isEditing,
-                          readOnly: !isEditing
-                        }}
-                        containerClass="w-full"
-                        inputClass={`w-full px-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent border-gray-300 ${!isEditing ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'
-                          }`}
-                        buttonClass={`px-3 py-3 border rounded-l-lg border-gray-300 ${!isEditing ? 'bg-gray-100 cursor-not-allowed' : 'bg-gray-50 hover:bg-gray-100'
-                          }`}
-                        dropdownClass="text-sm shadow-lg border border-gray-200 rounded-lg"
-                        inputStyle={{
-                          width: '100%',
-                          height: '48px',
-                          paddingLeft: '60px',
-                          fontSize: '16px',
-                          backgroundColor: !isEditing ? '#f3f4f6' : 'white',
-                          cursor: !isEditing ? 'not-allowed' : 'text'
-                        }}
-                        buttonStyle={{
-                          height: '48px',
-                          borderRight: 'none',
-                          backgroundColor: !isEditing ? '#f3f4f6' : '#f9fafb',
-                          cursor: !isEditing ? 'not-allowed' : 'pointer'
-                        }}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-[#012047] mb-2">
-                        Gender
-                      </label>
-                      <Select
-                        value={profile.gender ? { value: profile.gender, label: profile.gender } : null}
-                        onChange={(option) => handleInputChange('gender', option?.value || '')}
-                        options={[
-                          { value: 'Male', label: 'Male' },
-                          { value: 'Female', label: 'Female' },
-                        ]}
-                        styles={customSelectStyles}
-                        placeholder="Select gender"
-                        isClearable
-                        isDisabled={!isEditing}
-                        isSearchable={false}
-                      />
-                    </div>
-
-                    {profile.user_type === 'practitioner' && (
-                      <div>
-                        <label className="block text-sm font-medium text-[#012047] mb-2">
-                          Degree & Certification
-                        </label>
-                        <Select
-                          value={profile.degree ? { value: profile.degree, label: profile.degree } : null}
-                          onChange={(option) => handleInputChange('degree', option ? option.value : '')}
-                          options={availableDegrees.map(degree => ({ value: degree, label: degree }))}
-                          styles={customSelectStyles}
-                          placeholder="Select degree"
-                          isClearable
-                          isDisabled={!isEditing}
-                          isSearchable
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {profile.user_type === 'practitioner' && (
-                  <div>
-                    <h2 className="text-xl font-semibold text-[#012047] mb-4">Professional Information</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                      <div>
-                        <label className="block text-sm font-medium text-[#012047] mb-2">
-                          Clinic/Hospital
-                        </label>
-                        <input
-                          type="text"
-                          value={profile.clinic || ''}
-                          onChange={(e) => handleInputChange('clinic', e.target.value)}
-                          placeholder="Enter clinic/hospital name"
-                          disabled={!isEditing}
-                          className={`w-full px-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${
-                            !isEditing ? 'bg-gray-100 cursor-not-allowed' : 'border-gray-300'
-                          }`}
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-[#012047] mb-2">
-                          Hourly Rate ($)
-                        </label>
-                        <input
-                          type="number"
-                          value={profile.rate || ''}
-                          onChange={(e) => handleInputChange('rate', parseFloat(e.target.value) || 0)}
-                          disabled={!isEditing}
-                          className={`w-full px-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${isEditing ? 'bg-white' : 'bg-gray-100'
-                            } ${errors.rate ? 'border-red-300' : 'border-gray-300'}`}
-                        />
-                        {errors.rate && (
-                          <p className="mt-1 text-sm text-red-600">{errors.rate}</p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-[#012047] mb-2">
-                          Website
-                        </label>
-                        <input
-                          type="url"
-                          value={profile.website || ''}
-                          onChange={(e) => handleInputChange('website', e.target.value)}
-                          disabled={!isEditing}
-                          placeholder="https://example.com"
-                          className={`w-full px-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${isEditing ? 'bg-white' : 'bg-gray-100'
-                            } ${errors.website ? 'border-red-300' : 'border-gray-300'}`}
-                        />
-                        {errors.website && (
-                          <p className="mt-1 text-sm text-red-600">{errors.website}</p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-[#012047] mb-2">
-                          Years of Experience
-                        </label>
-                        <Select
-                          value={profile.years_of_experience ?
-                            { value: profile.years_of_experience, label: `${profile.years_of_experience} ${profile.years_of_experience === 1 ? 'year' : 'years'} (since ${new Date().getFullYear() - profile.years_of_experience})` } : null}
-                          onChange={(option) => handleInputChange('years_of_experience', option?.value || 0)}
-                          options={Array.from({ length: new Date().getFullYear() - 1970 + 1 }, (_, i) => {
-                            const year = 1970 + i;
-                            const experience = new Date().getFullYear() - year;
-                            return {
-                              value: experience,
-                              label: `${experience} ${experience === 1 ? 'year' : 'years'} (since ${year})`
-                            };
-                          }).reverse()}
-                          styles={customSelectStyles}
-                          placeholder="Select experience years"
-                          isClearable
-                          isDisabled={!isEditing}
-                          isSearchable
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-[#012047] mb-2">
-                          Practice Address
-                        </label>
-                        {isEditing ? (
-                          <Autocomplete
-                            onLoad={onLoadAutocomplete}
-                            onPlaceChanged={onPlaceChanged}
-                          >
-                            <input
-                              type="text"
-                              value={addressInput}
-                              onChange={(e) => {
-                                const newValue = e.target.value;
-                                setAddressInput(newValue);
-                                handleInputChange('address', newValue);
-                              }}
-                              placeholder="Enter your practice address"
-                              className="w-full px-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white border-gray-300"
-                            />
-                          </Autocomplete>
-                        ) : (
-                          <input
-                            type="text"
-                            value={profile.address || ''}
-                            disabled={true}
-                            className="w-full px-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-100 border-gray-300"
-                          />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Additional Information */}
-                <div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="relative">
-                      <label className="block text-sm font-medium text-[#012047] mb-2">
-                        Languages Spoken
-                      </label>
-                      {isEditing ? (
-                        <div className="border rounded-lg p-1 bg-white">
-                          <LanguageSelector
-                            onSelect={handleLanguageSelect}
-                            includeDetails={true}
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-full px-3 py-3 border rounded-lg bg-gray-100 border-gray-300 text-gray-600">
-                          Select languages...
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="relative">
-                      <label className="block text-sm font-medium text-[#012047] mb-2">
-                        Selected Languages
-                      </label>
-
-                      <div className="min-h-[48px] flex items-start p-3">
-                        {profile.languages.length > 0 ? (
-                          <div className="flex flex-wrap gap-2 w-full">
-                            {profile.languages.map((lang, index) => (
-                              <span
-                                key={index}
-                                className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800"
-                              >
-                                {lang}
-                                {isEditing && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const newLanguages = profile.languages.filter(l => l !== lang);
-                                      handleInputChange('languages', newLanguages);
-                                    }}
-                                    className="ml-2 text-green-600 hover:text-green-800 text-lg leading-none"
-                                  >
-                                    ×
-                                  </button>
-                                )}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-gray-500 text-sm italic">
-                            No languages selected
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {profile?.user_type === 'practitioner' && (
-                      <>
-                        <div className="relative">
-                          <h3 className="text-sm font-semibold text-[#012047] mb-2">Medical Specialties</h3>
-                          <Select
-                            closeMenuOnSelect={true}
-                            components={animatedComponents}
-                            value={null}
-                            onChange={(selectedOption) => {
-                              if (selectedOption && !profile.specialty.includes((selectedOption as { value: string, label: string }).value)) {
-                                const newSpecialties = [...profile.specialty, (selectedOption as { value: string, label: string }).value];
-                                handleInputChange('specialty', newSpecialties);
-                              }
-                            }}
-                            options={specialties.map(specialty => ({ value: specialty.title, label: specialty.title })).filter(option => !profile.specialty.includes(option.value))}
-                            styles={customSelectStyles}
-                            placeholder="Select specialties..."
-                            isDisabled={!isEditing || specialtiesLoading}
-                            isSearchable
-                            isLoading={specialtiesLoading}
-                            noOptionsMessage={() => specialtiesError ? `Error loading specialties: ${specialtiesError}` : 'No specialties available'}
-                          />
-                          {specialtiesError && (
-                            <p className="mt-1 text-sm text-red-600">
-                              Error loading specialties: {specialtiesError}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="relative">
-                          <label className="block text-sm font-medium text-[#012047] mb-2">
-                            Selected Specialties
-                          </label>
-
-                          <div className="min-h-[48px] flex items-start p-3">
-                            {Array.isArray(profile.specialty) && profile.specialty.length > 0 ? (
-                              <div className="flex flex-wrap gap-2 w-full">
-                                {profile.specialty.map((spec, index) => (
-                                  <span
-                                    key={index}
-                                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
-                                  >
-                                    {spec}
-                                    {isEditing && (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          const newSpecialties = Array.isArray(profile.specialty) ? profile.specialty.filter((_, i) => i !== index) : [];
-                                          handleInputChange('specialty', newSpecialties);
-                                        }}
-                                        className="ml-2 inline-flex items-center justify-center w-4 h-4 text-blue-400 hover:bg-blue-200 hover:text-blue-600 rounded-full"
-                                      >
-                                        ×
-                                      </button>
-                                    )}
-                                  </span>
-                                ))}
-                              </div>
-                            ) : (
-                              <div className="text-gray-500 text-sm italic">
-                                No specialties selected
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-
             {activeTab === 'View Profile' && (
               <ViewProfile profile={profile} />
             )}
 
             {activeTab === 'Manage Basic Information' && (
-              <ManageBasicInformation profile={profile} />
+              <ManageBasicInformation
+                profile={profile}
+                onProfileUpdate={() => setProfileVersion(prev => prev + 1)}
+              />
             )}
 
             {activeTab === 'Manage Services and Pricing' && (

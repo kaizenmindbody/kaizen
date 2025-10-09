@@ -32,6 +32,7 @@ const ViewProfile: React.FC<ViewProfileProps> = ({ profile }) => {
   const [packagePricings, setPackagePricings] = useState<PackagePricing[]>([]);
   const [images, setImages] = useState<string[]>([]);
   const [video, setVideo] = useState<string | null>(null);
+  const [descriptionsData, setDescriptionsData] = useState<any>(null);
 
   // Parse address
   const parseAddress = (address: string | undefined) => {
@@ -46,13 +47,37 @@ const ViewProfile: React.FC<ViewProfileProps> = ({ profile }) => {
     };
   };
 
-  const addressParts = parseAddress(profile?.address);
+  // Format phone number (e.g., +1234567890 -> (123) 456-7890)
+  const formatPhoneNumber = (phone: string | undefined) => {
+    if (!phone) return 'N/A';
 
-  // Fetch service pricing
+    // Remove all non-numeric characters
+    const cleaned = phone.replace(/\D/g, '');
+
+    // Format based on length
+    if (cleaned.length === 11 && cleaned.startsWith('1')) {
+      // US number with country code: +1 (234) 567-8901
+      return `+${cleaned.charAt(0)} (${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7)}`;
+    } else if (cleaned.length === 10) {
+      // US number without country code: (234) 567-8901
+      return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+    }
+
+    // Return as-is if format is unknown
+    return phone;
+  };
+
+  const addressParts = parseAddress(profile?.address);
+  const formattedAddress = profile?.address
+    ? profile.address.split(',').map(p => p.trim()).filter(p => p).join(', ')
+    : null;
+
+  // Fetch service pricing and descriptions
   useEffect(() => {
     if (profile?.id) {
       fetchServicePricing(profile.id);
       fetchMedia(profile.id);
+      fetchDescriptions(profile.id);
     }
   }, [profile?.id]);
 
@@ -76,6 +101,28 @@ const ViewProfile: React.FC<ViewProfileProps> = ({ profile }) => {
       }
     } catch (error) {
       console.error('Error fetching service pricing:', error);
+    }
+  };
+
+  const fetchDescriptions = async (userId: string) => {
+    try {
+      const { data: descriptionsResult } = await supabase
+        .from('Descriptions')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (descriptionsResult) {
+        // Parse language field if it's a string
+        if (descriptionsResult.language) {
+          descriptionsResult.language = typeof descriptionsResult.language === 'string'
+            ? JSON.parse(descriptionsResult.language)
+            : descriptionsResult.language;
+        }
+        setDescriptionsData(descriptionsResult);
+      }
+    } catch (error) {
+      console.log('No descriptions data found:', error);
     }
   };
 
@@ -197,7 +244,7 @@ const ViewProfile: React.FC<ViewProfileProps> = ({ profile }) => {
             </svg>
             <div>
               <h4 className="text-sm font-semibold text-gray-700 mb-1">Phone</h4>
-              <p className="text-gray-900">{profile?.phone || 'N/A'}</p>
+              <p className="text-gray-900">{formatPhoneNumber(profile?.phone)}</p>
             </div>
           </div>
           {profile?.website && (
@@ -219,8 +266,126 @@ const ViewProfile: React.FC<ViewProfileProps> = ({ profile }) => {
         </div>
       </div>
 
+      {/* Professional Background */}
+      {descriptionsData?.background && (
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
+              <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900">Professional Background</h3>
+          </div>
+          <p className="text-gray-700 leading-relaxed">{descriptionsData.background}</p>
+        </div>
+      )}
+
+      {/* Education and Credentials */}
+      {descriptionsData?.education && (
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center">
+              <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900">Education and Credentials</h3>
+          </div>
+          <p className="text-gray-700 leading-relaxed whitespace-pre-line">{descriptionsData.education}</p>
+        </div>
+      )}
+
+      {/* Treatment Approach */}
+      {descriptionsData?.treatment && (
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
+              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900">Treatment Approach</h3>
+          </div>
+          <p className="text-gray-700 leading-relaxed whitespace-pre-line">{descriptionsData.treatment}</p>
+        </div>
+      )}
+
+      {/* First Visit Expectations */}
+      {descriptionsData?.firstVisit && (
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-10 h-10 bg-yellow-50 rounded-lg flex items-center justify-center">
+              <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900">What to Expect on Your First Visit</h3>
+          </div>
+          <p className="text-gray-700 leading-relaxed whitespace-pre-line">{descriptionsData.firstVisit}</p>
+        </div>
+      )}
+
+      {/* Insurance Policy */}
+      {descriptionsData?.insurance && (
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-10 h-10 bg-teal-50 rounded-lg flex items-center justify-center">
+              <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900">Insurance Policy</h3>
+          </div>
+          <p className="text-gray-700 leading-relaxed whitespace-pre-line">{descriptionsData.insurance}</p>
+        </div>
+      )}
+
+      {/* Cancellation Policy */}
+      {descriptionsData?.cancellation && (
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
+              <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900">Cancellation Policy</h3>
+          </div>
+          <p className="text-gray-700 leading-relaxed whitespace-pre-line">{descriptionsData.cancellation}</p>
+        </div>
+      )}
+
+      {/* Languages */}
+      {descriptionsData?.language && descriptionsData.language.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900">Languages Spoken</h3>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {(Array.isArray(descriptionsData.language)
+              ? descriptionsData.language
+              : [descriptionsData.language]).map((lang, index) => (
+              <span
+                key={index}
+                className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-blue-50 text-blue-700 border border-blue-200"
+              >
+                {lang.trim()}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Address Information */}
-      {profile?.address && (
+      {formattedAddress && (
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center gap-2 mb-6">
             <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
@@ -236,14 +401,8 @@ const ViewProfile: React.FC<ViewProfileProps> = ({ profile }) => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            <div className="space-y-1">
-              {addressParts.line1 && <p className="text-gray-900 font-medium">{addressParts.line1}</p>}
-              {addressParts.line2 && <p className="text-gray-700">{addressParts.line2}</p>}
-              {(addressParts.city || addressParts.state || addressParts.zip) && (
-                <p className="text-gray-700">
-                  {[addressParts.city, addressParts.state, addressParts.zip].filter(Boolean).join(', ')}
-                </p>
-              )}
+            <div>
+              <p className="text-gray-900">{formattedAddress}</p>
             </div>
           </div>
         </div>

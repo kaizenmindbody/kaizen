@@ -10,7 +10,9 @@
       "Bash(npm uninstall:*)",
       "Bash(npx tsc:*)",
       "Bash(npm install:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(find:*)",
+      "Bash(npx supabase db dump:*)"
     ],
     "deny": [],
     "ask": []

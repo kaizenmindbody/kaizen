@@ -9,9 +9,9 @@ import toast from 'react-hot-toast';
 import Select from 'react-select';
 import { useDegrees } from '@/hooks/useDegrees';
 import { usePractitionerTypes } from '@/hooks/usePractitionerTypes';
-import PlacesAutocomplete, { geocodeByAddress, getLatLng } from 'react-places-autocomplete';
 import Image from 'next/image';
 import 'react-phone-input-2/lib/style.css';
+import '@placekit/autocomplete-js/dist/placekit-autocomplete.css';
 
 const PhoneInput = dynamic(() => import('react-phone-input-2'), {
   ssr: false,
@@ -20,9 +20,10 @@ const PhoneInput = dynamic(() => import('react-phone-input-2'), {
 
 interface ManageBasicInformationProps {
   profile: ProfileData | null;
+  onProfileUpdate?: () => void;
 }
 
-const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile }) => {
+const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile, onProfileUpdate }) => {
   const { user, refreshProfile } = useAuth();
   const { degrees } = useDegrees();
   const { practitionerTypes } = usePractitionerTypes();
@@ -68,6 +69,8 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
   const [avatarPreview, setAvatarPreview] = useState<string | null>(profile?.avatar || null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const addressInputRef = useRef<HTMLInputElement>(null);
+  const placekitInstance = useRef<any>(null);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -131,6 +134,11 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
       toast.success('Avatar updated successfully!');
       setAvatarFile(null);
       await refreshProfile();
+
+      // Notify parent component to refetch profile
+      if (onProfileUpdate) {
+        onProfileUpdate();
+      }
     } catch (error) {
       console.error('Avatar upload error:', error);
       toast.error('Failed to upload avatar');
@@ -160,6 +168,11 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
       setAvatarPreview(null);
       setAvatarFile(null);
       await refreshProfile();
+
+      // Notify parent component to refetch profile
+      if (onProfileUpdate) {
+        onProfileUpdate();
+      }
     } catch (error) {
       console.error('Avatar remove error:', error);
       toast.error('Failed to remove avatar');
@@ -168,52 +181,77 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
     }
   };
 
-  // Handle address selection from Google Places
-  const handleAddressSelect = async (address: string) => {
-    try {
-      const results = await geocodeByAddress(address);
-      const latLng = await getLatLng(results[0]);
+  // Initialize PlaceKit autocomplete
+  useEffect(() => {
+    const initPlaceKit = async () => {
+      if (!addressInputRef.current || placekitInstance.current) return;
 
-      // Parse address components
-      const addressComponents = results[0].address_components;
-      let streetNumber = '';
-      let route = '';
-      let city = '';
-      let state = '';
-      let zipCode = '';
+      try {
+        // Dynamically import PlaceKit to avoid SSR issues
+        const placekit = await import('@placekit/autocomplete-js');
 
-      addressComponents.forEach(component => {
-        const types = component.types;
-        if (types.includes('street_number')) {
-          streetNumber = component.long_name;
+        const apiKey = process.env.NEXT_PUBLIC_PLACEKIT_API_KEY;
+        if (!apiKey) {
+          console.error('PlaceKit API key is not configured');
+          return;
         }
-        if (types.includes('route')) {
-          route = component.long_name;
-        }
-        if (types.includes('locality')) {
-          city = component.long_name;
-        }
-        if (types.includes('administrative_area_level_1')) {
-          state = component.short_name;
-        }
-        if (types.includes('postal_code')) {
-          zipCode = component.long_name;
-        }
-      });
 
-      const addressLine1 = `${streetNumber} ${route}`.trim();
+        placekitInstance.current = placekit.default(apiKey, {
+          target: addressInputRef.current,
+          countries: ['us', 'ca'],
+          types: ['street', 'city', 'administrative'],
+          maxResults: 5,
+          panel: {
+            className: 'placekit-panel',
+          },
+        });
 
-      setFormData(prev => ({
-        ...prev,
-        address_line1: addressLine1,
-        city: city,
-        state: state,
-        zip_code: zipCode,
-      }));
-    } catch (error) {
-      toast.error('Failed to parse address. Please try again.');
-    }
-  };
+        // Listen for address selection
+        placekitInstance.current.on('pick', (value: any, item: any) => {
+          // Extract zip code - handle both string and array formats
+          const zipCode = Array.isArray(item.zipcode)
+            ? item.zipcode[0] || ''
+            : item.zipcode || '';
+
+          // Update all address fields in React state
+          setFormData(prev => ({
+            ...prev,
+            address_line1: item.name || '',
+            city: item.city || '',
+            state: item.administrative || '',
+            zip_code: zipCode,
+          }));
+
+          console.log('Address selected:', {
+            address_line1: item.name || '',
+            city: item.city || '',
+            state: item.administrative || '',
+            zip_code: zipCode,
+          });
+
+          // Close the dropdown by blurring the input
+          setTimeout(() => {
+            if (addressInputRef.current) {
+              addressInputRef.current.blur();
+            }
+          }, 100);
+        });
+
+      } catch (error) {
+        console.error('Error initializing PlaceKit:', error);
+      }
+    };
+
+    initPlaceKit();
+
+    // Cleanup
+    return () => {
+      if (placekitInstance.current) {
+        placekitInstance.current.destroy();
+        placekitInstance.current = null;
+      }
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -271,6 +309,11 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
 
       // Refresh profile data in AuthContext
       await refreshProfile();
+
+      // Notify parent component to refetch profile
+      if (onProfileUpdate) {
+        onProfileUpdate();
+      }
 
       toast.success('Account updated successfully!');
     } catch (error) {
@@ -637,12 +680,14 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Address Line 1</label>
               <input
+                ref={addressInputRef}
                 type="text"
-                value={formData.address_line1}
+                value={formData.address_line1 || ''}
                 onChange={(e) => handleInputChange('address_line1', e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-                placeholder="Enter your address"
+                placeholder="Start typing your address..."
                 disabled={isSaving}
+                autoComplete="off"
               />
             </div>
 
@@ -650,7 +695,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
               <label className="block text-sm font-medium text-gray-700 mb-2">Address Line 2</label>
               <input
                 type="text"
-                value={formData.address_line2}
+                value={formData.address_line2 || ''}
                 onChange={(e) => handleInputChange('address_line2', e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                 placeholder="Apartment, suite, etc. (optional)"
@@ -663,7 +708,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
                 <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
                 <input
                   type="text"
-                  value={formData.city}
+                  value={formData.city || ''}
                   onChange={(e) => handleInputChange('city', e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                   placeholder="City"
@@ -675,7 +720,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
                 <label className="block text-sm font-medium text-gray-700 mb-2">State</label>
                 <input
                   type="text"
-                  value={formData.state}
+                  value={formData.state || ''}
                   onChange={(e) => handleInputChange('state', e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                   placeholder="State"
@@ -687,7 +732,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
                 <label className="block text-sm font-medium text-gray-700 mb-2">Zip Code</label>
                 <input
                   type="text"
-                  value={formData.zip_code}
+                  value={formData.zip_code || ''}
                   onChange={(e) => handleInputChange('zip_code', e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                   placeholder="Zip code"

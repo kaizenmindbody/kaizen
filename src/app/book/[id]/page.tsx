@@ -547,7 +547,7 @@ const PractitionerBooking = () => {
   const services = useMemo(() => {
     if (!practitioner?.specialty_rate || Object.keys(practitioner.specialty_rate).length === 0) {
       // Fallback to general service if no specialty rates are defined
-      const defaultRate = practitioner?.rate || 100;
+      const defaultRate = 100;
       return [
         {
           id: 'general-consultation',

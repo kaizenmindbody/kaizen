@@ -1,6 +1,19 @@
 'use client'
 
-import React, { useState, useMemo, useEffect, Suspense } from 'react';
+import React, { useState, useMemo, useEffect, Suspense, useCallback } from 'react';
+import Image from 'next/image';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Search, MapPin, X, Filter, Building, Phone, Eye, Star, Heart, ExternalLink } from 'lucide-react';
+import { GoogleMap, Marker, InfoWindow } from '@react-google-maps/api';
+import Select from 'react-select';
+import Breadcrumb from '@/components/commons/breadcrumb';
+import Switch from 'react-switch';
+import { useAuth } from '@/contexts/AuthContext';
+import states from 'states-us';
+import { Specialty, UserData } from '@/types/user';
+import { supabase } from '@/lib/supabase';
+import { formatPhoneNumber, getAvatarUrl, formatPractitionerType } from '@/lib/formatters';
+import { UserCard, UserCardSkeleton } from './components';
 
 // Extend Window interface for Google Maps
 declare global {
@@ -8,537 +21,6 @@ declare global {
     google: any;
   }
 }
-
-import Image from 'next/image';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, MapPin, Heart, X, Building, Filter, Phone, Eye, Star, ExternalLink  } from 'lucide-react';
-import { GoogleMap, Marker, InfoWindow } from '@react-google-maps/api';
-import Select from 'react-select';
-import Breadcrumb from '@/components/commons/breadcrumb';
-import { usePractitionersDirectory } from '@/hooks/usePractitionersDirectory';
-import Switch from 'react-switch';
-import { useAuth } from '@/contexts/AuthContext';
-import states from 'states-us';
-import { Specialty } from '@/types/user';
-
-// Phone number formatting utility
-const formatPhoneNumber = (phone: string | undefined): string => {
-  if (!phone) return '';
-  
-  // Remove all non-digit characters
-  const cleaned = phone.replace(/\D/g, '');
-  
-  // Handle different phone number lengths
-  if (cleaned.length === 10) {
-    // US format: (123) 456-7890
-    return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
-  } else if (cleaned.length === 11 && cleaned[0] === '1') {
-    // US format with country code: +1 (123) 456-7890
-    return `+1 (${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7)}`;
-  } else if (cleaned.length > 10) {
-    // International format: +XX XXX XXX XXXX
-    return `+${cleaned}`;
-  } else {
-    // Return as-is if it doesn't match common patterns
-    return phone;
-  }
-};
-
-// Avatar URL helper utility
-const getAvatarUrl = (avatar: string | { url: string; alt: string } | null | undefined): string => {
-  if (!avatar) {
-    return "https://vbioebgdmwgrykkphupd.supabase.co/storage/v1/object/public/kaizen/avatars/default.jpg";
-  }
-  
-  if (typeof avatar === 'string') {
-    return avatar;
-  }
-  
-  if (typeof avatar === 'object' && avatar.url) {
-    return avatar.url;
-  }
-  
-  return "https://vbioebgdmwgrykkphupd.supabase.co/storage/v1/object/public/kaizen/avatars/default.jpg";
-};
-
-// Utility function to safely parse and format specialties
-const formatSpecialties = (specialty) => {
-  if (!specialty) return 'General Practice';
-  
-  try {
-    // If it's already an array, join it
-    if (Array.isArray(specialty)) {
-      const validSpecialties = specialty.filter(item => item && item.trim());
-      return validSpecialties.length > 0 ? validSpecialties.join('• ') : '';
-    }
-    
-    // If it's a string, try to parse as JSON
-    if (typeof specialty === 'string') {
-      // First check if it looks like JSON (starts with [ or ")
-      if (specialty.trim().startsWith('[') || specialty.trim().startsWith('"')) {
-        const parsed = JSON.parse(specialty);
-        if (Array.isArray(parsed)) {
-          const validSpecialties = parsed.filter(item => item && item.trim());
-          return validSpecialties.length > 0 ? validSpecialties.join(' • ') : '';
-        }
-        return parsed || '';
-      }
-      // If not JSON, treat as regular string
-      return specialty.trim() || '';
-    }
-    
-    return '';
-  } catch {
-    // If JSON parsing fails, treat as regular string
-    return typeof specialty === 'string' ? (specialty.trim() || 'General Practice') : 'General Practice';
-  }
-};
-
-// Reusable User Card Component
-const UserCard = ({ practitioner, onNavigate, onBooking, isOwnProfile = false }) => {
-  return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6 hover:shadow-md transition-shadow w-full">
-      {/* Mobile Layout (below xs) */}
-      <div className="xs:hidden space-y-4">
-        {/* Profile Image */}
-        <div className="relative flex-shrink-0 w-full aspect-square p-2">
-          <Image
-            src={getAvatarUrl(practitioner.avatar)}
-            alt={practitioner.full_name || "Practitioner"}
-            width={250}
-            height={250}
-            className="w-full h-full rounded-lg object-cover"
-          />
-          <div className="absolute top-4 left-4 bg-primary text-white text-xs px-1.5 py-0.5 rounded z-10">
-            4.8
-          </div>
-          <Heart className="absolute top-4 right-4 w-6 h-6 text-yellow-400 fill-current z-10" />
-        </div>
-
-        {/* Content */}
-        <div className="space-y-2">
-          {/* Specialty */}
-          <div className="text-center">
-            <p className="text-base text-[#0E9384]">
-              {formatSpecialties(practitioner.specialty)}
-            </p>
-          </div>
-
-          {/* Name */}
-          <div className="text-center">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onNavigate(practitioner);
-              }}
-              className="font-semibold text-gray-900 hover:text-primary transition-colors text-lg"
-            >
-              {practitioner.full_name}
-            </button>
-          </div>
-
-          {/* Degrees */}
-          <div className="text-center">
-            <p className="text-xs text-gray-500">{practitioner.degree}</p>
-          </div>
-
-          {/* Address */}
-          <div className="flex items-start justify-center space-x-1 text-sm text-gray-600">
-            <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
-            <span className="text-xs text-center">{practitioner.address}</span>
-          </div>
-
-          {/* Clinic */}
-          {practitioner.clinic && (
-            <div className="flex items-start justify-center space-x-1 text-sm text-gray-600">
-              <Building className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <span className="text-xs text-center">{practitioner.clinic}</span>
-            </div>
-          )}
-
-          {/* Experience */}
-          {practitioner.experience && (
-            <div className="flex items-start justify-center space-x-2 text-sm text-gray-600">
-              <Eye className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <span className="text-xs text-center">{practitioner.experience} years of experience</span>
-            </div>
-          )}
-
-          {/* Website */}
-          {practitioner.website && (
-            <div className="text-center w-full">
-              <a
-                href={practitioner.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center space-x-2 text-primary hover:text-primary/80 text-xs font-medium transition-colors"
-              >
-                <ExternalLink className="w-4 h-4" />
-                <span>Visit Website</span>
-              </a>
-            </div>
-          )}
-        </div>
-
-        {/* Bottom section */}
-        <div className="pt-4 border-t border-gray-100 space-y-3">
-          <div className="grid grid-cols-2 gap-4 text-center">
-          {practitioner.rate?
-            <div>
-              <p className="text-sm text-gray-600">Fees start at</p>
-              <p className="text-xl font-semibold text-primary">${practitioner.rate}</p>
-            </div>
-            : ''}
-            <div>
-              <p className="text-sm text-gray-600">Next available</p>
-              <p className="text-sm text-gray-900">{practitioner.nextAvailable}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Medium Layout (xs to md) - Image left, content right single column */}
-      <div className="hidden xs:flex md:hidden items-stretch space-x-4">
-        {/* Profile Image */}
-        <div className="relative flex-shrink-0 w-[180px] p-2">
-          <Image
-            src={getAvatarUrl(practitioner.avatar)}
-            alt={practitioner.full_name || "Practitioner"}
-            width={180}
-            height={300}
-            className="w-full h-full rounded-lg object-cover"
-          />
-          <div className="absolute top-4 left-4 bg-primary text-white text-xs px-1.5 py-0.5 rounded z-10">
-            4.8
-          </div>
-          <Heart className="absolute top-4 right-4 w-5 h-5 text-yellow-400 fill-current z-10" />
-        </div>
-
-        {/* Content as single column - now matches image height */}
-        <div className="flex-1 flex flex-col min-h-[180px]">
-          <div className="flex-1">
-            <p className="text-base text-[#0E9384] mb-1">
-              {formatSpecialties(practitioner.specialty)}
-            </p>
-            <div className="mb-2">
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onNavigate(practitioner);
-                }}
-                className="font-semibold text-gray-900 hover:text-primary transition-colors text-xl mb-2"
-              >
-                {practitioner.full_name}
-              </button>
-              <p className="text-xs text-gray-500 mb-3">{practitioner.degree}</p>
-              <div className="flex items-center space-x-1 mb-2 mt-2 text-sm text-gray-600">
-                <MapPin className="w-3 h-3 flex-shrink-0" />
-                <span className="text-xs">{practitioner.address}</span>
-              </div>
-              
-              {practitioner.clinic && (
-                <div className="flex items-center space-x-1 mb-2 text-sm text-gray-600">
-                  <Building className="w-3 h-3 flex-shrink-0" />
-                  <span className="text-xs">{practitioner.clinic}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-1 text-sm text-gray-600 mb-2">
-              {practitioner.experience &&
-                <div className="flex items-center space-x-2 mt-3">
-                  <Eye className="w-3 h-3" />
-                  <span className="text-xs">{practitioner.experience}</span>&nbsp;years of experience
-                </div>
-              }
-              {practitioner.website && (
-                <div>
-                  <a 
-                    href={practitioner.website} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    onClick={(e) => e.stopPropagation()}
-                    className="inline-flex items-center space-x-2 text-primary hover:text-primary/80 text-xs font-medium transition-colors"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    <span>Visit Website</span>
-                  </a>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Bottom section */}
-          <div className="mt-auto pt-2 border-t border-gray-100">
-            <div className="flex xs:flex-col sm:flex-row items-center justify-between">
-              <div className='flex space-x-4'>
-              {practitioner.rate?
-                <div>
-                  <p className="text-xs text-gray-600">Fees start at</p>
-                  <p className="text-lg font-semibold text-primary">${practitioner.rate}</p>
-                </div>
-                : ''}
-                <div>
-                  <p className="text-xs text-gray-600">Next available</p>
-                  <p className="text-xs text-gray-900">{practitioner.nextAvailable}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Desktop Layout (md and above) */}
-      <div className="hidden md:flex items-stretch space-x-4">
-        {/* Profile Image */}
-        <div className="relative flex-shrink-0 w-[250px] p-2">
-          <Image
-            src={getAvatarUrl(practitioner.avatar)}
-            alt={practitioner.full_name || "Practitioner"}
-            width={250}
-            height={350}
-            className="w-full h-full rounded-lg object-cover"
-          />
-          <div className="absolute top-4 left-4 bg-primary text-white text-xs px-1.5 py-0.5 rounded">
-            4.8
-          </div>
-          <Heart className="absolute top-4 right-4 w-6 h-6 text-yellow-400 fill-current" />
-        </div>
-
-        {/* Main Info - now matches image height */}
-        <div className="flex-1 flex flex-col min-h-[250px]">
-          <div className="flex-1">
-            <p className="text-base text-[#0E9384] mb-1">
-              {formatSpecialties(practitioner.specialty)}
-            </p>
-            <div className="flex flex-row justify-between items-center mb-4">
-              <div>
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onNavigate(practitioner);
-                  }}
-                  className="font-semibold text-gray-900 hover:text-primary transition-colors text-2xl mb-3"
-                >
-                  {practitioner.full_name}
-                </button>
-                <p className="text-xs text-gray-500 mb-3">{practitioner.degree}</p>
-                <div className="flex items-center space-x-1 mb-3 mt-3 text-sm text-gray-600">
-                  <MapPin className="w-4 h-4 flex-shrink-0" />
-                  <span>{practitioner.address}</span>
-                </div>
-                
-                {practitioner.clinic && (
-                  <div className="flex items-center space-x-1 mb-3 text-sm text-gray-600">
-                    <Building className="w-4 h-4 flex-shrink-0" />
-                    <span>{practitioner.clinic}</span>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <div className="space-y-1 text-sm text-gray-600">
-                  {practitioner.experience && 
-                  <div className="flex items-center space-x-2 mt-3">
-                    <Eye className="w-4 h-4" />
-                    <span className="text-xs">{practitioner.experience}</span> &nbsp;years of experience
-                  </div>
-                  }
-                </div>
-
-                {practitioner.website && (
-                  <div className="mt-2">
-                    <a 
-                      href={practitioner.website} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      onClick={(e) => e.stopPropagation()}
-                      className="inline-flex items-center space-x-2 text-primary hover:text-primary/80 text-xs font-medium transition-colors"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      <span>Visit Website</span>
-                    </a>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom section */}
-          <div className="mt-auto pt-4 border-t border-gray-100">
-            <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-center lg:items-start xl:items-center sm:justify-between lg:justify-start xl:justify-between space-y-3 sm:space-y-0 lg:space-y-3 xl:space-y-0">
-              <div className='flex space-x-6'>
-                {practitioner.rate?
-                <div>
-                  <p className="text-sm text-gray-600">Fees start at</p>
-                  <p className="text-xl font-semibold text-primary">${practitioner.rate}</p>
-                </div>: ''}
-                <div>
-                  {/* <p className="text-sm text-gray-600">Next available at</p> */}
-                  <p className="text-sm text-gray-900">{practitioner.nextAvailable}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Skeleton Loading Component for UserCard
-const UserCardSkeleton = () => {
-  return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6 w-full animate-pulse">
-      {/* Mobile Layout (below xs) */}
-      <div className="xs:hidden space-y-4">
-        {/* Profile Image */}
-        <div className="relative flex-shrink-0 w-full aspect-square p-2">
-          <div className="w-full h-full rounded-lg bg-gray-200"></div>
-        </div>
-
-        {/* Content */}
-        <div className="space-y-2">
-          {/* Specialty */}
-          <div className="text-center">
-            <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
-          </div>
-
-          {/* Name */}
-          <div className="text-center">
-            <div className="h-6 bg-gray-200 rounded w-2/3 mx-auto"></div>
-          </div>
-
-          {/* Degrees */}
-          <div className="text-center">
-            <div className="h-3 bg-gray-200 rounded w-1/2 mx-auto"></div>
-          </div>
-
-          {/* Address */}
-          <div className="flex items-start justify-center space-x-1">
-            <div className="w-4 h-4 bg-gray-200 rounded mt-0.5"></div>
-            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-          </div>
-
-          {/* Clinic */}
-          <div className="flex items-start justify-center space-x-1">
-            <div className="w-4 h-4 bg-gray-200 rounded mt-0.5"></div>
-            <div className="h-4 bg-gray-200 rounded w-2/3"></div>
-          </div>
-        </div>
-
-        {/* Bottom section */}
-        <div className="pt-4 border-t border-gray-100 space-y-3">
-          <div className="grid grid-cols-2 gap-4 text-center">
-            <div>
-              <div className="h-4 bg-gray-200 rounded w-20 mx-auto mb-1"></div>
-              <div className="h-6 bg-gray-200 rounded w-16 mx-auto"></div>
-            </div>
-            <div>
-              <div className="h-4 bg-gray-200 rounded w-24 mx-auto mb-1"></div>
-              <div className="h-4 bg-gray-200 rounded w-20 mx-auto"></div>
-            </div>
-          </div>
-          <div className="w-full h-10 bg-gray-200 rounded-full"></div>
-        </div>
-      </div>
-
-      {/* Medium Layout (xs to md) */}
-      <div className="hidden xs:flex md:hidden items-stretch space-x-4">
-        {/* Profile Image */}
-        <div className="relative flex-shrink-0 w-[180px] p-2">
-          <div className="w-full h-full rounded-lg bg-gray-200"></div>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 flex flex-col min-h-[180px]">
-          <div className="flex-1 space-y-2">
-            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-            <div className="h-6 bg-gray-200 rounded w-2/3"></div>
-            <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-            <div className="flex items-center space-x-1">
-              <div className="w-3 h-3 bg-gray-200 rounded"></div>
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-            </div>
-            <div className="flex items-center space-x-1">
-              <div className="w-3 h-3 bg-gray-200 rounded"></div>
-              <div className="h-4 bg-gray-200 rounded w-2/3"></div>
-            </div>
-          </div>
-
-          {/* Bottom section */}
-          <div className="mt-auto pt-2 border-t border-gray-100">
-            <div className="flex xs:flex-col sm:flex-row items-center justify-between">
-              <div className='flex space-x-4'>
-                <div>
-                  <div className="h-3 bg-gray-200 rounded w-20 mb-1"></div>
-                  <div className="h-5 bg-gray-200 rounded w-16"></div>
-                </div>
-                <div>
-                  <div className="h-3 bg-gray-200 rounded w-24 mb-1"></div>
-                  <div className="h-3 bg-gray-200 rounded w-20"></div>
-                </div>
-              </div>
-              <div className="w-full sm:w-20 h-8 bg-gray-200 rounded-full"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Desktop Layout (md and above) */}
-      <div className="hidden md:flex items-stretch space-x-4">
-        {/* Profile Image */}
-        <div className="relative flex-shrink-0 w-[250px] p-2">
-          <div className="w-full h-full rounded-lg bg-gray-200"></div>
-        </div>
-
-        {/* Main Info */}
-        <div className="flex-1 flex flex-col min-h-[250px]">
-          <div className="flex-1 space-y-3">
-            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-            <div className="flex flex-row justify-between items-start">
-              <div className="space-y-2">
-                <div className="h-8 bg-gray-200 rounded w-2/3"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                <div className="flex items-center space-x-1">
-                  <div className="w-4 h-4 bg-gray-200 rounded"></div>
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <div className="w-4 h-4 bg-gray-200 rounded"></div>
-                  <div className="h-4 bg-gray-200 rounded w-2/3"></div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 bg-gray-200 rounded"></div>
-                  <div className="h-3 bg-gray-200 rounded w-32"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom section */}
-          <div className="mt-auto pt-4 border-t border-gray-100">
-            <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-center lg:items-start xl:items-center sm:justify-between lg:justify-start xl:justify-between space-y-3 sm:space-y-0 lg:space-y-3 xl:space-y-0">
-              <div className='flex space-x-6'>
-                <div>
-                  <div className="h-4 bg-gray-200 rounded w-24 mb-1"></div>
-                  <div className="h-6 bg-gray-200 rounded w-20"></div>
-                </div>
-                <div>
-                  <div className="h-4 bg-gray-200 rounded w-28"></div>
-                </div>
-              </div>
-              <div className="h-10 bg-gray-200 rounded-full w-36"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 
 const reviewOptions = [
@@ -555,10 +37,8 @@ const checkOptions = [
 ];
 
 const sortOptions = [
-  { value: 'rate', label: 'Rate (Low to High)' },
-  // { value: 'created_at', label: 'Recently Added' },
+  { value: 'created_at', label: 'Recently Added' },
   { value: 'full_name', label: 'Name (A-Z)' },
-  // { value: 'specialty', label: 'Specialty' },
 ];
 
 // Create state options from states-us package
@@ -613,8 +93,27 @@ const UserDirectoryContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth(); // Get current authenticated user
-  // Use the Supabase hook with pagination
-  const { practitioners: supabaseUsers, loading, error, pagination, fetchPractitioners } = usePractitionersDirectory();
+
+  // State for practitioners data
+  const [supabaseUsers, setSupabaseUsers] = useState<UserData[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState<{
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    limit: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  }>({
+    currentPage: 1,
+    totalPages: 1,
+    totalCount: 0,
+    limit: 3,
+    hasNextPage: false,
+    hasPrevPage: false
+  });
+
   const [sortBy, setSortBy] = useState(sortOptions[0]);
   const [_specialties, setSpecialties] = useState<Specialty[]>([]);
   const [specialtyOptions, setSpecialtyOptions] = useState([{ value: '', label: 'All Specialties' }]);
@@ -640,6 +139,156 @@ const UserDirectoryContent = () => {
   const [availableToday, setAvailableToday] = useState(true);
   const [selectedMapUser, setSelectedMapUser] = useState(null);
   const [geocodedLocations, setGeocodedLocations] = useState(new Map());
+  const [isGoogleMapsLoaded, setIsGoogleMapsLoaded] = useState(false);
+
+  // Check if Google Maps is loaded
+  useEffect(() => {
+    const checkGoogleMaps = () => {
+      if (typeof window !== 'undefined' && window.google) {
+        setIsGoogleMapsLoaded(true);
+      }
+    };
+
+    // Check immediately
+    checkGoogleMaps();
+
+    // Also check after a delay in case script is still loading
+    const timer = setInterval(() => {
+      if (typeof window !== 'undefined' && window.google) {
+        setIsGoogleMapsLoaded(true);
+        clearInterval(timer);
+      }
+    }, 100);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Fetch practitioners from Users table
+  const fetchPractitioners = async (params: any = {}) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const {
+        page = 1,
+        limit = 3,
+        search = '',
+        location = '',
+        specialty = '',
+        sortBy = 'created_at',
+        order = 'desc'
+      } = params;
+
+      // Calculate offset for pagination
+      const offset = (page - 1) * limit;
+
+      // Build the query
+      let query = supabase
+        .from('Users')
+        .select('*', { count: 'exact' })
+        .eq('type', 'Practitioner');
+
+      // Apply search filter
+      if (search) {
+        const searchTerm = search.toLowerCase();
+        query = query.or(`firstname.ilike.%${searchTerm}%,lastname.ilike.%${searchTerm}%,ptype.ilike.%${searchTerm}%`);
+      }
+
+      // Apply specialty filter (using ptype)
+      if (specialty && specialty !== 'All Specialties' && specialty !== '') {
+        const searchTerm = specialty.toLowerCase();
+        query = query.ilike('ptype', `%${searchTerm}%`);
+      }
+
+      // Apply location filter
+      if (location) {
+        query = query.ilike('address', `%${location}%`);
+      }
+
+      // Apply sorting
+      if (sortBy === 'full_name') {
+        // Sort by firstname when full_name is requested
+        query = query.order('firstname', { ascending: order === 'asc' });
+      } else {
+        query = query.order(sortBy, { ascending: order === 'asc' });
+      }
+
+      // Apply pagination
+      query = query.range(offset, offset + limit - 1);
+
+      const { data, error: queryError, count } = await query;
+
+      if (queryError) {
+        throw queryError;
+      }
+
+      // Fetch backgrounds from Descriptions table for these users
+      const userIds = data?.map(u => u.id) || [];
+      let backgroundsMap = new Map();
+
+      if (userIds.length > 0) {
+        const { data: descriptions } = await supabase
+          .from('Descriptions')
+          .select('user_id, background, language')
+          .in('user_id', userIds);
+
+        if (descriptions) {
+          descriptions.forEach(desc => {
+            // Parse language field if it's a string
+            let parsedLanguages = '';
+            if (desc.language) {
+              try {
+                const languageArray = typeof desc.language === 'string'
+                  ? JSON.parse(desc.language)
+                  : desc.language;
+                parsedLanguages = Array.isArray(languageArray) ? languageArray.join(', ') : desc.language;
+              } catch {
+                parsedLanguages = desc.language;
+              }
+            }
+
+            backgroundsMap.set(desc.user_id, {
+              background: desc.background,
+              language: parsedLanguages
+            });
+          });
+        }
+      }
+
+      // Process the data
+      const processedData = data?.map(practitioner => {
+        const description = backgroundsMap.get(practitioner.id);
+        return {
+          ...practitioner,
+          degree: practitioner.degree || '',
+          background: description?.background || '',
+          description_languages: description?.language || ''
+        };
+      }) || [];
+
+      setSupabaseUsers(processedData);
+
+      // Calculate pagination info
+      const totalPages = Math.ceil((count || 0) / limit);
+      const hasNextPage = page < totalPages;
+      const hasPrevPage = page > 1;
+
+      setPagination({
+        currentPage: page,
+        totalPages,
+        totalCount: count || 0,
+        limit,
+        hasNextPage,
+        hasPrevPage
+      });
+
+    } catch (err) {
+      console.error('Error fetching practitioners:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch practitioners');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Fetch specialties from API
   const fetchSpecialties = async () => {
@@ -670,6 +319,17 @@ const UserDirectoryContent = () => {
   // Fetch specialties on component mount
   useEffect(() => {
     fetchSpecialties();
+  }, []);
+
+  // Initial fetch of practitioners on component mount
+  useEffect(() => {
+    fetchPractitioners({
+      page: 1,
+      limit: 3,
+      sortBy: 'created_at',
+      order: 'desc'
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Set specialty filter when specialty options are loaded and there's a specialty URL parameter
@@ -717,7 +377,7 @@ const UserDirectoryContent = () => {
         location: selectedState?.value || '',
         specialty: specialtyValue,
         sortBy: sortBy?.value,
-        order: sortBy?.value === 'rate' ? 'asc' : 'desc'
+        order: sortBy?.value === 'full_name' ? 'asc' : 'desc'
       });
     }
   }, [searchParams, selectedState, selectedSpecialty, fetchPractitioners, sortBy?.value]);
@@ -739,49 +399,48 @@ const UserDirectoryContent = () => {
       return [];
     }
 
-    const transformed = supabaseUsers.map((practitioner) => ({
-      ...practitioner,
-      avatar: {
-        url: getAvatarUrl(practitioner.avatar),
-        alt: practitioner.full_name || "Practitioner"
-      },
-      degree: practitioner.degree || '',
-      languages: Array.isArray(practitioner.languages) ? practitioner.languages : ['English'],
-      clinic: practitioner.clinic || 'Private Practice',
-      address: practitioner.address || 'Address not available',
-      specialty: practitioner.specialty || '',
-      rate: practitioner.rate,
-      reviews: practitioner.reviews || 0, // Use actual reviews from database
-      rating: practitioner.rating || 0, // Add separate rating field
-      experience: `${Math.floor(Math.random() * 20) + 80}% (${Math.floor(Math.random() * 300) + 100} / ${Math.floor(Math.random() * 350) + 150} Visits)`,
-      nextAvailable: `${Math.floor(Math.random() * 12) + 8}:${Math.random() > 0.5 ? '00' : '30'} ${Math.random() > 0.5 ? 'AM' : 'PM'} - ${Math.floor(Math.random() * 28) + 1} ${['Jan', 'Feb', 'Mar', 'Apr', 'May'][Math.floor(Math.random() * 5)]}`,
-      yearsExp: `${Math.floor(Math.random() * 15) + 5} Years of Experience`
-    }));
+    const transformed = supabaseUsers.map((practitioner) => {
+      const fullName = `${practitioner.firstname || ''} ${practitioner.lastname || ''}`.trim();
+      return {
+        ...practitioner,
+        avatar: {
+          url: getAvatarUrl(practitioner.avatar),
+          alt: fullName || "Practitioner"
+        },
+        degree: practitioner.degree || '',
+        clinic: practitioner.clinic || 'Private Practice',
+        address: practitioner.address || 'Address not available',
+        ptype: practitioner.ptype || 'General Practice',
+        background: practitioner.background || ''
+      };
+    });
     return transformed;
   }, [supabaseUsers]);
 
   // Filter and search functionality
   const filteredUsers = useMemo(() => {
     return practitioners.filter(practitioner => {
+      const fullName = `${practitioner.firstname || ''} ${practitioner.lastname || ''}`.trim();
+      const formattedPtype = formatPractitionerType(practitioner.ptype);
+
       // Search functionality
-      const formattedSpecialty = formatSpecialties(practitioner.specialty);
-      const matchesSearch = searchQuery === '' || 
-        (practitioner.full_name && practitioner.full_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (formattedSpecialty && formattedSpecialty.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      const matchesSearch = searchQuery === '' ||
+        (fullName && fullName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (formattedPtype && formattedPtype.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (practitioner.clinic && practitioner.clinic.toLowerCase().includes(searchQuery.toLowerCase()));
-      
+
       // State filter
       const matchesLocation = selectedState?.value === '' ||
         (practitioner.address && practitioner.address.toLowerCase().includes(selectedState?.value.toLowerCase())) ||
         (practitioner.clinic && practitioner.clinic.toLowerCase().includes(selectedState?.value.toLowerCase()));
-      
-      // Specialty filter
+
+      // Practitioner type filter
       const matchesSpecialty = selectedSpecialty?.value === '' ||
-        (formattedSpecialty && formattedSpecialty.toLowerCase().includes(selectedSpecialty?.value.toLowerCase()));
-      
+        (formattedPtype && formattedPtype.toLowerCase().includes(selectedSpecialty?.value.toLowerCase()));
+
       // Review filter (simplified for demo)
       const matchesReview = selectedReview?.value === '' || true;
-      
+
       return matchesSearch && matchesLocation && matchesSpecialty && matchesReview;
     });
   }, [practitioners, searchQuery, selectedState, selectedSpecialty, selectedReview]);
@@ -1114,8 +773,7 @@ const UserDirectoryContent = () => {
                     value={sortBy}
                     onChange={(option) => {
                       setSortBy(option);
-                      const order = (option?.value === 'rate') ? 'asc' : 
-                                   (option?.value === 'full_name') ? 'asc' : 'desc';
+                      const order = (option?.value === 'full_name') ? 'asc' : 'desc';
                       fetchPractitioners({
                         page: 1,
                         limit: 3,
@@ -1155,7 +813,7 @@ const UserDirectoryContent = () => {
                           location: selectedState?.value || '',
                           specialty: option?.value === '' ? undefined : option?.value,
                           sortBy: sortBy?.value,
-                          order: sortBy?.value === 'rate' ? 'asc' : 'desc'
+                          order: sortBy?.value === 'full_name' ? 'asc' : 'desc'
                         });
                       }}
                       options={specialtyOptions}
@@ -1177,7 +835,7 @@ const UserDirectoryContent = () => {
                           location: selectedState?.value || '',
                           specialty: selectedSpecialty?.value === '' ? undefined : selectedSpecialty?.value,
                           sortBy: sortBy?.value,
-                          order: sortBy?.value === 'rate' ? 'asc' : 'desc'
+                          order: sortBy?.value === 'full_name' ? 'asc' : 'desc'
                         });
                       }}
                       options={reviewOptions}
@@ -1199,7 +857,7 @@ const UserDirectoryContent = () => {
                           location: selectedState?.value || '',
                           specialty: selectedSpecialty?.value === '' ? undefined : selectedSpecialty?.value,
                           sortBy: sortBy?.value,
-                          order: sortBy?.value === 'rate' ? 'asc' : 'desc'
+                          order: sortBy?.value === 'full_name' ? 'asc' : 'desc'
                         });
                       }}
                       options={checkOptions}
@@ -1432,6 +1090,7 @@ const UserDirectoryContent = () => {
             <div className="hidden lg:block w-100 flex-shrink-0">
               {/* Google Map */}
               <div className="bg-gray-100 rounded-lg h-full mb-6 relative overflow-hidden">
+                {isGoogleMapsLoaded ? (
                 <GoogleMap
                   mapContainerStyle={mapContainerStyle}
                   center={mapCenter}
@@ -1442,14 +1101,17 @@ const UserDirectoryContent = () => {
                     fullscreenControl: false,
                   }}
                 >
-                  {generateUserLocations.map((practitioner) => (
-                    <Marker
-                      key={practitioner.id}
-                      position={practitioner.coordinates}
-                      title={practitioner.full_name}
-                      onClick={() => setSelectedMapUser(practitioner.id)}
-                    />
-                  ))}
+                  {generateUserLocations.map((practitioner) => {
+                    const fullName = `${practitioner.firstname || ''} ${practitioner.lastname || ''}`.trim();
+                    return (
+                      <Marker
+                        key={practitioner.id}
+                        position={practitioner.coordinates}
+                        title={fullName}
+                        onClick={() => setSelectedMapUser(practitioner.id)}
+                      />
+                    );
+                  })}
                   {selectedMapUser && (
                     <InfoWindow
                       position={generateUserLocations.find(p => p.id === selectedMapUser)?.coordinates || defaultCenter}
@@ -1459,6 +1121,7 @@ const UserDirectoryContent = () => {
                         {(() => {
                           const practitioner = generateUserLocations.find(p => p.id === selectedMapUser);
                           if (!practitioner) return null;
+                          const fullName = `${practitioner.firstname || ''} ${practitioner.lastname || ''}`.trim();
                           return (
                             <div className="relative">
                               {/* Header with gradient background */}
@@ -1467,7 +1130,7 @@ const UserDirectoryContent = () => {
                                   <div className="relative">
                                     <Image
                                       src={getAvatarUrl(practitioner.avatar)}
-                                      alt={practitioner.full_name || "Practitioner"}
+                                      alt={fullName || "Practitioner"}
                                       width={60}
                                       height={60}
                                       className="rounded-full object-cover border-2 border-white shadow-md"
@@ -1476,42 +1139,24 @@ const UserDirectoryContent = () => {
                                   </div>
                                   <div className="flex-1">
                                     <h4 className="font-bold text-gray-900 text-base mb-1">
-                                      {practitioner.full_name}
+                                      {fullName}
                                     </h4>
                                     {practitioner.title && (
                                       <p className="text-sm text-primary font-medium mb-1">
                                         {practitioner.title}
                                       </p>
                                     )}
-                                    <div className="flex items-center gap-2">
-                                      <div className="flex items-center">
-                                        {[1, 2, 3, 4, 5].map((star) => (
-                                          <Star
-                                            key={star}
-                                            className={`w-3 h-3 ${
-                                              practitioner.rating > 0 && star <= Math.floor(practitioner.rating)
-                                                ? 'fill-yellow-400 text-yellow-400'
-                                                : 'text-gray-300'
-                                            }`}
-                                          />
-                                        ))}
-                                      </div>
-                                      <span className="text-sm font-medium text-gray-700">
-                                        {practitioner.rating > 0 ? practitioner.rating.toFixed(1) : ''}
-                                        {practitioner.reviews > 0 ? ` (${practitioner.reviews} reviews)` : ''}
-                                      </span>
-                                    </div>
                                   </div>
                                 </div>
                               </div>
-                              
+
                               {/* Content */}
                               <div className="p-4 space-y-3">
-                                {practitioner.specialty && (
+                                {practitioner.ptype && (
                                   <div className="flex items-center gap-2">
                                     <Building className="w-4 h-4 text-primary" />
                                     <span className="text-sm text-gray-700 font-medium">
-                                      {formatSpecialties(practitioner.specialty)}
+                                      {formatPractitionerType(practitioner.ptype)}
                                     </span>
                                   </div>
                                 )}
@@ -1557,6 +1202,11 @@ const UserDirectoryContent = () => {
                     </InfoWindow>
                   )}
                 </GoogleMap>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <p className="text-gray-500">Loading map...</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1580,6 +1230,7 @@ const UserDirectoryContent = () => {
 
                       {/* Google Map */}
                       <div className="bg-gray-100 rounded-lg h-[calc(100dvh-10rem)] relative overflow-hidden">
+                        {isGoogleMapsLoaded ? (
                         <GoogleMap
                           mapContainerStyle={{width: '100%', height: '100%'}}
                           center={mapCenter}
@@ -1590,14 +1241,17 @@ const UserDirectoryContent = () => {
                             fullscreenControl: false,
                           }}
                         >
-                          {generateUserLocations.map((practitioner) => (
-                            <Marker
-                              key={practitioner.id}
-                              position={practitioner.coordinates}
-                              title={practitioner.full_name}
-                              onClick={() => setSelectedMapUser(practitioner.id)}
-                            />
-                          ))}
+                          {generateUserLocations.map((practitioner) => {
+                            const fullName = `${practitioner.firstname || ''} ${practitioner.lastname || ''}`.trim();
+                            return (
+                              <Marker
+                                key={practitioner.id}
+                                position={practitioner.coordinates}
+                                title={fullName}
+                                onClick={() => setSelectedMapUser(practitioner.id)}
+                              />
+                            );
+                          })}
                           {selectedMapUser && (
                             <InfoWindow
                               position={generateUserLocations.find(p => p.id === selectedMapUser)?.coordinates || defaultCenter}
@@ -1607,6 +1261,7 @@ const UserDirectoryContent = () => {
                                 {(() => {
                                   const practitioner = generateUserLocations.find(p => p.id === selectedMapUser);
                                   if (!practitioner) return null;
+                                  const fullName = `${practitioner.firstname || ''} ${practitioner.lastname || ''}`.trim();
                                   return (
                                     <div className="relative">
                                       {/* Header with gradient background */}
@@ -1615,7 +1270,7 @@ const UserDirectoryContent = () => {
                                           <div className="relative">
                                             <Image
                                               src={getAvatarUrl(practitioner.avatar)}
-                                              alt={practitioner.full_name || "Practitioner"}
+                                              alt={fullName || "Practitioner"}
                                               width={45}
                                               height={45}
                                               className="rounded-full object-cover border-2 border-white shadow-md"
@@ -1624,41 +1279,25 @@ const UserDirectoryContent = () => {
                                           </div>
                                           <div className="flex-1 min-w-0">
                                             <h4 className="font-bold text-gray-900 text-sm mb-1 truncate">
-                                              {practitioner.full_name}
+                                              {fullName}
                                             </h4>
                                             {practitioner.title && (
                                               <p className="text-xs text-primary font-medium mb-1 truncate">
                                                 {practitioner.title}
                                               </p>
                                             )}
-                                            <div className="flex items-center gap-1">
-                                              <div className="flex items-center">
-                                                {[1, 2, 3, 4, 5].map((star) => (
-                                                  <Star
-                                                    key={star}
-                                                    className={`w-2.5 h-2.5 ${
-                                                      practitioner.rating > 0 && star <= Math.floor(practitioner.rating)
-                                                        ? 'fill-yellow-400 text-yellow-400'
-                                                        : 'text-gray-300'
-                                                    }`}
-                                                  />
-                                                ))}
-                                              </div>
-                                              <span className="text-xs font-medium text-gray-700">
-                                                {practitioner.rating > 0 ? `${practitioner.rating} (${practitioner.reviews} reviews)` : 'No reviews'}
-                                              </span>
-                                            </div>
                                           </div>
                                         </div>
                                       </div>
-                                      
+
+
                                       {/* Content */}
                                       <div className="p-3 space-y-2">
-                                        {practitioner.specialty && (
+                                        {practitioner.ptype && (
                                           <div className="flex items-center gap-2">
                                             <Building className="w-3 h-3 text-primary" />
                                             <span className="text-xs text-gray-700 font-medium truncate">
-                                              {formatSpecialties(practitioner.specialty)}
+                                              {formatPractitionerType(practitioner.ptype)}
                                             </span>
                                           </div>
                                         )}
@@ -1697,6 +1336,11 @@ const UserDirectoryContent = () => {
                             </InfoWindow>
                           )}
                         </GoogleMap>
+                        ) : (
+                          <div className="flex items-center justify-center h-full">
+                            <p className="text-gray-500">Loading map...</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                 </div>
@@ -1704,30 +1348,33 @@ const UserDirectoryContent = () => {
           </div>
 
           {/* Modal for User Details */}
-          {isModalOpen && selectedUser && (
-            <div 
-              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-              onClick={closeModal}
-            >
-              <div 
-                className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-                onClick={(e) => e.stopPropagation()}
+          {isModalOpen && selectedUser && (() => {
+            const modalFullName = `${selectedUser.firstname || ''} ${selectedUser.lastname || ''}`.trim();
+            return (
+              <div
+                className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+                onClick={closeModal}
               >
-                {/* Modal Header */}
-                <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200">
-                  <h2 className="text-xl lg:text-2xl font-bold text-gray-900">
-                    {selectedUser.full_name}
-                  </h2>
-                  <button 
-                    onClick={closeModal}
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    <X className="w-6 h-6" />
-                  </button>
+                <div
+                  className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Modal Header */}
+                  <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200">
+                    <h2 className="text-xl lg:text-2xl font-bold text-gray-900">
+                      {modalFullName}
+                    </h2>
+                    <button
+                      onClick={closeModal}
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      <X className="w-6 h-6" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
         </>
         )}

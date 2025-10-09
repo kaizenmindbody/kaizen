@@ -76,7 +76,7 @@ export interface UserData {
   lastname: string;
   email: string;
   phone?: string;
-  type: 'Practitioner' | 'Patient';
+  type: 'Practitioner' | 'Patient' | 'EventHost';
   address?: string;
   degree?: string;
   title?: string;
@@ -88,6 +88,7 @@ export interface UserData {
   updated_at?: string;
   background?: string;
   description_languages?: string;
+  aboutme?: string;
 }
 
 // Extended profile interface for profile page with additional fields
@@ -134,4 +135,20 @@ export interface UseDegreeReturn {
   updateDegree: (id: string, title: string) => Promise<boolean>;
   deleteDegree: (id: string) => Promise<boolean>;
   refreshDegrees: () => Promise<void>;
+}
+
+// EventHost interface for event host specific data
+export interface EventHost {
+  id: string;
+  user_id: string;
+  business_name?: string;
+  website?: string;
+  bio?: string;
+  instagram?: string;
+  facebook?: string;
+  tiktok?: string;
+  linkedin?: string;
+  host_image?: string;
+  created_at: string;
+  updated_at?: string;
 }

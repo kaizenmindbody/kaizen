@@ -86,6 +86,7 @@ const Header = () => {
                   alt="logo"
                   width={140}
                   height={30}
+                  priority
                   className="w-full h-full dark:hidden"
                 />
               </Link>

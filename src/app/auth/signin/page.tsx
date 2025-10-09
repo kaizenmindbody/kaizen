@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSignIn } from '@/hooks/useSignIn';
 
 const SigninPage = () => {
   const [formData, setFormData] = useState({
@@ -12,20 +12,14 @@ const SigninPage = () => {
     password: ''
   });
   const [errors, setErrors] = useState<{[key: string]: string}>({});
-  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading, isAdmin, userProfile } = useAuth();
+  const { signIn, isLoading } = useSignIn();
 
   // Redirect if already logged in
   useEffect(() => {
     if (!loading && user) {
-      // Check if user is admin
-      if (isAdmin) {
-        router.push('/admin');
-        return;
-      }
-
       // Check if there's a redirect URL stored in localStorage
       const redirectUrl = localStorage.getItem('redirectAfterLogin');
 
@@ -34,12 +28,28 @@ const SigninPage = () => {
         localStorage.removeItem('redirectAfterLogin');
         // Redirect to the intended page
         router.push(redirectUrl);
+        return;
+      }
+
+      // Wait for userProfile to be loaded before making type-based redirect decisions
+      // If userProfile is undefined/null, it's still being fetched - don't redirect yet
+      if (!userProfile && !isAdmin) {
+        return; // Wait for profile to load
+      }
+
+      // Redirect based on user type
+      if (isAdmin) {
+        router.push('/admin');
+      } else if (userProfile?.user_type === 'eventhost') {
+        router.push('/eventhost');
+      } else if (userProfile?.user_type === 'practitioner') {
+        router.push('/profile');
       } else {
         // Default redirect to profile
         router.push('/profile');
       }
     }
-  }, [user, loading, isAdmin, router]);
+  }, [user, loading, isAdmin, userProfile, router]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -76,37 +86,26 @@ const SigninPage = () => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
-    setIsLoading(true);
     setErrors({});
 
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password
-      });
+    const result = await signIn({
+      email: formData.email,
+      password: formData.password,
+    });
 
-      if (error) {
-        if (error.message.includes('Invalid login credentials')) {
-          setErrors({ general: 'Invalid email or password. Please check your credentials and try again.' });
-        } else if (error.message.includes('Email not confirmed')) {
-          setErrors({ general: 'Please check your email and click the confirmation link before signing in.' });
-        } else {
-          setErrors({ general: error.message });
-        }
-        return;
-      }
+    if (!result.success) {
+      setErrors({ general: result.error || 'An unexpected error occurred. Please try again.' });
+      return;
+    }
 
-      // Successful login - redirect will happen via useEffect when user state updates
-      
-    } catch {
-      setErrors({ general: 'An unexpected error occurred. Please try again.' });
-    } finally {
-      setIsLoading(false);
+    // Successful login - redirect to the appropriate page
+    if (result.redirectPath) {
+      router.push(result.redirectPath);
     }
   };
 

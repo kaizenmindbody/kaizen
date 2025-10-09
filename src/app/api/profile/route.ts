@@ -6,13 +6,16 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const {
       user_id,
-      full_name,
+      firstname,
+      lastname,
       phone,
       address,
-      degrees,
+      degree,
       title,
       specialty,
       clinic,
+      ptype,
+      clinicpage,
       website,
       languages,
       avatar,
@@ -33,13 +36,16 @@ export async function PUT(request: NextRequest) {
     // Build update object with only provided fields
     const updateData: any = {};
 
-    if (full_name !== undefined) updateData.full_name = full_name;
+    if (firstname !== undefined) updateData.firstname = firstname;
+    if (lastname !== undefined) updateData.lastname = lastname;
     if (phone !== undefined) updateData.phone = phone;
     if (address !== undefined) updateData.address = address;
-    if (degrees !== undefined) updateData.degree = degrees ? JSON.stringify(degrees.filter((d: string) => d.trim())) : JSON.stringify([]);
+    if (degree !== undefined) updateData.degree = degree;
     if (title !== undefined) updateData.title = title;
     if (specialty !== undefined) updateData.specialty = specialty;
     if (clinic !== undefined) updateData.clinic = clinic;
+    if (ptype !== undefined) updateData.ptype = ptype;
+    if (clinicpage !== undefined) updateData.clinicpage = clinicpage;
     if (website !== undefined) updateData.website = website;
     if (languages !== undefined) updateData.languages = languages ? JSON.stringify(languages) : JSON.stringify([]);
     if (avatar !== undefined) updateData.avatar = avatar;

@@ -235,6 +235,8 @@ const ProfilePage = () => {
         'Manage Descriptions': 'descriptions',
         'Manage Images and Video': 'media',
         'Clinic': 'clinic',
+        'View Clinic Profile': 'view-clinic-profile',
+        'Manage Practitioner Info': 'manage-practitioner-info',
         'Events': 'events',
         'Books': 'books',
         'Help Center': 'help',
@@ -279,8 +281,8 @@ const ProfilePage = () => {
   const mediaImages = getDisplayImages();
 
   // Different tabs for practitioners vs patients
-  const tabs = profile?.user_type === 'practitioner'
-    ? ['Dashboard', 'Profile', 'Clinic', 'Events']
+  const tabs = profile?.type === 'Practitioner'
+    ? ['Dashboard', 'Profile', ...(profile?.clinicpage === 'yes' ? ['Clinic'] : []), 'Events']
     : ['Dashboard', 'Profile', 'Books']; // Patients see Dashboard, Profile and Books tabs
 
   // Custom styles for React Select
@@ -564,6 +566,13 @@ const ProfilePage = () => {
       router.push('/auth/signin');
     }
   }, [user, authLoading, router]);
+
+  // Redirect EventHost to eventhost page
+  useEffect(() => {
+    if (!loading && profile && profile.type?.toLowerCase() === 'eventhost') {
+      router.push('/eventhost');
+    }
+  }, [loading, profile, router]);
 
   // Fetch user profile
   useEffect(() => {
@@ -1078,12 +1087,19 @@ const ProfilePage = () => {
                         }
                       };
 
+                      // Profile sub-items
                       const profileSubItems = [
                         'View Profile',
                         'Manage Basic Information',
                         'Manage Services and Pricing',
                         'Manage Descriptions',
                         'Manage Images and Video'
+                      ];
+
+                      // Clinic sub-items
+                      const clinicSubItems = [
+                        'View Clinic Profile',
+                        'Manage Practitioner Info'
                       ];
 
                       if (tab === 'Profile') {
@@ -1094,7 +1110,7 @@ const ProfilePage = () => {
                                 setExpandedMenu(expandedMenu === 'Profile' ? null : 'Profile');
                               }}
                               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg font-medium transition-all text-sm ${
-                                activeTab.includes('Profile') || profileSubItems.includes(activeTab)
+                                activeTab === 'Profile' || profileSubItems.includes(activeTab)
                                   ? 'bg-primary text-white shadow-sm'
                                   : 'text-gray-700 hover:bg-gray-50'
                               }`}
@@ -1178,6 +1194,80 @@ const ProfilePage = () => {
                         );
                       }
 
+                      if (tab === 'Clinic') {
+                        return (
+                          <div key={tab}>
+                            <button
+                              onClick={() => {
+                                setExpandedMenu(expandedMenu === 'Clinic' ? null : 'Clinic');
+                              }}
+                              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg font-medium transition-all text-sm ${
+                                activeTab === 'Clinic' || clinicSubItems.includes(activeTab)
+                                  ? 'bg-primary text-white shadow-sm'
+                                  : 'text-gray-700 hover:bg-gray-50'
+                              }`}
+                            >
+                              <div className="flex items-center space-x-3">
+                                {getIcon(tab)}
+                                <span>{tab}</span>
+                              </div>
+                              <svg
+                                className={`w-4 h-4 transition-transform ${expandedMenu === 'Clinic' ? 'rotate-180' : ''}`}
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </button>
+
+                            {expandedMenu === 'Clinic' && (
+                              <div className="mt-1 ml-8 space-y-1">
+                                {clinicSubItems.map((subItem) => {
+                                  const getClinicSubItemIcon = (subItemName: string) => {
+                                    switch(subItemName) {
+                                      case 'View Clinic Profile':
+                                        return (
+                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                          </svg>
+                                        );
+                                      case 'Manage Practitioner Info':
+                                        return (
+                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                          </svg>
+                                        );
+                                      default:
+                                        return null;
+                                    }
+                                  };
+
+                                  return (
+                                    <button
+                                      key={subItem}
+                                      onClick={() => {
+                                        handleTabChange(subItem);
+                                        setIsMobileMenuOpen(false);
+                                      }}
+                                      className={`w-full flex items-center space-x-2 text-left px-3 py-2 rounded-lg font-medium transition-all text-xs ${
+                                        activeTab === subItem
+                                          ? 'bg-primary/20 text-primary'
+                                          : 'text-gray-600 hover:bg-gray-50'
+                                      }`}
+                                    >
+                                      {getClinicSubItemIcon(subItem)}
+                                      <span>{subItem}</span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+
                       return (
                         <button
                           key={tab}
@@ -1221,22 +1311,16 @@ const ProfilePage = () => {
                       </svg>
                       <span>Help Center</span>
                     </button>
-                    <button
-                      onClick={() => {
-                        handleTabChange('Support');
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg font-medium transition-all text-sm ${
-                        activeTab === 'Support'
-                          ? 'bg-primary text-white shadow-sm'
-                          : 'text-gray-700 hover:bg-gray-50'
-                      }`}
+                    <a
+                      href="mailto:help@kaizenmindbody.com"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg font-medium transition-all text-sm text-gray-700 hover:bg-gray-50"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                       </svg>
                       <span>Support</span>
-                    </button>
+                    </a>
                   </div>
                 </div>
               </nav>
@@ -1301,27 +1385,13 @@ const ProfilePage = () => {
                  activeTab === 'Manage Descriptions' ? 'Edit professional bio' :
                  activeTab === 'Manage Images and Video' ? 'Upload and manage media' :
                  activeTab === 'Clinic' ? 'Clinic settings and information' :
+                 activeTab === 'View Clinic Profile' ? 'View your clinic profile' :
+                 activeTab === 'Manage Practitioner Info' ? 'Manage practitioner information' :
                  activeTab === 'Events' ? 'Events and appointments' :
                  activeTab === 'Books' ? 'Your appointments' :
                  activeTab === 'Help Center' ? 'Get help' :
                  activeTab === 'Support' ? 'Contact support' : ''}
               </p>
-            </div>
-            <div className="flex items-center space-x-2 lg:space-x-4">
-              <div className="text-right hidden md:block">
-                <p className="text-sm font-medium text-gray-900">{profile?.full_name || 'User'}</p>
-                <p className="text-xs text-gray-500">{profile?.email || ''}</p>
-              </div>
-              <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full overflow-hidden border-2 border-gray-200">
-                <Image
-                  src={currentAvatarUrl}
-                  alt="Profile"
-                  width={40}
-                  height={40}
-                  className="w-full h-full object-cover"
-                  priority
-                />
-              </div>
             </div>
           </div>
 
@@ -1354,6 +1424,14 @@ const ProfilePage = () => {
             )}
 
             {activeTab === 'Clinic' && (
+              <Clinic profile={profile} />
+            )}
+
+            {activeTab === 'View Clinic Profile' && (
+              <Clinic profile={profile} />
+            )}
+
+            {activeTab === 'Manage Practitioner Info' && (
               <Clinic profile={profile} />
             )}
 

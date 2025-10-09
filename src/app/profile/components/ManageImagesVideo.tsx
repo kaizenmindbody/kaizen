@@ -1,98 +1,51 @@
 "use client";
 
 import { ProfileData } from '@/types/user';
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
-import { supabase } from '@/lib/supabase';
 import Image from 'next/image';
+import { useImageVideo } from '@/hooks/useImageVideo';
 
 interface ManageImagesVideoProps {
   profile: ProfileData | null;
 }
 
 const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
-  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
-  const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
+  const {
+    images: uploadedImages,
+    video: uploadedVideo,
+    loading,
+    saving,
+    error,
+    successMessage,
+    uploadMedia,
+    deleteImage,
+    deleteVideo,
+    clearError,
+    clearSuccessMessage,
+  } = useImageVideo(profile?.id);
+
   const [pendingImages, setPendingImages] = useState<File[]>([]);
   const [pendingVideo, setPendingVideo] = useState<File | null>(null);
   const [imagesPreviews, setImagesPreviews] = useState<string[]>([]);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
-  // Debug state changes
+  // Show success/error toasts
   useEffect(() => {
-    console.log('uploadedImages state changed:', uploadedImages);
-  }, [uploadedImages]);
-
-  const loadMediaItems = useCallback(async () => {
-    if (!profile?.id) {
-      console.log('No profile ID, skipping media load');
-      return;
+    if (error) {
+      toast.error(error);
+      clearError();
     }
+  }, [error, clearError]);
 
-    console.log('Loading media for user:', profile.id);
-
-    try {
-      // Load from UserMedia table
-      const { data: mediaData, error } = await supabase
-        .from('UserMedia')
-        .select('*')
-        .eq('user_id', profile.id)
-        .order('display_order', { ascending: true });
-
-      if (error) {
-        console.error('Error loading media:', error);
-        return;
-      }
-
-      console.log('Media data loaded:', mediaData);
-      console.log('Media data count:', mediaData?.length);
-
-      if (mediaData && mediaData.length > 0) {
-        console.log('First media item structure:', mediaData[0]);
-        console.log('First media item keys:', Object.keys(mediaData[0]));
-
-        // Separate images and video
-        const images = mediaData
-          .filter(item => {
-            console.log('Checking item:', item, 'file_type:', item.file_type);
-            return item.file_type === 'image';
-          })
-          .map(item => {
-            console.log('Mapping image item to URL:', item.file_url);
-            return item.file_url;
-          })
-          .filter(url => url && url.trim() !== ''); // Filter out empty URLs
-
-        const videoItem = mediaData.find(item => item.file_type === 'video');
-
-        console.log('Filtered images count:', images.length);
-        console.log('Parsed images:', images);
-        console.log('Parsed video:', videoItem?.file_url);
-
-        console.log('Setting uploadedImages state to:', images);
-        setUploadedImages(images);
-        setUploadedVideo(videoItem?.file_url || null);
-      } else {
-        console.log('No media data found in UserMedia table - clearing state');
-        console.log('Setting uploadedImages state to: []');
-        setUploadedImages([]);
-        setUploadedVideo(null);
-      }
-    } catch (error) {
-      console.error('Error loading media:', error);
-    }
-  }, [profile?.id]);
-
-  // Load media items on mount and when profile ID changes
   useEffect(() => {
-    if (profile?.id) {
-      console.log('useEffect triggered, loading media for profile ID:', profile.id);
-      loadMediaItems();
+    if (successMessage) {
+      toast.success(successMessage);
+      clearSuccessMessage();
     }
-  }, [profile?.id, loadMediaItems]);
+  }, [successMessage, clearSuccessMessage]);
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -201,72 +154,20 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
   const handleDeleteUploadedImage = async (imageUrl: string) => {
     if (!profile?.id) return;
 
-    try {
-      // Delete from storage
-      const imagePath = imageUrl.split('/').slice(-2).join('/');
-      const { error: storageError } = await supabase.storage
-        .from('kaizen')
-        .remove([imagePath]);
-
-      if (storageError) {
-        console.error('Storage delete error:', storageError);
-        throw storageError;
-      }
-
-      // Delete from UserMedia table
-      const { error: dbError } = await supabase
-        .from('UserMedia')
-        .delete()
-        .eq('user_id', profile.id)
-        .eq('file_url', imageUrl);
-
-      if (dbError) {
-        console.error('Database delete error:', dbError);
-        throw dbError;
-      }
-
-      // Update local state
-      setUploadedImages(prev => prev.filter(url => url !== imageUrl));
-      toast.success('Image deleted successfully!');
-    } catch (error: any) {
-      console.error('Delete image error:', error);
-      toast.error(`Failed to delete image: ${error?.message || 'Unknown error'}`);
+    const success = await deleteImage(profile.id, imageUrl);
+    if (!success) {
+      // Error toast will be shown by the useEffect hook
+      console.error('Failed to delete image');
     }
   };
 
   const handleDeleteUploadedVideo = async () => {
     if (!profile?.id || !uploadedVideo) return;
 
-    try {
-      // Delete from storage
-      const videoPath = uploadedVideo.split('/').slice(-2).join('/');
-      const { error: storageError } = await supabase.storage
-        .from('kaizen')
-        .remove([videoPath]);
-
-      if (storageError) {
-        console.error('Storage delete error:', storageError);
-        throw storageError;
-      }
-
-      // Delete from UserMedia table
-      const { error: dbError } = await supabase
-        .from('UserMedia')
-        .delete()
-        .eq('user_id', profile.id)
-        .eq('file_type', 'video');
-
-      if (dbError) {
-        console.error('Database delete error:', dbError);
-        throw dbError;
-      }
-
-      // Update local state
-      setUploadedVideo(null);
-      toast.success('Video deleted successfully!');
-    } catch (error: any) {
-      console.error('Delete video error:', error);
-      toast.error(`Failed to delete video: ${error?.message || 'Unknown error'}`);
+    const success = await deleteVideo(profile.id, uploadedVideo);
+    if (!success) {
+      // Error toast will be shown by the useEffect hook
+      console.error('Failed to delete video');
     }
   };
 
@@ -276,140 +177,39 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
       return;
     }
 
+    if (pendingImages.length === 0 && !pendingVideo) {
+      toast.error('No changes to save');
+      return;
+    }
+
     console.log('Starting save with pending images:', pendingImages.length);
 
-    setSaving(true);
-    try {
-      let finalImages = [...uploadedImages];
-      let finalVideo = uploadedVideo;
+    const success = await uploadMedia(profile.id, pendingImages, pendingVideo);
 
-      // Upload pending images to storage and insert into UserMedia table
-      for (let i = 0; i < pendingImages.length; i++) {
-        const imageFile = pendingImages[i];
-        console.log('Uploading image:', imageFile.name);
-        const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${profile.id}_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const filePath = `usermedia/${fileName}`;
-
-        // Upload to storage
-        const { error: uploadError } = await supabase.storage
-          .from('kaizen')
-          .upload(filePath, imageFile);
-
-        if (uploadError) {
-          console.error('Upload error:', uploadError);
-          throw uploadError;
-        }
-
-        // Get public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('kaizen')
-          .getPublicUrl(filePath);
-
-        // Insert into UserMedia table
-        const { error: dbError } = await supabase
-          .from('UserMedia')
-          .insert({
-            user_id: profile.id,
-            file_url: publicUrl,
-            file_name: imageFile.name,
-            file_type: 'image',
-            mime_type: imageFile.type,
-            is_primary: finalImages.length === 0 && i === 0,
-            display_order: finalImages.length + i,
-          });
-
-        if (dbError) {
-          console.error('Database insert error:', dbError);
-          throw dbError;
-        }
-
-        finalImages.push(publicUrl);
-      }
-
-      // Upload pending video (replaces existing video if any)
-      if (pendingVideo) {
-        // Delete old video from storage and database if exists
-        if (uploadedVideo) {
-          const oldVideoPath = uploadedVideo.split('/').slice(-2).join('/');
-          await supabase.storage.from('kaizen').remove([oldVideoPath]);
-
-          await supabase
-            .from('UserMedia')
-            .delete()
-            .eq('user_id', profile.id)
-            .eq('file_type', 'video');
-        }
-
-        const fileExt = pendingVideo.name.split('.').pop();
-        const fileName = `${profile.id}_${Date.now()}.${fileExt}`;
-        const filePath = `usermedia/${fileName}`;
-
-        // Upload to storage
-        const { error: uploadError } = await supabase.storage
-          .from('kaizen')
-          .upload(filePath, pendingVideo);
-
-        if (uploadError) throw uploadError;
-
-        // Get public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('kaizen')
-          .getPublicUrl(filePath);
-
-        // Insert into UserMedia table
-        const { error: dbError } = await supabase
-          .from('UserMedia')
-          .insert({
-            user_id: profile.id,
-            file_url: publicUrl,
-            file_name: pendingVideo.name,
-            file_type: 'video',
-            mime_type: pendingVideo.type,
-            is_primary: true,
-            display_order: 0,
-          });
-
-        if (dbError) throw dbError;
-
-        finalVideo = publicUrl;
-      }
-
-      toast.success('Media uploaded successfully!');
-
-      // Update state
-      setUploadedImages(finalImages);
-      setUploadedVideo(finalVideo);
+    if (success) {
+      // Clear pending items and previews
       setPendingImages([]);
       setPendingVideo(null);
-
-      // Clean up previews
       setImagesPreviews([]);
+
       if (videoPreview) {
         URL.revokeObjectURL(videoPreview);
         setVideoPreview(null);
       }
-    } catch (error: any) {
-      console.error('Save error:', error);
-      toast.error(`Failed to save media: ${error?.message || 'Unknown error'}`);
-    } finally {
-      setSaving(false);
+
+      // Success toast will be shown by the useEffect hook
     }
+    // Error toast will be shown by the useEffect hook if upload failed
   };
 
   // Track if there are unsaved changes
-  const [initialImagesCount, setInitialImagesCount] = useState(0);
-  const [initialVideo, setInitialVideo] = useState<string | null>(null);
+  const hasChanges = pendingImages.length > 0 || pendingVideo !== null;
 
-  useEffect(() => {
-    setInitialImagesCount(uploadedImages.length);
-    setInitialVideo(uploadedVideo);
-  }, [uploadedImages, uploadedVideo]);
-
-  const hasChanges = pendingImages.length > 0 ||
-    pendingVideo !== null ||
-    uploadedImages.length !== initialImagesCount ||
-    uploadedVideo !== initialVideo;
+  // Memoize filtered images to prevent re-filtering on every render
+  const validUploadedImages = useMemo(() => {
+    const filtered = uploadedImages.filter(url => url && url.trim() !== '');
+    return filtered;
+  }, [uploadedImages]);
 
   return (
     <div className="space-y-6">
@@ -465,20 +265,20 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
         </div>
 
         {/* Images Grid */}
-        {uploadedImages.length > 0 || imagesPreviews.length > 0 ? (
+        {validUploadedImages.length > 0 || imagesPreviews.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {/* Uploaded Images */}
-            {uploadedImages.filter(url => url && url.trim() !== '').map((imageUrl, index) => {
-              if (!imageUrl) return null;
-              console.log(`Rendering uploaded image ${index}:`, imageUrl);
+            {validUploadedImages.map((imageUrl, index) => {
               return (
-                <div key={imageUrl} className="relative group">
-                  <div className="relative w-full h-48 rounded-lg border border-gray-200 overflow-hidden bg-white">
+                <div key={`uploaded-${index}-${imageUrl.substring(imageUrl.length - 20)}`} className="relative group">
+                  <div className="relative w-full h-48 rounded-lg border border-gray-200 overflow-hidden bg-gray-100">
                     <Image
                       src={imageUrl}
                       alt={`Image ${index + 1}`}
                       fill
+                      sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                       className="object-cover"
+                      unoptimized
                       onLoad={() => console.log(`Uploaded image ${index} loaded successfully`)}
                       onError={(e) => {
                         console.error(`Uploaded image ${index} load error`);
@@ -504,13 +304,15 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
               console.log(`Rendering preview ${index}:`, previewUrl ? `${previewUrl.substring(0, 50)}...` : 'NO URL');
               return (
                 <div key={`preview-${index}`} className="relative group">
-                  <div className="relative w-full h-48 rounded-lg border-2 border-dashed border-blue-400 overflow-hidden bg-white">
+                  <div className="relative w-full h-48 rounded-lg border-2 border-dashed border-blue-400 overflow-hidden bg-gray-100">
                     {previewUrl ? (
                       <Image
                         src={previewUrl}
                         alt={`Preview ${index + 1}`}
                         fill
+                        sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                         className="object-cover"
+                        unoptimized
                         onLoad={(e) => {
                           console.log(`Image preview ${index} loaded successfully`);
                         }}

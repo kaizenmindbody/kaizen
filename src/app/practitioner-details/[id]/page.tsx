@@ -7,7 +7,6 @@ import toast from 'react-hot-toast';
 import { useParams } from 'next/navigation';
 
 // Import components
-import { BookAppointmentButton } from './components/BookAppointmentButton';
 import { PractitionerDetailsSkeleton } from './components/PractitionerDetailsSkeleton';
 import { Header } from './components/Header';
 import { About } from './components/About';

@@ -154,6 +154,7 @@ const AdminDashboard = () => {
                 alt="Kaizen"
                 width={120}
                 height={40}
+                priority
                 className="h-8 w-auto"
               />
               <span className="text-sm font-medium text-gray-500">Admin</span>
@@ -190,6 +191,7 @@ const AdminDashboard = () => {
                   alt="Kaizen"
                   width={100}
                   height={32}
+                  priority
                   className="h-6 w-auto"
                 />
                 <span className="text-sm font-medium text-gray-500">Admin</span>
@@ -252,6 +254,7 @@ const AdminDashboard = () => {
                     alt="Kaizen"
                     width={140}
                     height={48}
+                    priority
                     className="h-10 w-auto mb-2"
                   />
                   <div className="text-center">

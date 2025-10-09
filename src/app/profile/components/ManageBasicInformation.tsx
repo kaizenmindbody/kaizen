@@ -4,11 +4,11 @@ import { ProfileData } from '@/types/user';
 import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 import Select from 'react-select';
 import { useDegrees } from '@/hooks/useDegrees';
 import { usePractitionerTypes } from '@/hooks/usePractitionerTypes';
+import { useBasicInformation } from '@/hooks/useBasicInformation';
 import Image from 'next/image';
 import 'react-phone-input-2/lib/style.css';
 import '@placekit/autocomplete-js/dist/placekit-autocomplete.css';
@@ -27,6 +27,17 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
   const { user, refreshProfile } = useAuth();
   const { degrees } = useDegrees();
   const { practitionerTypes } = usePractitionerTypes();
+  const {
+    saving,
+    uploadingAvatar,
+    error,
+    successMessage,
+    uploadAvatar,
+    removeAvatar,
+    updateBasicInfo,
+    clearError,
+    clearSuccessMessage,
+  } = useBasicInformation();
 
   // Parse address from database format "line1, line2, city, state, zip"
   const parseAddress = (address: string | undefined) => {
@@ -64,13 +75,26 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
     zip_code: addressParts.zip_code,
   });
 
-  const [isSaving, setIsSaving] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(profile?.avatar || null);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const addressInputRef = useRef<HTMLInputElement>(null);
   const placekitInstance = useRef<any>(null);
+
+  // Show success/error toasts
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      clearError();
+    }
+  }, [error, clearError]);
+
+  useEffect(() => {
+    if (successMessage) {
+      toast.success(successMessage);
+      clearSuccessMessage();
+    }
+  }, [successMessage, clearSuccessMessage]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -99,39 +123,9 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
   const handleAvatarUpload = async () => {
     if (!avatarFile || !user?.id) return;
 
-    setUploadingAvatar(true);
-    try {
-      // Delete old avatar if exists
-      if (profile?.avatar) {
-        const oldAvatarPath = profile.avatar.split('/').slice(-2).join('/');
-        await supabase.storage.from('kaizen').remove([oldAvatarPath]);
-      }
+    const success = await uploadAvatar(user.id, avatarFile, profile?.avatar || null);
 
-      // Upload new avatar
-      const fileExt = avatarFile.name.split('.').pop();
-      const fileName = `${user.id}_avatar_${Date.now()}.${fileExt}`;
-      const filePath = `usermedia/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('kaizen')
-        .upload(filePath, avatarFile);
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('kaizen')
-        .getPublicUrl(filePath);
-
-      // Update database
-      const { error } = await supabase
-        .from('Users')
-        .update({ avatar: publicUrl })
-        .eq('id', user.id);
-
-      if (error) throw error;
-
-      toast.success('Avatar updated successfully!');
+    if (success) {
       setAvatarFile(null);
       await refreshProfile();
 
@@ -139,32 +133,16 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
       if (onProfileUpdate) {
         onProfileUpdate();
       }
-    } catch (error) {
-      console.error('Avatar upload error:', error);
-      toast.error('Failed to upload avatar');
-    } finally {
-      setUploadingAvatar(false);
     }
+    // Error toast will be shown by the useEffect hook
   };
 
   const handleAvatarRemove = async () => {
     if (!user?.id || !profile?.avatar) return;
 
-    setUploadingAvatar(true);
-    try {
-      // Delete from storage
-      const avatarPath = profile.avatar.split('/').slice(-2).join('/');
-      await supabase.storage.from('kaizen').remove([avatarPath]);
+    const success = await removeAvatar(user.id, profile.avatar);
 
-      // Update database
-      const { error } = await supabase
-        .from('Users')
-        .update({ avatar: null })
-        .eq('id', user.id);
-
-      if (error) throw error;
-
-      toast.success('Avatar removed successfully!');
+    if (success) {
       setAvatarPreview(null);
       setAvatarFile(null);
       await refreshProfile();
@@ -173,12 +151,8 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
       if (onProfileUpdate) {
         onProfileUpdate();
       }
-    } catch (error) {
-      console.error('Avatar remove error:', error);
-      toast.error('Failed to remove avatar');
-    } finally {
-      setUploadingAvatar(false);
     }
+    // Error toast will be shown by the useEffect hook
   };
 
   // Initialize PlaceKit autocomplete
@@ -272,41 +246,9 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
       return;
     }
 
-    setIsSaving(true);
+    const success = await updateBasicInfo(user.id, formData);
 
-    try {
-      // Construct full address from parts (keep empty address_line2 to maintain positions)
-      const addressParts = [
-        formData.address_line1,
-        formData.address_line2, // Keep even if empty to maintain position
-        formData.city,
-        formData.state,
-        formData.zip_code
-      ].map(part => part.trim()).join(', ');
-
-      // Update user data in database
-      const updateData = {
-        firstname: formData.first_name.trim(),
-        lastname: formData.last_name.trim(),
-        title: formData.title.trim() || null,
-        degree: formData.degree || null,
-        ptype: formData.type_of_practitioner.trim() || null,
-        clinic: formData.clinic_name.trim() || null,
-        clinicpage: formData.create_clinic_page || null,
-        website: formData.website.trim() || null,
-        phone: formData.business_phone || null,
-        address: addressParts || null,
-      };
-
-      const { error } = await supabase
-        .from('Users')
-        .update(updateData)
-        .eq('id', user.id);
-
-      if (error) {
-        throw error;
-      }
-
+    if (success) {
       // Refresh profile data in AuthContext
       await refreshProfile();
 
@@ -314,13 +256,8 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
       if (onProfileUpdate) {
         onProfileUpdate();
       }
-
-      toast.success('Account updated successfully!');
-    } catch {
-      toast.error('Failed to update account. Please try again.');
-    } finally {
-      setIsSaving(false);
     }
+    // Error toast will be shown by the useEffect hook
   };
 
   const handleCancel = () => {
@@ -504,7 +441,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
                 onChange={(e) => handleInputChange('first_name', e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                 placeholder="Enter your first name"
-                disabled={isSaving}
+                disabled={saving}
                 required
               />
             </div>
@@ -519,7 +456,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
                 onChange={(e) => handleInputChange('last_name', e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                 placeholder="Enter your last name"
-                disabled={isSaving}
+                disabled={saving}
                 required
               />
             </div>
@@ -535,7 +472,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
                 onChange={(e) => handleInputChange('title', e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                 placeholder="e.g., Dr., Mr., Ms."
-                disabled={isSaving}
+                disabled={saving}
               />
             </div>
 
@@ -548,7 +485,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
                 styles={customSelectStyles}
                 placeholder="Select your degree"
                 isClearable
-                isDisabled={isSaving}
+                isDisabled={saving}
               />
             </div>
           </div>
@@ -563,7 +500,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
               styles={customSelectStyles}
               placeholder="Select practitioner type"
               isClearable
-              isDisabled={isSaving}
+              isDisabled={saving}
             />
           </div>
 
@@ -578,7 +515,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
               onChange={(e) => handleInputChange('clinic_name', e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
               placeholder="Enter clinic name"
-              disabled={isSaving}
+              disabled={saving}
             />
           </div>
 
@@ -595,7 +532,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
                   value="yes"
                   checked={formData.create_clinic_page === 'yes'}
                   onChange={(e) => handleInputChange('create_clinic_page', e.target.value)}
-                  disabled={isSaving}
+                  disabled={saving}
                   className="w-4 h-4 text-primary focus:ring-primary focus:ring-2 disabled:cursor-not-allowed"
                 />
                 <span className="ml-2 text-sm text-gray-700">Yes</span>
@@ -607,7 +544,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
                   value="no"
                   checked={formData.create_clinic_page === 'no'}
                   onChange={(e) => handleInputChange('create_clinic_page', e.target.value)}
-                  disabled={isSaving}
+                  disabled={saving}
                   className="w-4 h-4 text-primary focus:ring-primary focus:ring-2 disabled:cursor-not-allowed"
                 />
                 <span className="ml-2 text-sm text-gray-700">No</span>
@@ -624,7 +561,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
               onChange={(e) => handleInputChange('website', e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
               placeholder="https://example.com"
-              disabled={isSaving}
+              disabled={saving}
             />
           </div>
 
@@ -635,10 +572,10 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
                 country={'us'}
                 value={formData.business_phone}
                 onChange={(value) => handleInputChange('business_phone', value)}
-                disabled={isSaving}
+                disabled={saving}
                 inputProps={{
                   name: 'business_phone',
-                  disabled: isSaving,
+                  disabled: saving,
                 }}
                 containerClass="w-full"
                 inputClass="w-full"
@@ -649,15 +586,15 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
                   fontSize: '14px',
                   borderRadius: '8px',
                   border: '1px solid #d1d5db',
-                  backgroundColor: isSaving ? '#f3f4f6' : 'white',
-                  cursor: isSaving ? 'not-allowed' : 'text',
+                  backgroundColor: saving ? '#f3f4f6' : 'white',
+                  cursor: saving ? 'not-allowed' : 'text',
                 }}
                 buttonStyle={{
                   borderRadius: '8px 0 0 8px',
                   border: '1px solid #d1d5db',
                   borderRight: 'none',
-                  backgroundColor: isSaving ? '#f3f4f6' : 'white',
-                  cursor: isSaving ? 'not-allowed' : 'pointer',
+                  backgroundColor: saving ? '#f3f4f6' : 'white',
+                  cursor: saving ? 'not-allowed' : 'pointer',
                 }}
               />
             </div>
@@ -686,7 +623,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
                 onChange={(e) => handleInputChange('address_line1', e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                 placeholder="Start typing your address..."
-                disabled={isSaving}
+                disabled={saving}
                 autoComplete="off"
               />
             </div>
@@ -699,7 +636,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
                 onChange={(e) => handleInputChange('address_line2', e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                 placeholder="Apartment, suite, etc. (optional)"
-                disabled={isSaving}
+                disabled={saving}
               />
             </div>
 
@@ -712,7 +649,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
                   onChange={(e) => handleInputChange('city', e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                   placeholder="City"
-                  disabled={isSaving}
+                  disabled={saving}
                 />
               </div>
 
@@ -724,7 +661,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
                   onChange={(e) => handleInputChange('state', e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                   placeholder="State"
-                  disabled={isSaving}
+                  disabled={saving}
                 />
               </div>
 
@@ -736,7 +673,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
                   onChange={(e) => handleInputChange('zip_code', e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                   placeholder="Zip code"
-                  disabled={isSaving}
+                  disabled={saving}
                 />
               </div>
             </div>
@@ -747,17 +684,17 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
             <button
               type="button"
               onClick={handleCancel}
-              disabled={isSaving}
+              disabled={saving}
               className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={isSaving}
+              disabled={saving}
               className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSaving ? 'Updating...' : 'Update Changes'}
+              {saving ? 'Updating...' : 'Update Changes'}
             </button>
           </div>
         </form>

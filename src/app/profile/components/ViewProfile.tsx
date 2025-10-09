@@ -1,38 +1,23 @@
 "use client";
 
 import { ProfileData } from '@/types/user';
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { useEffect } from 'react';
+import { useViewProfile } from '@/hooks/useViewProfile';
 import Image from 'next/image';
 
 interface ViewProfileProps {
   profile: ProfileData | null;
 }
 
-interface ServicePricing {
-  id: string;
-  service_name: string;
-  first_time_price: string;
-  first_time_duration: string;
-  returning_price: string;
-  returning_duration: string;
-  is_sliding_scale: boolean;
-  service_category: string;
-}
-
-interface PackagePricing {
-  id: string;
-  service_name: string;
-  no_of_sessions: string;
-  price: string;
-}
-
 const ViewProfile: React.FC<ViewProfileProps> = ({ profile }) => {
-  const [servicePricings, setServicePricings] = useState<ServicePricing[]>([]);
-  const [packagePricings, setPackagePricings] = useState<PackagePricing[]>([]);
-  const [images, setImages] = useState<string[]>([]);
-  const [video, setVideo] = useState<string | null>(null);
-  const [descriptionsData, setDescriptionsData] = useState<any>(null);
+  const {
+    servicePricings,
+    packagePricings,
+    images,
+    video,
+    descriptionsData,
+    fetchProfileData,
+  } = useViewProfile();
 
   // Parse address
   const parseAddress = (address: string | undefined) => {
@@ -72,86 +57,12 @@ const ViewProfile: React.FC<ViewProfileProps> = ({ profile }) => {
     ? profile.address.split(',').map(p => p.trim()).filter(p => p).join(', ')
     : null;
 
-  // Fetch service pricing and descriptions
+  // Fetch profile data when profile ID changes
   useEffect(() => {
     if (profile?.id) {
-      fetchServicePricing(profile.id);
-      fetchMedia(profile.id);
-      fetchDescriptions(profile.id);
+      fetchProfileData(profile.id);
     }
-  }, [profile?.id]);
-
-  const fetchServicePricing = async (practitionerId: string) => {
-    try {
-      const response = await fetch(`/api/service-pricing?practitionerId=${practitionerId}`);
-      if (!response.ok) return;
-
-      const data = await response.json();
-
-      if (data.servicePricing) {
-        const services = data.servicePricing.filter((sp: any) =>
-          sp.service_category !== 'Packages'
-        );
-        const packages = data.servicePricing.filter((sp: any) =>
-          sp.service_category === 'Packages'
-        );
-
-        setServicePricings(services);
-        setPackagePricings(packages);
-      }
-    } catch (error) {
-      console.error('Error fetching service pricing:', error);
-    }
-  };
-
-  const fetchDescriptions = async (userId: string) => {
-    try {
-      const { data: descriptionsResult } = await supabase
-        .from('Descriptions')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-
-      if (descriptionsResult) {
-        // Parse language field if it's a string
-        if (descriptionsResult.language) {
-          descriptionsResult.language = typeof descriptionsResult.language === 'string'
-            ? JSON.parse(descriptionsResult.language)
-            : descriptionsResult.language;
-        }
-        setDescriptionsData(descriptionsResult);
-      }
-    } catch (error) {
-      console.log('No descriptions data found:', error);
-    }
-  };
-
-  const fetchMedia = async (userId: string) => {
-    try {
-      // Fetch images and video from UserMedia table
-      const { data: mediaData } = await supabase
-        .from('UserMedia')
-        .select('file_url, file_type')
-        .eq('user_id', userId)
-        .order('display_order', { ascending: true });
-
-      if (mediaData) {
-        const imageUrls = mediaData
-          .filter(m => m.file_type === 'image')
-          .map(m => m.file_url)
-          .filter(url => url && url.trim() !== '');
-        setImages(imageUrls);
-
-        // Get video from UserMedia
-        const videoData = mediaData.find(m => m.file_type === 'video');
-        if (videoData?.file_url) {
-          setVideo(videoData.file_url);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching media:', error);
-    }
-  };
+  }, [profile?.id, fetchProfileData]);
 
   return (
     <div className="space-y-8">

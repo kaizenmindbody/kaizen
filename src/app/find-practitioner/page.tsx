@@ -1,17 +1,17 @@
 'use client'
 
-import React, { useState, useMemo, useEffect, Suspense, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, MapPin, X, Filter, Building, Phone, Eye, Star, Heart, ExternalLink } from 'lucide-react';
+import { Search, MapPin, X, Filter, Building, Phone} from 'lucide-react';
 import { GoogleMap, Marker, InfoWindow } from '@react-google-maps/api';
 import Select from 'react-select';
 import Breadcrumb from '@/components/commons/breadcrumb';
 import Switch from 'react-switch';
 import { useAuth } from '@/contexts/AuthContext';
 import states from 'states-us';
-import { Specialty, UserData } from '@/types/user';
-import { supabase } from '@/lib/supabase';
+import { Specialty } from '@/types/user';
+import { useFindPractitioners } from '@/hooks/useFindPractitioners';
 import { formatPhoneNumber, getAvatarUrl, formatPractitionerType } from '@/lib/formatters';
 import { UserCard, UserCardSkeleton } from './components';
 
@@ -94,25 +94,14 @@ const UserDirectoryContent = () => {
   const searchParams = useSearchParams();
   const { user } = useAuth(); // Get current authenticated user
 
-  // State for practitioners data
-  const [supabaseUsers, setSupabaseUsers] = useState<UserData[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState<{
-    currentPage: number;
-    totalPages: number;
-    totalCount: number;
-    limit: number;
-    hasNextPage: boolean;
-    hasPrevPage: boolean;
-  }>({
-    currentPage: 1,
-    totalPages: 1,
-    totalCount: 0,
-    limit: 3,
-    hasNextPage: false,
-    hasPrevPage: false
-  });
+  // Use the custom hook for practitioners data
+  const {
+    practitioners: supabaseUsers,
+    loading,
+    error,
+    pagination,
+    fetchPractitioners,
+  } = useFindPractitioners();
 
   const [sortBy, setSortBy] = useState(sortOptions[0]);
   const [_specialties, setSpecialties] = useState<Specialty[]>([]);
@@ -162,133 +151,6 @@ const UserDirectoryContent = () => {
 
     return () => clearInterval(timer);
   }, []);
-
-  // Fetch practitioners from Users table
-  const fetchPractitioners = async (params: any = {}) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const {
-        page = 1,
-        limit = 3,
-        search = '',
-        location = '',
-        specialty = '',
-        sortBy = 'created_at',
-        order = 'desc'
-      } = params;
-
-      // Calculate offset for pagination
-      const offset = (page - 1) * limit;
-
-      // Build the query
-      let query = supabase
-        .from('Users')
-        .select('*', { count: 'exact' })
-        .eq('type', 'Practitioner');
-
-      // Apply search filter
-      if (search) {
-        const searchTerm = search.toLowerCase();
-        query = query.or(`firstname.ilike.%${searchTerm}%,lastname.ilike.%${searchTerm}%,ptype.ilike.%${searchTerm}%`);
-      }
-
-      // Apply specialty filter (using ptype)
-      if (specialty && specialty !== 'All Specialties' && specialty !== '') {
-        const searchTerm = specialty.toLowerCase();
-        query = query.ilike('ptype', `%${searchTerm}%`);
-      }
-
-      // Apply location filter
-      if (location) {
-        query = query.ilike('address', `%${location}%`);
-      }
-
-      // Apply sorting
-      if (sortBy === 'full_name') {
-        // Sort by firstname when full_name is requested
-        query = query.order('firstname', { ascending: order === 'asc' });
-      } else {
-        query = query.order(sortBy, { ascending: order === 'asc' });
-      }
-
-      // Apply pagination
-      query = query.range(offset, offset + limit - 1);
-
-      const { data, error: queryError, count } = await query;
-
-      if (queryError) {
-        throw queryError;
-      }
-
-      // Fetch backgrounds from Descriptions table for these users
-      const userIds = data?.map(u => u.id) || [];
-      let backgroundsMap = new Map();
-
-      if (userIds.length > 0) {
-        const { data: descriptions } = await supabase
-          .from('Descriptions')
-          .select('user_id, background, language')
-          .in('user_id', userIds);
-
-        if (descriptions) {
-          descriptions.forEach(desc => {
-            // Parse language field if it's a string
-            let parsedLanguages = '';
-            if (desc.language) {
-              try {
-                const languageArray = typeof desc.language === 'string'
-                  ? JSON.parse(desc.language)
-                  : desc.language;
-                parsedLanguages = Array.isArray(languageArray) ? languageArray.join(', ') : desc.language;
-              } catch {
-                parsedLanguages = desc.language;
-              }
-            }
-
-            backgroundsMap.set(desc.user_id, {
-              background: desc.background,
-              language: parsedLanguages
-            });
-          });
-        }
-      }
-
-      // Process the data
-      const processedData = data?.map(practitioner => {
-        const description = backgroundsMap.get(practitioner.id);
-        return {
-          ...practitioner,
-          degree: practitioner.degree || '',
-          background: description?.background || '',
-          description_languages: description?.language || ''
-        };
-      }) || [];
-
-      setSupabaseUsers(processedData);
-
-      // Calculate pagination info
-      const totalPages = Math.ceil((count || 0) / limit);
-      const hasNextPage = page < totalPages;
-      const hasPrevPage = page > 1;
-
-      setPagination({
-        currentPage: page,
-        totalPages,
-        totalCount: count || 0,
-        limit,
-        hasNextPage,
-        hasPrevPage
-      });
-
-    } catch (err) {
-      console.error('Error fetching practitioners:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch practitioners');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Fetch specialties from API
   const fetchSpecialties = async () => {

@@ -8,7 +8,8 @@ import { supabase } from '@/lib/supabase';
 
 const PractitionerSignup = () => {
   const [formData, setFormData] = useState({
-    name: '',
+    firstname: '',
+    lastname: '',
     email: '',
     phone: '',
     password: ''
@@ -53,8 +54,12 @@ const PractitionerSignup = () => {
   const validateForm = () => {
     const newErrors: {[key: string]: string} = {};
 
-    if (!formData.name.trim()) {
-      newErrors.name = 'Name is required';
+    if (!formData.firstname.trim()) {
+      newErrors.firstname = 'First name is required';
+    }
+
+    if (!formData.lastname.trim()) {
+      newErrors.lastname = 'Last name is required';
     }
 
     if (!formData.email.trim()) {
@@ -93,9 +98,9 @@ const PractitionerSignup = () => {
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
-            full_name: formData.name,
+            full_name: `${formData.firstname} ${formData.lastname}`,
             phone: formData.phone,
-            user_type: 'practitioner'
+            type: 'Practitioner'
           }
         }
       });
@@ -115,11 +120,11 @@ const PractitionerSignup = () => {
           .from('Users')
           .insert({
             id: authData.user.id,
-            full_name: formData.name,
+            firstname: formData.firstname,
+            lastname: formData.lastname,
             email: formData.email,
             phone: formData.phone,
-            user_type: 'practitioner',
-            languages: ['English']
+            type: 'Practitioner',
           });
 
         if (insertError) {
@@ -200,22 +205,42 @@ const PractitionerSignup = () => {
             {/* Name Field */}
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-[#012047] mb-2">
-                Full Name <span className="text-red-500">*</span>
+                First Name <span className="text-red-500">*</span>
               </label>
               <input
-                id="name"
-                name="name"
+                id="firstname"
+                name="firstname"
                 type="text"
                 autoComplete="name"
-                value={formData.name}
+                value={formData.firstname}
                 onChange={handleInputChange}
                 className={`w-full px-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${
-                  errors.name ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                  errors.firstname ? 'border-red-300 bg-red-50' : 'border-gray-300'
                 }`}
-                placeholder="Enter your full name"
+                placeholder="Enter your first name"
               />
-              {errors.name && (
-                <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+              {errors.firstname && (
+                <p className="mt-1 text-sm text-red-600">{errors.firstname}</p>
+              )}
+            </div>
+            <div>
+              <label htmlFor="lastname" className="block text-sm font-medium text-[#012047] mb-2">
+                Last Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="lastname"
+                name="lastname"
+                type="text"
+                autoComplete="name"
+                value={formData.lastname}
+                onChange={handleInputChange}
+                className={`w-full px-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+                  errors.lastname ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                }`}
+                placeholder="Enter your last name"
+              />
+              {errors.lastname && (
+                <p className="mt-1 text-sm text-red-600">{errors.lastname}</p>
               )}
             </div>
 

@@ -316,7 +316,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
       }
 
       toast.success('Account updated successfully!');
-    } catch (error) {
+    } catch {
       toast.error('Failed to update account. Please try again.');
     } finally {
       setIsSaving(false);

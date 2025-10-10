@@ -1,14 +1,13 @@
 "use client";
 
-import { Trash2, Users, Activity, Mail, Calendar, UserCheck, UserX, Search, Filter, RefreshCw, Download, X, AlertTriangle, CheckCircle, User as UserIcon, Phone, MapPin, Clock, Globe, Star, Shield, BookOpen, Award, DollarSign, Languages, Heart, Eye, Building2, GraduationCap, Stethoscope } from 'lucide-react';
-import { DataTable, DataTableRowEditCompleteEvent } from 'primereact/datatable';
-import { Column, ColumnEditorOptions } from 'primereact/column';
+import { Trash2, Users, Activity, Mail, Calendar, UserCheck, Search, Download, X, AlertTriangle, User as UserIcon, Phone, MapPin, Clock, Globe, Star, Shield, BookOpen, Award, DollarSign, Languages, Heart, Eye, Building2, GraduationCap, Stethoscope } from 'lucide-react';
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
 import { FilterMatchMode } from 'primereact/api';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
-import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
-import { useState, useEffect, useRef } from 'react';
-import { User, UsersProps, Specialty } from '@/types/user';
+import { useState, useRef } from 'react';
+import { User, UsersProps } from '@/types/user';
 import { useUsers } from '@/hooks/useUsers';
 
 const UsersComponent = ({ users, specialties, onRefreshData }: UsersProps) => {
@@ -100,7 +99,6 @@ const UsersComponent = ({ users, specialties, onRefreshData }: UsersProps) => {
 
   // Calculate stats (excluding admin)
   const practitioners = nonAdminUsers.filter(u => u.user_type === 'practitioner').length;
-  const patients = nonAdminUsers.filter(u => u.user_type === 'patient').length;
   const recentUsers = nonAdminUsers.filter(u => {
     const userDate = new Date(u.created_at);
     const weekAgo = new Date();
@@ -152,7 +150,7 @@ const UsersComponent = ({ users, specialties, onRefreshData }: UsersProps) => {
 
       // If it's an object, return empty array (we'll handle specialty_rate separately)
       return [];
-    } catch (error) {
+    } catch {
       // If JSON parsing fails, treat as regular string
       return field && field.toString().trim() !== '' ? [field.toString()] : [];
     }
@@ -173,7 +171,7 @@ const UsersComponent = ({ users, specialties, onRefreshData }: UsersProps) => {
       }
 
       return {};
-    } catch (error) {
+    } catch {
       return {};
     }
   };

@@ -28,10 +28,10 @@ import { User, Stats } from '@/types/user';
 const AdminDashboard = () => {
   const { user, loading, isAdmin, signOut } = useAuth();
   const { specialties } = useSpecialty();
-  const { degrees } = useDegrees();
-  const { clinics } = useClinics();
-  const { faqs } = useFaq();
-  const { blogs } = useBlogs();
+  useDegrees();
+  useClinics();
+  useFaq();
+  useBlogs();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState<Stats>({ totalUsers: 0, totalPractitioners: 0, totalPatients: 0, totalSpecialties: 0 });

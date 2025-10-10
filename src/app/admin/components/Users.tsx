@@ -701,7 +701,7 @@ const UsersComponent = ({ users, specialties, onRefreshData }: UsersProps) => {
                 </div>
 
                 {/* Contact & Location */}
-                {(selectedUser.address || selectedUser.city || selectedUser.website) && (
+                {(selectedUser.address  || selectedUser.website) && (
                   <div className="bg-gray-50 rounded-xl p-4">
                     <h5 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
                       <MapPin className="w-4 h-4 mr-2" />
@@ -712,15 +712,6 @@ const UsersComponent = ({ users, specialties, onRefreshData }: UsersProps) => {
                         <div>
                           <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Address</label>
                           <p className="text-sm text-gray-900 mt-1">{selectedUser.address}</p>
-                        </div>
-                      )}
-                      {(selectedUser.city || selectedUser.state || selectedUser.zip_code) && (
-                        <div>
-                          <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Location</label>
-                          <p className="text-sm text-gray-900 mt-1">
-                            {[selectedUser.city, selectedUser.state, selectedUser.zip_code].filter(Boolean).join(', ')}
-                            {selectedUser.country && `, ${selectedUser.country}`}
-                          </p>
                         </div>
                       )}
                       {selectedUser.website && (

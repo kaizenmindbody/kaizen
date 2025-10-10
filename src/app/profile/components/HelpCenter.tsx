@@ -29,7 +29,7 @@ const HelpCenter: React.FC = () => {
             <li>Upload a relevant and striking image for your event photo</li>
             <li>Choose one of the following:
               <ul className="list-disc list-inside ml-6 mt-1">
-                <li><strong>Save, I'll Finish Later</strong> - if you're not ready to publish</li>
+                <li><strong>Save, I will Finish Later</strong> - if you are not ready to publish</li>
                 <li><strong>Publish</strong> - to make your event live</li>
               </ul>
             </li>
@@ -53,7 +53,7 @@ const HelpCenter: React.FC = () => {
             <li>Submit event for approval</li>
             <li>Monitor ticket sales from your dashboard</li>
           </ol>
-          <p className="text-sm text-gray-600 mt-2">📧 You'll receive an email notification each time a ticket is purchased</p>
+          <p className="text-sm text-gray-600 mt-2">📧 You will receive an email notification each time a ticket is purchased</p>
         </div>
       )
     },
@@ -293,7 +293,7 @@ const HelpCenter: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Help Center</h2>
-        <p className="text-gray-600">We are here to answer any questions you have. If you don't find your answer here, please email us at <a href="mailto:help@kaizenmindbody.com" className="inline-flex items-center gap-1 text-primary hover:text-primary-dark font-semibold hover:underline transition-colors">
+        <p className="text-gray-600">We are here to answer any questions you have. If you donot find your answer here, please email us at <a href="mailto:help@kaizenmindbody.com" className="inline-flex items-center gap-1 text-primary hover:text-primary-dark font-semibold hover:underline transition-colors">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
           </svg>
@@ -329,7 +329,7 @@ const HelpCenter: React.FC = () => {
         </h3>
         {filteredFaqs.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-gray-500">No results found for "{searchQuery}"</p>
+            <p className="text-gray-500">No results found for `{searchQuery}`</p>
             <button
               onClick={() => setSearchQuery('')}
               className="mt-2 text-primary hover:underline text-sm"

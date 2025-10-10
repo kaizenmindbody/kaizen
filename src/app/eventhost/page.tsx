@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEventHost } from '@/hooks/useEventHost';
 import {
@@ -25,34 +26,143 @@ import ManageCoupons from './components/ManageCoupons';
 import ViewHostProfile from './components/ViewHostProfile';
 import ManageHostProfile from './components/ManageHostProfile';
 
+// Loading Skeleton Component
+const EventHostPageSkeleton = () => {
+  return (
+    <>
+      <style jsx global>{`
+        header, nav[class*="Header"], div[class*="Header"], nav[class*="Navbar"], div[class*="Navbar"], footer {
+          display: none !important;
+        }
+        body {
+          padding-top: 0 !important;
+          margin-top: 0 !important;
+          padding-bottom: 0 !important;
+          margin-bottom: 0 !important;
+        }
+      `}</style>
+      <div className="min-h-screen bg-gray-50">
+        <div className="flex h-screen overflow-hidden animate-pulse">
+          {/* Sidebar Skeleton */}
+          <aside className="w-64 bg-white border-r border-gray-200">
+            <div className="flex flex-col h-full">
+              {/* Header */}
+              <div className="px-4 py-5 border-b border-gray-200">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 rounded-full bg-gray-200"></div>
+                  <div className="flex-1">
+                    <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-16"></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Navigation Skeleton */}
+              <nav className="flex-1 px-3 py-4 space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="h-10 bg-gray-200 rounded-lg"></div>
+                ))}
+              </nav>
+
+              {/* Bottom Buttons Skeleton */}
+              <div className="p-3 border-t border-gray-200">
+                <div className="space-y-2">
+                  <div className="h-10 bg-gray-200 rounded-lg"></div>
+                  <div className="h-10 bg-gray-200 rounded-lg"></div>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          {/* Main Content Skeleton */}
+          <main className="flex-1">
+            <div className="p-6 lg:p-8">
+              <div className="h-8 bg-gray-200 rounded w-64 mb-6"></div>
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="space-y-4">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="h-12 bg-gray-200 rounded"></div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </>
+  );
+};
+
 export default function EventHostPage() {
   const router = useRouter();
-  const { user, signOut } = useAuth();
+  const { user, signOut, loading: authLoading } = useAuth();
   const { profile, hostProfile, events, loading, error, refreshData, updateHostProfile } = useEventHost();
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
 
+  // Sync activeTab with URL on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      if (tab) {
+        // Map URL tab to display name
+        const tabMap: { [key: string]: string } = {
+          'dashboard': 'Dashboard',
+          'create-event': 'Create an Event',
+          'manage-event': 'Manage an Event',
+          'manage-coupons': 'Manage Coupons',
+          'view-host-profile': 'View Host Profile',
+          'manage-host-profile': 'Manage Host Profile',
+        };
+        const mappedTab = tabMap[tab] || 'Dashboard';
+        setActiveTab(mappedTab);
+      }
+    }
+  }, []);
+
+  // Update URL when tab changes
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    if (typeof window !== 'undefined') {
+      // Map display name to URL tab
+      const urlTabMap: { [key: string]: string } = {
+        'Dashboard': 'dashboard',
+        'Create an Event': 'create-event',
+        'Manage an Event': 'manage-event',
+        'Manage Coupons': 'manage-coupons',
+        'View Host Profile': 'view-host-profile',
+        'Manage Host Profile': 'manage-host-profile',
+      };
+      const urlTab = urlTabMap[tab] || 'dashboard';
+
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', urlTab);
+      window.history.pushState({}, '', url.toString());
+    }
+  };
+
   // Fetch data and handle authentication
   useEffect(() => {
     const loadData = async () => {
+      // Wait for auth to finish loading
+      if (authLoading) {
+        return;
+      }
+
+      // If not loading and no user, redirect to login
       if (!user?.id) {
         router.push('/login');
         return;
       }
 
+      // Check if user is event host and redirect if not
       await refreshData(user.id);
     };
 
     loadData();
-  }, [user, router, refreshData]);
-
-  // Redirect if not an event host
-  useEffect(() => {
-    if (!loading && profile && profile.type?.toLowerCase() !== 'eventhost') {
-      router.push('/profile');
-    }
-  }, [loading, profile, router]);
+  }, [user, router, refreshData, authLoading]);
 
   const handleLogout = async () => {
     await signOut();
@@ -71,15 +181,14 @@ export default function EventHostPage() {
     'Manage Host Profile',
   ];
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
+  // Show loading skeleton while auth or data is loading
+  if (authLoading || loading) {
+    return <EventHostPageSkeleton />;
+  }
+
+  // Redirect if not an event host
+  if (!loading && profile && profile.type?.toLowerCase() !== 'eventhost') {
+    return <EventHostPageSkeleton />;
   }
 
   return (
@@ -117,17 +226,30 @@ export default function EventHostPage() {
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-5 border-b border-gray-200">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-semibold">
-                  {profile?.firstname?.[0]}{profile?.lastname?.[0]}
+                <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-200 flex-shrink-0">
+                  {(hostProfile?.avatar || profile?.avatar) ? (
+                    <Image
+                      src={hostProfile?.avatar || profile?.avatar || ''}
+                      alt="Profile"
+                      width={48}
+                      height={48}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-primary flex items-center justify-center text-white text-base font-semibold">
+                      {profile?.firstname?.[0]}{profile?.lastname?.[0]}
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 truncate">
                     {profile?.firstname} {profile?.lastname}
                   </p>
                   <p className="text-xs text-gray-500">Event Host</p>
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setSidebarOpen(false)}
                 className="lg:hidden text-gray-400 hover:text-gray-600"
               >
@@ -136,15 +258,17 @@ export default function EventHostPage() {
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto">
               {tabs.map((tab) => {
                 // Dashboard - standalone
                 if (tab === 'Dashboard') {
                   return (
                     <button
+                      type="button"
                       key={tab}
-                      onClick={() => {
-                        setActiveTab('Dashboard');
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleTabChange('Dashboard');
                         setSidebarOpen(false);
                       }}
                       className={`w-full flex items-center px-3 py-2.5 rounded-lg font-medium transition-all text-sm ${
@@ -165,7 +289,9 @@ export default function EventHostPage() {
                   return (
                     <div key={tab}>
                       <button
-                        onClick={() => {
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
                           setExpandedMenu(expandedMenu === 'Events' ? null : 'Events');
                         }}
                         className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg font-medium transition-all text-sm ${
@@ -186,7 +312,7 @@ export default function EventHostPage() {
                       </button>
 
                       {expandedMenu === 'Events' && (
-                        <div className="mt-1 ml-8 space-y-1">
+                        <div className="mt-3 ml-8 space-y-2">
                           {eventsSubItems.map((subItem) => {
                             const getIcon = (item: string) => {
                               if (item === 'Create an Event') return PlusCircleIcon;
@@ -198,9 +324,11 @@ export default function EventHostPage() {
 
                             return (
                               <button
+                                type="button"
                                 key={subItem}
-                                onClick={() => {
-                                  setActiveTab(subItem);
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleTabChange(subItem);
                                   setSidebarOpen(false);
                                 }}
                                 className={`w-full flex items-center px-3 py-2 rounded-lg font-medium transition-all text-sm ${
@@ -226,7 +354,9 @@ export default function EventHostPage() {
                   return (
                     <div key={tab}>
                       <button
-                        onClick={() => {
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
                           setExpandedMenu(expandedMenu === 'Host' ? null : 'Host');
                         }}
                         className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg font-medium transition-all text-sm ${
@@ -247,7 +377,7 @@ export default function EventHostPage() {
                       </button>
 
                       {expandedMenu === 'Host' && (
-                        <div className="mt-1 ml-8 space-y-1">
+                        <div className="mt-3 ml-8 space-y-2">
                           {hostSubItems.map((subItem) => {
                             const getIcon = (item: string) => {
                               if (item === 'View Host Profile') return EyeIcon;
@@ -258,9 +388,11 @@ export default function EventHostPage() {
 
                             return (
                               <button
+                                type="button"
                                 key={subItem}
-                                onClick={() => {
-                                  setActiveTab(subItem);
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleTabChange(subItem);
                                   setSidebarOpen(false);
                                 }}
                                 className={`w-full flex items-center px-3 py-2 rounded-lg font-medium transition-all text-sm ${
@@ -284,15 +416,27 @@ export default function EventHostPage() {
               })}
             </nav>
 
-            {/* Logout */}
-            <div className="px-3 py-4 border-t border-gray-200">
-              <button
-                onClick={handleLogout}
-                className="w-full flex items-center px-3 py-2.5 text-gray-700 hover:bg-gray-50 rounded-lg font-medium transition-all text-sm"
-              >
-                <ArrowRightOnRectangleIcon className="h-5 w-5 mr-3" />
-                Logout
-              </button>
+            {/* Action Buttons at bottom */}
+            <div className="p-3 border-t border-gray-200 mt-auto">
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => router.push('/')}
+                  className="w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg font-medium transition-all text-sm text-gray-700 hover:bg-gray-100 border border-gray-300"
+                >
+                  <HomeIcon className="w-4 h-4" />
+                  <span>Back to Main</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg font-medium transition-all text-sm text-white bg-red-600 hover:bg-red-700"
+                >
+                  <ArrowRightOnRectangleIcon className="w-4 h-4" />
+                  <span>Sign Out</span>
+                </button>
+              </div>
             </div>
           </div>
         </aside>
@@ -302,6 +446,7 @@ export default function EventHostPage() {
           {/* Mobile header with hamburger */}
           <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
             <button
+              type="button"
               onClick={() => setSidebarOpen(true)}
               className="text-gray-500 hover:text-gray-700"
             >
@@ -320,12 +465,12 @@ export default function EventHostPage() {
 
             {/* Create an Event */}
             {activeTab === 'Create an Event' && (
-              <CreateEvent />
+              <CreateEvent setActiveTab={handleTabChange} />
             )}
 
             {/* Manage an Event */}
             {activeTab === 'Manage an Event' && (
-              <ManageEvents events={events} setActiveTab={setActiveTab} />
+              <ManageEvents events={events} setActiveTab={handleTabChange} />
             )}
 
             {/* Manage Coupons */}
@@ -335,7 +480,7 @@ export default function EventHostPage() {
 
             {/* View Host Profile */}
             {activeTab === 'View Host Profile' && (
-              <ViewHostProfile profile={profile} hostProfile={hostProfile} setActiveTab={setActiveTab} />
+              <ViewHostProfile profile={profile} hostProfile={hostProfile} setActiveTab={handleTabChange} />
             )}
 
             {/* Manage Host Profile */}
@@ -344,7 +489,7 @@ export default function EventHostPage() {
                 profile={profile}
                 hostProfile={hostProfile}
                 updateHostProfile={updateHostProfile}
-                setActiveTab={setActiveTab}
+                setActiveTab={handleTabChange}
               />
             )}
           </div>

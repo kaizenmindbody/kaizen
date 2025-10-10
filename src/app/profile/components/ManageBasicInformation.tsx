@@ -39,24 +39,6 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
     clearSuccessMessage,
   } = useBasicInformation();
 
-  // Parse address from database format "line1, line2, city, state, zip"
-  const parseAddress = (address: string | undefined) => {
-    if (!address) {
-      return { address_line1: '', address_line2: '', city: '', state: '', zip_code: '' };
-    }
-
-    const parts = address.split(',').map(p => p.trim());
-    return {
-      address_line1: parts[0] || '',
-      address_line2: parts[1] || '',
-      city: parts[2] || '',
-      state: parts[3] || '',
-      zip_code: parts[4] || '',
-    };
-  };
-
-  const addressParts = parseAddress(profile?.address);
-
   const [formData, setFormData] = useState({
     first_name: profile?.firstname || '',
     last_name: profile?.lastname || '',
@@ -68,11 +50,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
     website: profile?.website || '',
     business_phone: profile?.phone || '',
     business_email: profile?.email || '',
-    address_line1: addressParts.address_line1,
-    address_line2: addressParts.address_line2,
-    city: addressParts.city,
-    state: addressParts.state,
-    zip_code: addressParts.zip_code,
+    address: profile?.address || '',
   });
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -182,26 +160,29 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
 
         // Listen for address selection
         placekitInstance.current.on('pick', (value: any, item: any) => {
+          // Build full address string from components
+          const addressParts = [];
+
+          if (item.name) addressParts.push(item.name);
+          if (item.city) addressParts.push(item.city);
+          if (item.administrative) addressParts.push(item.administrative);
+
           // Extract zip code - handle both string and array formats
           const zipCode = Array.isArray(item.zipcode)
             ? item.zipcode[0] || ''
             : item.zipcode || '';
+          if (zipCode) addressParts.push(zipCode);
 
-          // Update all address fields in React state
+          // Join all parts with commas
+          const fullAddress = addressParts.join(', ');
+
+          // Update address field in React state
           setFormData(prev => ({
             ...prev,
-            address_line1: item.name || '',
-            city: item.city || '',
-            state: item.administrative || '',
-            zip_code: zipCode,
+            address: fullAddress,
           }));
 
-          console.log('Address selected:', {
-            address_line1: item.name || '',
-            city: item.city || '',
-            state: item.administrative || '',
-            zip_code: zipCode,
-          });
+          console.log('Address selected:', fullAddress);
 
           // Close the dropdown by blurring the input
           setTimeout(() => {
@@ -263,8 +244,6 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
   const handleCancel = () => {
     // Reset form to original profile values
     if (profile) {
-      const addressParts = parseAddress(profile.address);
-
       setFormData({
         first_name: profile.firstname || '',
         last_name: profile.lastname || '',
@@ -276,11 +255,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
         website: profile.website || '',
         business_phone: profile.phone || '',
         business_email: profile.email || '',
-        address_line1: addressParts.address_line1,
-        address_line2: addressParts.address_line2,
-        city: addressParts.city,
-        state: addressParts.state,
-        zip_code: addressParts.zip_code,
+        address: profile.address || '',
       });
     }
   };
@@ -288,8 +263,6 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
   // Update form data when profile changes
   useEffect(() => {
     if (profile) {
-      const addressParts = parseAddress(profile.address);
-
       setFormData({
         first_name: profile.firstname || '',
         last_name: profile.lastname || '',
@@ -301,11 +274,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
         website: profile.website || '',
         business_phone: profile.phone || '',
         business_email: profile.email || '',
-        address_line1: addressParts.address_line1,
-        address_line2: addressParts.address_line2,
-        city: addressParts.city,
-        state: addressParts.state,
-        zip_code: addressParts.zip_code,
+        address: profile.address || '',
       });
 
       setAvatarPreview(profile.avatar || null);
@@ -613,70 +582,21 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
           </div>
 
           {/* Address Information */}
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Address Line 1</label>
-              <input
-                ref={addressInputRef}
-                type="text"
-                value={formData.address_line1 || ''}
-                onChange={(e) => handleInputChange('address_line1', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-                placeholder="Start typing your address..."
-                disabled={saving}
-                autoComplete="off"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Address Line 2</label>
-              <input
-                type="text"
-                value={formData.address_line2 || ''}
-                onChange={(e) => handleInputChange('address_line2', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-                placeholder="Apartment, suite, etc. (optional)"
-                disabled={saving}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
-                <input
-                  type="text"
-                  value={formData.city || ''}
-                  onChange={(e) => handleInputChange('city', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  placeholder="City"
-                  disabled={saving}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">State</label>
-                <input
-                  type="text"
-                  value={formData.state || ''}
-                  onChange={(e) => handleInputChange('state', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  placeholder="State"
-                  disabled={saving}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Zip Code</label>
-                <input
-                  type="text"
-                  value={formData.zip_code || ''}
-                  onChange={(e) => handleInputChange('zip_code', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  placeholder="Zip code"
-                  disabled={saving}
-                />
-              </div>
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
+            <input
+              ref={addressInputRef}
+              type="text"
+              value={formData.address || ''}
+              onChange={(e) => handleInputChange('address', e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+              placeholder="Start typing your address..."
+              disabled={saving}
+              autoComplete="off"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Enter the full address (street, city, state, zip code)
+            </p>
           </div>
 
           {/* Action Buttons */}

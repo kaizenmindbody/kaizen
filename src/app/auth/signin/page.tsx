@@ -40,9 +40,9 @@ const SigninPage = () => {
       // Redirect based on user type
       if (isAdmin) {
         router.push('/admin');
-      } else if (userProfile?.user_type === 'eventhost') {
+      } else if (userProfile?.user_type?.toLowerCase() === 'eventhost') {
         router.push('/eventhost');
-      } else if (userProfile?.user_type === 'practitioner') {
+      } else if (userProfile?.user_type?.toLowerCase() === 'practitioner') {
         router.push('/profile');
       } else {
         // Default redirect to profile

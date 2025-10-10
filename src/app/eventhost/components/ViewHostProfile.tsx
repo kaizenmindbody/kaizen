@@ -1,4 +1,5 @@
 import { UserData, EventHost } from '@/types/user';
+import Image from 'next/image';
 
 interface ViewHostProfileProps {
   profile: UserData | null;
@@ -17,8 +18,19 @@ export default function ViewHostProfile({ profile, hostProfile, setActiveTab }: 
       <div className="bg-white rounded-lg shadow p-6">
         <div className="space-y-6">
           <div className="flex items-center space-x-4">
-            <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center text-white text-2xl font-semibold">
-              {profile?.firstname?.[0]}{profile?.lastname?.[0]}
+            <div className="relative w-20 h-20 rounded-full overflow-hidden bg-primary">
+              {hostProfile?.avatar ? (
+                <Image
+                  src={hostProfile.avatar}
+                  alt="Host Avatar"
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-white text-2xl font-semibold">
+                  {profile?.firstname?.[0]}{profile?.lastname?.[0]}
+                </div>
+              )}
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900">
@@ -147,6 +159,7 @@ export default function ViewHostProfile({ profile, hostProfile, setActiveTab }: 
 
           <div className="pt-4">
             <button
+              type="button"
               onClick={() => setActiveTab('Manage Host Profile')}
               className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition"
             >

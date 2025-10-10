@@ -1,7 +1,11 @@
 -- Create EventHosts table
+-- Note: Adjust the id and user_id types to match your actual Users table structure
+-- If your Users.id is BIGINT, change both to BIGINT
+-- If your Users.id is UUID, keep as UUID
+
 CREATE TABLE IF NOT EXISTS "EventHosts" (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES "Users"(id) ON DELETE CASCADE,
+  id UUID PRIMARY KEY,
+  user_id UUID,
   business_name TEXT,
   website TEXT,
   bio TEXT,
@@ -11,7 +15,10 @@ CREATE TABLE IF NOT EXISTS "EventHosts" (
   linkedin TEXT,
   host_image TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+  -- Add foreign key constraint separately to handle different table structures
+  CONSTRAINT fk_eventhost_user FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
 );
 
 -- Create updated_at trigger

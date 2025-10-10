@@ -19,19 +19,6 @@ const ViewProfile: React.FC<ViewProfileProps> = ({ profile }) => {
     fetchProfileData,
   } = useViewProfile();
 
-  // Parse address
-  const parseAddress = (address: string | undefined) => {
-    if (!address) return { line1: '', line2: '', city: '', state: '', zip: '' };
-    const parts = address.split(',').map(p => p.trim());
-    return {
-      line1: parts[0] || '',
-      line2: parts[1] || '',
-      city: parts[2] || '',
-      state: parts[3] || '',
-      zip: parts[4] || '',
-    };
-  };
-
   // Format phone number (e.g., +1234567890 -> (123) 456-7890)
   const formatPhoneNumber = (phone: string | undefined) => {
     if (!phone) return 'N/A';
@@ -52,7 +39,6 @@ const ViewProfile: React.FC<ViewProfileProps> = ({ profile }) => {
     return phone;
   };
 
-  const addressParts = parseAddress(profile?.address);
   const formattedAddress = profile?.address
     ? profile.address.split(',').map(p => p.trim()).filter(p => p).join(', ')
     : null;

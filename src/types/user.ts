@@ -10,10 +10,7 @@ export interface User {
   created_at: string;
   updated_at?: string;
   phone?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  zip_code?: string;
+  address?: string;  // Full address as single field (street, city, state, zip)
   country?: string;
   date_of_birth?: string;
   gender?: string;
@@ -139,16 +136,17 @@ export interface UseDegreeReturn {
 
 // EventHost interface for event host specific data
 export interface EventHost {
-  id: string;
-  user_id: string;
-  business_name?: string;
-  website?: string;
-  bio?: string;
-  instagram?: string;
-  facebook?: string;
-  tiktok?: string;
-  linkedin?: string;
-  host_image?: string;
-  created_at: string;
-  updated_at?: string;
+  id: string;                  // Auth user ID (UUID type in DB, string in TS)
+  user_id: string;             // References Users.id (UUID type in DB, string in TS)
+  business_name?: string;      // Event host or business name
+  website?: string;            // Host website URL
+  bio?: string;                // Host biography/description
+  instagram?: string;          // Instagram profile URL
+  facebook?: string;           // Facebook profile URL
+  tiktok?: string;             // TikTok profile URL
+  linkedin?: string;           // LinkedIn profile URL
+  avatar?: string;             // Avatar/profile image URL
+  host_image?: string;         // Alternative host profile image URL
+  created_at: string;          // Record creation timestamp
+  updated_at?: string;         // Last update timestamp
 }

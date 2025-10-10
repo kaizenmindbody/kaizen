@@ -1019,8 +1019,8 @@ const ProfilePage = () => {
           <div className="p-4 h-full flex flex-col">
             {/* User Info */}
             <div className="mb-6 pb-4 border-b border-gray-200">
-              <div className="flex items-center space-x-3 mb-2">
-                <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-200">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-200 flex-shrink-0">
                   <Image
                     src={currentAvatarUrl}
                     alt="Profile"
@@ -1030,10 +1030,10 @@ const ProfilePage = () => {
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h1 className="text-base font-bold text-gray-900 truncate">
+                  <p className="text-sm font-semibold text-gray-900 truncate">
                     {profile?.full_name || profile?.firstname || profile?.email?.split('@')[0] || 'User'}
-                  </h1>
-                  <p className="text-xs text-gray-500 truncate capitalize">
+                  </p>
+                  <p className="text-xs text-gray-500 capitalize">
                     {profile?.type || 'User'}
                   </p>
                 </div>
@@ -1045,10 +1045,10 @@ const ProfilePage = () => {
               <nav className="space-y-6">
                 {/* Menu Section */}
                 <div>
-                  <h3 className="px-3 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  <h3 className="px-3 mb-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
                     Menu
                   </h3>
-                  <div className="space-y-1">
+                  <div className="space-y-2">
                     {tabs.map((tab) => {
                       const getIcon = (tabName: string) => {
                         switch(tabName) {
@@ -1106,6 +1106,7 @@ const ProfilePage = () => {
                         return (
                           <div key={tab}>
                             <button
+                              type="button"
                               onClick={() => {
                                 setExpandedMenu(expandedMenu === 'Profile' ? null : 'Profile');
                               }}
@@ -1130,7 +1131,7 @@ const ProfilePage = () => {
                             </button>
 
                             {expandedMenu === 'Profile' && (
-                              <div className="mt-1 ml-8 space-y-1">
+                              <div className="mt-3 ml-8 space-y-2">
                                 {profileSubItems.map((subItem) => {
                                   const getSubItemIcon = (subItemName: string) => {
                                     switch(subItemName) {
@@ -1177,10 +1178,10 @@ const ProfilePage = () => {
                                         handleTabChange(subItem);
                                         setIsMobileMenuOpen(false);
                                       }}
-                                      className={`w-full flex items-center space-x-2 text-left px-3 py-2 rounded-lg font-medium transition-all text-xs ${
+                                      className={`w-full flex items-center space-x-2 text-left px-3 py-2 rounded-lg font-medium transition-all text-sm ${
                                         activeTab === subItem
-                                          ? 'bg-primary/20 text-primary'
-                                          : 'text-gray-600 hover:bg-gray-50'
+                                          ? 'bg-blue-50 text-primary'
+                                          : 'text-gray-700 hover:bg-gray-50'
                                       }`}
                                     >
                                       {getSubItemIcon(subItem)}
@@ -1198,6 +1199,7 @@ const ProfilePage = () => {
                         return (
                           <div key={tab}>
                             <button
+                              type="button"
                               onClick={() => {
                                 setExpandedMenu(expandedMenu === 'Clinic' ? null : 'Clinic');
                               }}
@@ -1222,7 +1224,7 @@ const ProfilePage = () => {
                             </button>
 
                             {expandedMenu === 'Clinic' && (
-                              <div className="mt-1 ml-8 space-y-1">
+                              <div className="mt-3 ml-8 space-y-2">
                                 {clinicSubItems.map((subItem) => {
                                   const getClinicSubItemIcon = (subItemName: string) => {
                                     switch(subItemName) {
@@ -1251,10 +1253,10 @@ const ProfilePage = () => {
                                         handleTabChange(subItem);
                                         setIsMobileMenuOpen(false);
                                       }}
-                                      className={`w-full flex items-center space-x-2 text-left px-3 py-2 rounded-lg font-medium transition-all text-xs ${
+                                      className={`w-full flex items-center space-x-2 text-left px-3 py-2 rounded-lg font-medium transition-all text-sm ${
                                         activeTab === subItem
-                                          ? 'bg-primary/20 text-primary'
-                                          : 'text-gray-600 hover:bg-gray-50'
+                                          ? 'bg-blue-50 text-primary'
+                                          : 'text-gray-700 hover:bg-gray-50'
                                       }`}
                                     >
                                       {getClinicSubItemIcon(subItem)}
@@ -1270,6 +1272,7 @@ const ProfilePage = () => {
 
                       return (
                         <button
+                          type="button"
                           key={tab}
                           onClick={() => {
                             handleTabChange(tab);
@@ -1291,11 +1294,12 @@ const ProfilePage = () => {
 
                 {/* Settings Section */}
                 <div>
-                  <h3 className="px-3 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  <h3 className="px-3 mb-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
                     Settings
                   </h3>
-                  <div className="space-y-1">
+                  <div className="space-y-2">
                     <button
+                      type="button"
                       onClick={() => {
                         handleTabChange('Help Center');
                         setIsMobileMenuOpen(false);
@@ -1330,6 +1334,7 @@ const ProfilePage = () => {
             <div className="p-3 border-t border-gray-200 mt-auto">
               <div className="space-y-2">
                 <button
+                  type="button"
                   onClick={() => router.push('/')}
                   className="w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg font-medium transition-all text-sm text-gray-700 hover:bg-gray-100 border border-gray-300"
                 >
@@ -1340,6 +1345,7 @@ const ProfilePage = () => {
                 </button>
 
                 <button
+                  type="button"
                   onClick={async () => {
                     await supabase.auth.signOut();
                     router.push('/');

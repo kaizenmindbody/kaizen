@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { UserData, EventHost } from '@/types/user';
+import Image from 'next/image';
 
 interface ManageHostProfileProps {
   profile: UserData | null;
@@ -18,12 +19,61 @@ export default function ManageHostProfile({ profile, hostProfile, updateHostProf
     tiktok: hostProfile?.tiktok || '',
     linkedin: hostProfile?.linkedin || '',
   });
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string>(hostProfile?.avatar || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAvatarFile(file);
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAvatarUpload = async () => {
+    if (!avatarFile || !profile?.id) return null;
+
+    setIsUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append('userId', profile.id);
+      formData.append('avatar', avatarFile);
+      if (hostProfile?.avatar) {
+        formData.append('oldAvatarUrl', hostProfile.avatar);
+      }
+
+      const response = await fetch('/api/eventhost/avatar', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to upload avatar');
+      }
+
+      return result.avatarUrl;
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+      throw error;
+    } finally {
+      setIsUploadingAvatar(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,21 +81,37 @@ export default function ManageHostProfile({ profile, hostProfile, updateHostProf
     setIsSubmitting(true);
     setMessage(null);
 
-    const result = await updateHostProfile({
-      id: profile?.id,
-      user_id: profile?.id,
-      ...formData,
-    });
+    try {
+      // Upload avatar first if there's a new one
+      let avatarUrl = hostProfile?.avatar;
+      if (avatarFile) {
+        avatarUrl = await handleAvatarUpload();
+      }
 
-    setIsSubmitting(false);
+      // Update profile with all data including avatar URL
+      const result = await updateHostProfile({
+        id: profile?.id,
+        user_id: profile?.id,
+        ...formData,
+        avatar: avatarUrl,
+      });
 
-    if (result.success) {
-      setMessage({ type: 'success', text: 'Host profile updated successfully!' });
-      setTimeout(() => {
-        setActiveTab('View Host Profile');
-      }, 1500);
-    } else {
-      setMessage({ type: 'error', text: result.error || 'Failed to update profile' });
+      setIsSubmitting(false);
+
+      if (result.success) {
+        setMessage({ type: 'success', text: 'Host profile updated successfully!' });
+        setTimeout(() => {
+          setActiveTab('View Host Profile');
+        }, 1500);
+      } else {
+        setMessage({ type: 'error', text: result.error || 'Failed to update profile' });
+      }
+    } catch (error) {
+      setIsSubmitting(false);
+      setMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Failed to update profile'
+      });
     }
   };
   return (
@@ -66,16 +132,40 @@ export default function ManageHostProfile({ profile, hostProfile, updateHostProf
       <div className="bg-white rounded-lg shadow p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="flex items-center space-x-4 mb-6">
-            <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center text-white text-2xl font-semibold">
-              {profile?.firstname?.[0]}{profile?.lastname?.[0]}
+            <div className="relative w-20 h-20 rounded-full overflow-hidden bg-primary">
+              {avatarPreview ? (
+                <Image
+                  src={avatarPreview}
+                  alt="Avatar"
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-white text-2xl font-semibold">
+                  {profile?.firstname?.[0]}{profile?.lastname?.[0]}
+                </div>
+              )}
             </div>
             <div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarChange}
+                className="hidden"
+              />
               <button
                 type="button"
+                onClick={() => fileInputRef.current?.click()}
                 className="text-sm text-primary hover:text-primary-dark font-medium"
               >
                 Change Photo
               </button>
+              {avatarFile && (
+                <p className="text-xs text-gray-500 mt-1">
+                  New photo selected: {avatarFile.name}
+                </p>
+              )}
             </div>
           </div>
 
@@ -187,10 +277,10 @@ export default function ManageHostProfile({ profile, hostProfile, updateHostProf
           <div className="flex gap-4">
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isUploadingAvatar}
               className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? 'Saving...' : 'Save Changes'}
+              {isUploadingAvatar ? 'Uploading Photo...' : isSubmitting ? 'Saving...' : 'Save Changes'}
             </button>
             <button
               type="button"

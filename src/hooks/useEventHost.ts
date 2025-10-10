@@ -94,11 +94,18 @@ export function useEventHost(): UseEventHostReturn {
 
   const updateHostProfile = useCallback(async (data: Partial<EventHost>): Promise<{ success: boolean; error?: string }> => {
     try {
+      // Get current auth user
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        return { success: false, error: 'User not authenticated' };
+      }
+
       const { error: updateError } = await supabase
         .from('EventHosts')
         .upsert({
-          id: data.id,
-          user_id: data.user_id,
+          id: user.id, // Auth user ID (UUID string, automatically converted to UUID in DB)
+          user_id: user.id, // Same as id - references Users.id (UUID)
           business_name: data.business_name,
           website: data.website,
           bio: data.bio,
@@ -106,6 +113,7 @@ export function useEventHost(): UseEventHostReturn {
           facebook: data.facebook,
           tiktok: data.tiktok,
           linkedin: data.linkedin,
+          avatar: data.avatar,
           host_image: data.host_image,
           updated_at: new Date().toISOString(),
         });
@@ -115,9 +123,7 @@ export function useEventHost(): UseEventHostReturn {
       }
 
       // Refresh host profile after update
-      if (data.id) {
-        await fetchHostProfile(data.id);
-      }
+      await fetchHostProfile(user.id);
 
       return { success: true };
     } catch (err) {

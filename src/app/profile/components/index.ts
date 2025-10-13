@@ -11,3 +11,6 @@ export { default as ManageBasicInformation } from './ManageBasicInformation';
 export { default as ManageServicesPricing } from './ManageServicesPricing';
 export { default as ManageDescriptions } from './ManageDescriptions';
 export { default as ManageImagesVideo } from './ManageImagesVideo';
+
+// Clinic sub-sections
+export { default as UpdateClinicProfile } from './UpdateClinicProfile';

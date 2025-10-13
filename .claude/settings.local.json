@@ -12,7 +12,8 @@
       "Bash(npm install:*)",
       "Bash(cat:*)",
       "Bash(find:*)",
-      "Bash(npx supabase db dump:*)"
+      "Bash(npx supabase db dump:*)",
+      "Bash(psql:*)"
     ],
     "deny": [],
     "ask": []

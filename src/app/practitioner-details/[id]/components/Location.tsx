@@ -1,10 +1,26 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { GoogleMap, Marker, InfoWindow } from '@react-google-maps/api';
+import dynamic from 'next/dynamic';
 import { MapPin, X, Award, Phone, Languages, Navigation, Building2 } from 'lucide-react';
 import { formatPhoneNumber } from '@/lib/formatters';
+
+// Dynamically import Google Maps components with SSR disabled
+const GoogleMap = dynamic(
+  () => import('@react-google-maps/api').then((mod) => mod.GoogleMap),
+  { ssr: false }
+);
+
+const Marker = dynamic(
+  () => import('@react-google-maps/api').then((mod) => mod.Marker),
+  { ssr: false }
+);
+
+const InfoWindow = dynamic(
+  () => import('@react-google-maps/api').then((mod) => mod.InfoWindow),
+  { ssr: false }
+);
 
 interface LocationProps {
   practitioner: any;
@@ -49,10 +65,32 @@ const formatSpecialties = (specialty) => {
 };
 
 export const Location = ({ practitioner, mapCenter, showInfoWindow, setShowInfoWindow }: LocationProps) => {
+  const [isClient, setIsClient] = useState(false);
+  const [isGoogleMapsLoaded, setIsGoogleMapsLoaded] = useState(false);
+
   const mapContainerStyle = {
     width: '100%',
     height: '400px'
   };
+
+  // Check if we're on the client side
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Check if Google Maps is loaded
+  useEffect(() => {
+    if (!isClient) return;
+
+    const checkGoogleMaps = () => {
+      if (typeof window !== 'undefined' && window.google && window.google.maps) {
+        setIsGoogleMapsLoaded(true);
+      } else {
+        setTimeout(checkGoogleMaps, 100);
+      }
+    };
+    checkGoogleMaps();
+  }, [isClient]);
 
   return (
     <div className=" mx-auto">
@@ -68,113 +106,119 @@ export const Location = ({ practitioner, mapCenter, showInfoWindow, setShowInfoW
             {/* Map Container */}
             <div className="bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
               <div className="rounded-2xl overflow-hidden">
-                <GoogleMap
-                  mapContainerStyle={mapContainerStyle}
-                  center={mapCenter}
-                  zoom={15}
-                  options={{
-                    streetViewControl: false,
-                    mapTypeControl: false,
-                    fullscreenControl: false,
-                  }}
-                >
-                  <Marker
-                    position={mapCenter}
-                    title={practitioner.full_name}
-                    onClick={() => setShowInfoWindow(true)}
-                  />
-                  {showInfoWindow && (
-                    <InfoWindow
+                {isClient && isGoogleMapsLoaded ? (
+                  <GoogleMap
+                    mapContainerStyle={mapContainerStyle}
+                    center={mapCenter}
+                    zoom={15}
+                    options={{
+                      streetViewControl: false,
+                      mapTypeControl: false,
+                      fullscreenControl: false,
+                    }}
+                  >
+                    <Marker
                       position={mapCenter}
-                      onCloseClick={() => setShowInfoWindow(false)}
-                    >
-                      <div className="p-0 max-w-xs bg-white rounded-xl shadow-lg overflow-hidden">
-                        <div className="relative">
-                          {/* Header with gradient background */}
-                          <div className="bg-gradient-to-r from-primary/10 to-primary/20 p-3 relative">
-                            <div className="flex items-center gap-2">
-                              <div className="relative">
-                                <Image
-                                  src={practitioner.avatar.url}
-                                  alt={practitioner.avatar.alt}
-                                  width={45}
-                                  height={45}
-                                  className="rounded-full object-cover border-2 border-white shadow-md"
-                                />
-                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-bold text-gray-900 text-sm mb-1 truncate">
-                                  {practitioner.full_name}
-                                </h4>
-                                {practitioner.title && (
-                                  <p className="text-xs text-primary font-medium mb-1 truncate">
-                                    {practitioner.title}
-                                  </p>
-                                )}
+                      title={practitioner.full_name}
+                      onClick={() => setShowInfoWindow(true)}
+                    />
+                    {showInfoWindow && (
+                      <InfoWindow
+                        position={mapCenter}
+                        onCloseClick={() => setShowInfoWindow(false)}
+                      >
+                        <div className="p-0 max-w-xs bg-white rounded-xl shadow-lg overflow-hidden">
+                          <div className="relative">
+                            {/* Header with gradient background */}
+                            <div className="bg-gradient-to-r from-primary/10 to-primary/20 p-3 relative">
+                              <div className="flex items-center gap-2">
+                                <div className="relative">
+                                  <Image
+                                    src={practitioner.avatar.url}
+                                    alt={practitioner.avatar.alt}
+                                    width={45}
+                                    height={45}
+                                    className="rounded-full object-cover border-2 border-white shadow-md"
+                                  />
+                                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-bold text-gray-900 text-sm mb-1 truncate">
+                                    {practitioner.full_name}
+                                  </h4>
+                                  {practitioner.title && (
+                                    <p className="text-xs text-primary font-medium mb-1 truncate">
+                                      {practitioner.title}
+                                    </p>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
 
-                          {/* Content */}
-                          <div className="p-3 space-y-2">
-                            {practitioner.specialty && (
+                            {/* Content */}
+                            <div className="p-3 space-y-2">
+                              {practitioner.specialty && (
+                                <div className="flex items-center gap-2">
+                                  <Award className="w-3 h-3 text-primary" />
+                                  <span className="text-xs text-gray-700 font-medium truncate">
+                                    {formatSpecialties(practitioner.specialty)}
+                                  </span>
+                                </div>
+                              )}
+
                               <div className="flex items-center gap-2">
-                                <Award className="w-3 h-3 text-primary" />
-                                <span className="text-xs text-gray-700 font-medium truncate">
-                                  {formatSpecialties(practitioner.specialty)}
+                                <MapPin className="w-3 h-3 text-gray-500" />
+                                <span className="text-xs text-gray-600 truncate">
+                                  {practitioner.address}
                                 </span>
                               </div>
-                            )}
 
-                            <div className="flex items-center gap-2">
-                              <MapPin className="w-3 h-3 text-gray-500" />
-                              <span className="text-xs text-gray-600 truncate">
-                                {practitioner.address}
-                              </span>
+                              {practitioner.phone && (
+                                <div className="flex items-center gap-2">
+                                  <Phone className="w-3 h-3 text-gray-500" />
+                                  <span className="text-xs text-gray-600">
+                                    {formatPhoneNumber(practitioner.phone)}
+                                  </span>
+                                </div>
+                              )}
+
+                              {practitioner.languages && practitioner.languages.length > 0 && (
+                                <div className="flex items-center gap-2">
+                                  <Languages className="w-3 h-3 text-gray-500" />
+                                  <span className="text-xs text-gray-600">
+                                    {Array.isArray(practitioner.languages)
+                                      ? practitioner.languages.join(', ')
+                                      : practitioner.languages}
+                                  </span>
+                                </div>
+                              )}
                             </div>
 
-                            {practitioner.phone && (
-                              <div className="flex items-center gap-2">
-                                <Phone className="w-3 h-3 text-gray-500" />
-                                <span className="text-xs text-gray-600">
-                                  {formatPhoneNumber(practitioner.phone)}
-                                </span>
-                              </div>
-                            )}
-
-                            {practitioner.languages && practitioner.languages.length > 0 && (
-                              <div className="flex items-center gap-2">
-                                <Languages className="w-3 h-3 text-gray-500" />
-                                <span className="text-xs text-gray-600">
-                                  {Array.isArray(practitioner.languages)
-                                    ? practitioner.languages.join(', ')
-                                    : practitioner.languages}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Action buttons */}
-                          <div className="flex gap-2 p-3 pt-0">
-                            <button
-                              onClick={() => setShowInfoWindow(false)}
-                              className="flex-1 bg-primary text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-primary/90 transition-all duration-200 shadow-md hover:shadow-lg"
-                            >
-                              View Profile
-                            </button>
-                            <button
-                              onClick={() => setShowInfoWindow(false)}
-                              className="px-2 py-2 border border-gray-300 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-50 transition-colors"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
+                            {/* Action buttons */}
+                            <div className="flex gap-2 p-3 pt-0">
+                              <button
+                                onClick={() => setShowInfoWindow(false)}
+                                className="flex-1 bg-primary text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-primary/90 transition-all duration-200 shadow-md hover:shadow-lg"
+                              >
+                                View Profile
+                              </button>
+                              <button
+                                onClick={() => setShowInfoWindow(false)}
+                                className="px-2 py-2 border border-gray-300 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-50 transition-colors"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </InfoWindow>
-                  )}
-                </GoogleMap>
+                      </InfoWindow>
+                    )}
+                  </GoogleMap>
+                ) : (
+                  <div className="flex items-center justify-center" style={mapContainerStyle}>
+                    <p className="text-gray-500">Loading map...</p>
+                  </div>
+                )}
               </div>
             </div>
 

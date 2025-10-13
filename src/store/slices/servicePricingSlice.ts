@@ -11,6 +11,7 @@ export interface ServicePricing {
   is_sliding_scale: boolean;
   sliding_scale_info?: string;
   service_category?: string;
+  is_clinic_specific?: boolean;
 }
 
 export interface PackagePricing {
@@ -20,6 +21,7 @@ export interface PackagePricing {
   no_of_sessions: string;
   price: string;
   service_category?: string;
+  is_clinic_specific?: boolean;
 }
 
 interface ServicePricingState {
@@ -45,9 +47,14 @@ const initialState: ServicePricingState = {
 // Async thunks
 export const fetchServicePricing = createAsyncThunk(
   'servicePricing/fetchServicePricing',
-  async (practitionerId: string, { rejectWithValue }) => {
+  async (
+    { practitionerId, isClinicSpecific = false }: { practitionerId: string; isClinicSpecific?: boolean },
+    { rejectWithValue }
+  ) => {
     try {
-      const response = await fetch(`/api/service-pricing?practitionerId=${practitionerId}`);
+      const response = await fetch(
+        `/api/service-pricing?practitionerId=${practitionerId}&isClinicSpecific=${isClinicSpecific}`
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -70,11 +77,13 @@ export const saveServicePricing = createAsyncThunk(
       servicePricings,
       packagePricings,
       token,
+      isClinicSpecific = false,
     }: {
       practitionerId: string;
       servicePricings: ServicePricing[];
       packagePricings: PackagePricing[];
       token: string;
+      isClinicSpecific?: boolean;
     },
     { rejectWithValue }
   ) => {
@@ -89,6 +98,7 @@ export const saveServicePricing = createAsyncThunk(
           practitionerId,
           servicePricings,
           packagePricings,
+          isClinicSpecific,
         }),
       });
 

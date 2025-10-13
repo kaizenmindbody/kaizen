@@ -19,11 +19,12 @@ export interface UseServicePricingReturn {
   saving: boolean;
   error: string | null;
   successMessage: string | null;
-  fetchServicePricing: (practitionerId: string) => Promise<void>;
+  fetchServicePricing: (practitionerId: string, isClinicSpecific?: boolean) => Promise<void>;
   saveServicePricing: (
     practitionerId: string,
     servicePricings: ServicePricing[],
-    packagePricings: PackagePricing[]
+    packagePricings: PackagePricing[],
+    isClinicSpecific?: boolean
   ) => Promise<boolean>;
   updateServicePricings: (servicePricings: ServicePricing[]) => void;
   updatePackagePricings: (packagePricings: PackagePricing[]) => void;
@@ -31,7 +32,7 @@ export interface UseServicePricingReturn {
   clearSuccessMessage: () => void;
 }
 
-export function useServicePricing(practitionerId?: string): UseServicePricingReturn {
+export function useServicePricing(practitionerId?: string, isClinicSpecific: boolean = false): UseServicePricingReturn {
   const dispatch = useAppDispatch();
   const {
     servicePricings,
@@ -43,15 +44,16 @@ export function useServicePricing(practitionerId?: string): UseServicePricingRet
     initialized,
   } = useAppSelector((state) => state.servicePricing);
 
-  const fetchServicePricing = useCallback(async (practitionerId: string) => {
-    await dispatch(fetchServicePricingAction(practitionerId));
+  const fetchServicePricing = useCallback(async (practitionerId: string, isClinicSpecific: boolean = false) => {
+    await dispatch(fetchServicePricingAction({ practitionerId, isClinicSpecific }));
   }, [dispatch]);
 
   const saveServicePricingHandler = useCallback(
     async (
       practitionerId: string,
       servicePricings: ServicePricing[],
-      packagePricings: PackagePricing[]
+      packagePricings: PackagePricing[],
+      isClinicSpecific: boolean = false
     ): Promise<boolean> => {
       try {
         // Get the session token
@@ -68,12 +70,13 @@ export function useServicePricing(practitionerId?: string): UseServicePricingRet
             servicePricings,
             packagePricings,
             token,
+            isClinicSpecific,
           })
         );
 
         if (result.meta.requestStatus === 'fulfilled') {
           // Reload data after successful save
-          await dispatch(fetchServicePricingAction(practitionerId));
+          await dispatch(fetchServicePricingAction({ practitionerId, isClinicSpecific }));
           return true;
         }
         return false;
@@ -110,9 +113,9 @@ export function useServicePricing(practitionerId?: string): UseServicePricingRet
   // Auto-fetch service pricing on mount if practitionerId is provided
   useEffect(() => {
     if (practitionerId && !initialized) {
-      fetchServicePricing(practitionerId);
+      fetchServicePricing(practitionerId, isClinicSpecific);
     }
-  }, [practitionerId, initialized, fetchServicePricing]);
+  }, [practitionerId, isClinicSpecific, initialized, fetchServicePricing]);
 
   return {
     servicePricings,

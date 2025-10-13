@@ -72,7 +72,7 @@ CREATE TABLE Availabilities (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   
   -- Ensure only one record per practitioner per date
-  UNIQUE(practitioner_id, date)
+  CONSTRAINT availabilities_practitioner_date_unique UNIQUE(practitioner_id, date)
 );
 
 -- Enable Row Level Security on Availabilities

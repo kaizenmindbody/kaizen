@@ -136,6 +136,8 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
   // Initialize PlaceKit autocomplete
   useEffect(() => {
     const initPlaceKit = async () => {
+      // Only run on client-side
+      if (typeof window === 'undefined') return;
       if (!addressInputRef.current || placekitInstance.current) return;
 
       try {

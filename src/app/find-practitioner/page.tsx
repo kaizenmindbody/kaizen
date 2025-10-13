@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, MapPin, X, Filter, Building, Phone} from 'lucide-react';
-import { GoogleMap, Marker, InfoWindow } from '@react-google-maps/api';
+import dynamic from 'next/dynamic';
 import Select from 'react-select';
 import Breadcrumb from '@/components/commons/breadcrumb';
 import Switch from 'react-switch';
@@ -14,6 +14,22 @@ import { Specialty } from '@/types/user';
 import { useFindPractitioners } from '@/hooks/useFindPractitioners';
 import { formatPhoneNumber, getAvatarUrl, formatPractitionerType } from '@/lib/formatters';
 import { UserCard, UserCardSkeleton } from './components';
+
+// Dynamically import Google Maps components with SSR disabled
+const GoogleMap = dynamic(
+  () => import('@react-google-maps/api').then((mod) => mod.GoogleMap),
+  { ssr: false }
+);
+
+const Marker = dynamic(
+  () => import('@react-google-maps/api').then((mod) => mod.Marker),
+  { ssr: false }
+);
+
+const InfoWindow = dynamic(
+  () => import('@react-google-maps/api').then((mod) => mod.InfoWindow),
+  { ssr: false }
+);
 
 // Extend Window interface for Google Maps
 declare global {

@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
     const supabase = createServerSupabaseClient();
     const { searchParams } = new URL(request.url);
     const practitionerId = searchParams.get('practitionerId');
+    const isClinicSpecific = searchParams.get('isClinicSpecific') === 'true';
 
     if (!practitionerId) {
       return NextResponse.json(
@@ -20,6 +21,7 @@ export async function GET(request: NextRequest) {
       .from('ServicePricing')
       .select('*')
       .eq('practitioner_id', practitionerId)
+      .eq('is_clinic_specific', isClinicSpecific)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -68,7 +70,7 @@ export async function POST(request: NextRequest) {
     );
 
     const body = await request.json();
-    const { practitionerId, servicePricings, packagePricings } = body;
+    const { practitionerId, servicePricings, packagePricings, isClinicSpecific = false } = body;
 
     if (!practitionerId) {
       return NextResponse.json(
@@ -81,6 +83,7 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     console.log('Authenticated user:', user?.id);
     console.log('Practitioner ID from request:', practitionerId);
+    console.log('Is clinic specific:', isClinicSpecific);
     console.log('Auth error:', authError);
 
     if (!user) {
@@ -90,11 +93,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Delete existing service pricings for this practitioner
+    // Delete ONLY existing service pricings for this practitioner with the same is_clinic_specific flag
+    // This ensures personal pricing and clinic pricing remain separate
     const { error: deleteError } = await supabase
       .from('ServicePricing')
       .delete()
-      .eq('practitioner_id', practitionerId);
+      .eq('practitioner_id', practitionerId)
+      .eq('is_clinic_specific', isClinicSpecific);
 
     if (deleteError) {
       console.error('Error deleting existing service pricing:', deleteError);
@@ -121,6 +126,7 @@ export async function POST(request: NextRequest) {
           service_category: sp.service_category || 'In-Person / Clinic Visit',
           is_sliding_scale: sp.is_sliding_scale || false,
           sliding_scale_info: sp.sliding_scale_info || null,
+          is_clinic_specific: isClinicSpecific,
         }));
 
       allPricingsToInsert.push(...pricingsToInsert);
@@ -137,6 +143,7 @@ export async function POST(request: NextRequest) {
           no_of_sessions: pkg.no_of_sessions ? parseInt(pkg.no_of_sessions) : null,
           price: pkg.price || null,
           service_category: pkg.service_category || 'Packages',
+          is_clinic_specific: isClinicSpecific,
         }));
 
       console.log('Packages to insert:', JSON.stringify(packagesToInsert, null, 2));

@@ -20,6 +20,9 @@ CREATE TABLE ServicePricing (
   is_sliding_scale BOOLEAN DEFAULT false,
   sliding_scale_info TEXT,
 
+  -- Clinic-specific pricing flag
+  is_clinic_specific BOOLEAN DEFAULT false, -- true = clinic pricing, false = personal practitioner pricing
+
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -57,3 +60,4 @@ CREATE TRIGGER update_service_pricing_updated_at
 CREATE INDEX idx_service_pricing_practitioner_id ON ServicePricing(practitioner_id);
 CREATE INDEX idx_service_pricing_service_id ON ServicePricing(service_id);
 CREATE INDEX idx_service_pricing_category ON ServicePricing(service_category);
+CREATE INDEX idx_service_pricing_clinic_specific ON ServicePricing(practitioner_id, is_clinic_specific);

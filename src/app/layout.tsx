@@ -44,11 +44,15 @@ export default function RootLayout({
       <head />
 
       <body className={`bg-[#FCFCFC] dark:bg-black ${merriweather.className}`}>
-        <Script
-          src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`}
-          strategy="afterInteractive"
-          async
-        />
+        {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY && (
+          <Script
+            src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`}
+            strategy="afterInteractive"
+            onError={(e) => {
+              console.error('Failed to load Google Maps script:', e);
+            }}
+          />
+        )}
         <Providers>
           <LayoutContent>
             {children}

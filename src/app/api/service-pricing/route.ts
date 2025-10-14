@@ -115,20 +115,28 @@ export async function POST(request: NextRequest) {
     if (servicePricings && Array.isArray(servicePricings)) {
       const pricingsToInsert = servicePricings
         .filter(sp => sp.service_name) // Only insert if service name is provided
-        .map(sp => ({
-          practitioner_id: practitionerId,
-          service_id: sp.service_id && sp.service_id.length > 10 ? sp.service_id : null, // Only use if it's a valid UUID
-          service_name: sp.service_name,
-          first_time_price: sp.first_time_price || null,
-          first_time_duration: sp.first_time_duration ? parseFloat(sp.first_time_duration) : null,
-          returning_price: sp.returning_price || null,
-          returning_duration: sp.returning_duration ? parseFloat(sp.returning_duration) : null,
-          service_category: sp.service_category || 'In-Person / Clinic Visit',
-          is_sliding_scale: sp.is_sliding_scale || false,
-          sliding_scale_info: sp.sliding_scale_info || null,
-          is_clinic_specific: isClinicSpecific,
-        }));
+        .map(sp => {
+          // Validate service_id: must be a non-empty string with UUID format (length > 20)
+          const validServiceId = sp.service_id && typeof sp.service_id === 'string' && sp.service_id.length > 20
+            ? sp.service_id
+            : null;
 
+          return {
+            practitioner_id: practitionerId,
+            service_id: validServiceId,
+            service_name: sp.service_name,
+            first_time_price: sp.first_time_price || null,
+            first_time_duration: sp.first_time_duration ? parseFloat(sp.first_time_duration) : null,
+            returning_price: sp.returning_price || null,
+            returning_duration: sp.returning_duration ? parseFloat(sp.returning_duration) : null,
+            service_category: sp.service_category || 'In-Person / Clinic Visit',
+            is_sliding_scale: sp.is_sliding_scale || false,
+            sliding_scale_info: sp.sliding_scale_info || null,
+            is_clinic_specific: isClinicSpecific,
+          };
+        });
+
+      console.log('Service pricings to insert:', JSON.stringify(pricingsToInsert, null, 2));
       allPricingsToInsert.push(...pricingsToInsert);
     }
 
@@ -136,15 +144,22 @@ export async function POST(request: NextRequest) {
     if (packagePricings && Array.isArray(packagePricings)) {
       const packagesToInsert = packagePricings
         .filter(pkg => pkg.service_name) // Only insert if service name is provided
-        .map(pkg => ({
-          practitioner_id: practitionerId,
-          service_id: pkg.service_id && pkg.service_id.length > 10 ? pkg.service_id : null, // Only use if it's a valid UUID
-          service_name: pkg.service_name,
-          no_of_sessions: pkg.no_of_sessions ? parseInt(pkg.no_of_sessions) : null,
-          price: pkg.price || null,
-          service_category: pkg.service_category || 'Packages',
-          is_clinic_specific: isClinicSpecific,
-        }));
+        .map(pkg => {
+          // Validate service_id: must be a non-empty string with UUID format (length > 20)
+          const validServiceId = pkg.service_id && typeof pkg.service_id === 'string' && pkg.service_id.length > 20
+            ? pkg.service_id
+            : null;
+
+          return {
+            practitioner_id: practitionerId,
+            service_id: validServiceId,
+            service_name: pkg.service_name,
+            no_of_sessions: pkg.no_of_sessions ? parseInt(pkg.no_of_sessions) : null,
+            price: pkg.price || null,
+            service_category: pkg.service_category || 'Packages',
+            is_clinic_specific: isClinicSpecific,
+          };
+        });
 
       console.log('Packages to insert:', JSON.stringify(packagesToInsert, null, 2));
       allPricingsToInsert.push(...packagesToInsert);

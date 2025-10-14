@@ -82,11 +82,19 @@ export const Location = ({ practitioner, mapCenter, showInfoWindow, setShowInfoW
   useEffect(() => {
     if (!isClient) return;
 
+    let timeoutCount = 0;
+    const maxTimeout = 50; // 5 seconds max wait time
+
     const checkGoogleMaps = () => {
       if (typeof window !== 'undefined' && window.google && window.google.maps) {
         setIsGoogleMapsLoaded(true);
-      } else {
+      } else if (timeoutCount < maxTimeout) {
+        timeoutCount++;
         setTimeout(checkGoogleMaps, 100);
+      } else {
+        console.error('Google Maps failed to load. Please check your API key configuration.');
+        // Set loaded to true to show error message
+        setIsGoogleMapsLoaded(false);
       }
     };
     checkGoogleMaps();
@@ -214,9 +222,14 @@ export const Location = ({ practitioner, mapCenter, showInfoWindow, setShowInfoW
                       </InfoWindow>
                     )}
                   </GoogleMap>
+                ) : isClient ? (
+                  <div className="flex flex-col items-center justify-center gap-3" style={mapContainerStyle}>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    <p className="text-gray-500">Loading map...</p>
+                  </div>
                 ) : (
                   <div className="flex items-center justify-center" style={mapContainerStyle}>
-                    <p className="text-gray-500">Loading map...</p>
+                    <p className="text-gray-500">Initializing...</p>
                   </div>
                 )}
               </div>
@@ -224,14 +237,14 @@ export const Location = ({ practitioner, mapCenter, showInfoWindow, setShowInfoW
 
             {/* Address Card */}
             <div className="bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 rounded-2xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between gap-4 flex-wrap">
-                <div className="flex items-start gap-4 flex-1 min-w-0">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="flex items-start gap-4 flex-1">
                   <div className="flex-shrink-0">
                     <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
                       <Building2 className="w-6 h-6 text-white" />
                     </div>
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1">
                     <h4 className="text-xl font-bold text-gray-900 mb-3">Practice Address</h4>
                     <div className="flex items-start gap-3">
                       <MapPin className="w-5 h-5 text-indigo-500 mt-0.5 flex-shrink-0" />
@@ -239,12 +252,12 @@ export const Location = ({ practitioner, mapCenter, showInfoWindow, setShowInfoW
                     </div>
                   </div>
                 </div>
-                <div className="flex-shrink-0">
+                <div className="flex-shrink-0 w-full md:w-auto">
                   <a
                     href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(practitioner.address)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-md hover:shadow-lg whitespace-nowrap"
+                    className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-md hover:shadow-lg whitespace-nowrap w-full md:w-auto"
                   >
                     <Navigation className="w-4 h-4" />
                     Get Directions

@@ -155,7 +155,7 @@ const servicePricingSlice = createSlice({
           (sp: any) => sp.service_category === 'In-Person / Clinic Visit' || sp.service_category === 'Virtual Visit'
         ).map((sp: any) => ({
           id: sp.id,
-          service_id: sp.service_id,
+          service_id: sp.service_id || undefined,
           service_name: sp.service_name,
           first_time_price: sp.first_time_price || '',
           first_time_duration: sp.first_time_duration?.toString() || '',
@@ -164,17 +164,19 @@ const servicePricingSlice = createSlice({
           is_sliding_scale: sp.is_sliding_scale || false,
           sliding_scale_info: sp.sliding_scale_info || '',
           service_category: sp.service_category,
+          is_clinic_specific: sp.is_clinic_specific,
         }));
 
         const packagePricings = action.payload.filter(
           (sp: any) => sp.service_category === 'Packages'
         ).map((sp: any) => ({
           id: sp.id,
-          service_id: sp.service_id,
+          service_id: sp.service_id || undefined,
           service_name: sp.service_name,
           no_of_sessions: sp.no_of_sessions?.toString() || '',
           price: sp.price || '',
           service_category: sp.service_category || 'Packages',
+          is_clinic_specific: sp.is_clinic_specific,
         }));
 
         state.servicePricings = servicePricings.length > 0 ? servicePricings : [];

@@ -32,14 +32,14 @@ export const Header = ({ practitioner, user, descriptionsData }: HeaderProps) =>
       {/* Header Section */}
       <div className="bg-white rounded-xl shadow-sm p-4 md:p-8 mb-6">
         <div className="grid lg:grid-cols-3 gap-8 min-h-[500px]">
-          {/* Left Side - Video */}
-          <div className="lg:col-span-1 h-full">
+          {/* Left Side - Video (Desktop Only) */}
+          <div className="hidden lg:block lg:col-span-1 lg:h-full">
             <div className="relative w-full h-full rounded-2xl overflow-hidden">
               {practitioner.video ? (
                 <video
                   src={practitioner.video}
                   controls
-                  className="absolute inset-0 h-full w-full rounded-2xl object-cover"
+                  className="w-full h-full rounded-2xl object-cover"
                   title={`${practitioner.full_name} spotlight video`}
                 />
               ) : (
@@ -430,6 +430,21 @@ export const Header = ({ practitioner, user, descriptionsData }: HeaderProps) =>
               <div className="gap-8 mt-6">
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-gray-900">Photos & Videos</h3>
+
+                  {/* Video Section (Mobile Only) */}
+                  {practitioner.video && (
+                    <div className="lg:hidden mb-4">
+                      <div className="relative w-full h-72 rounded-2xl overflow-hidden">
+                        <video
+                          src={practitioner.video}
+                          controls
+                          className="w-full h-full rounded-2xl object-cover"
+                          title={`${practitioner.full_name} spotlight video`}
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   {/* Photo Gallery Grid - Real Images from Database */}
                   {practitioner?.images && practitioner.images.length > 0 ? (
                     <div className="space-y-4">

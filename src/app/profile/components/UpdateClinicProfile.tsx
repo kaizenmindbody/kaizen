@@ -5,6 +5,8 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useService } from '@/hooks/useService';
 import { useServicePricing } from '@/hooks/useServicePricing';
 import { ServicePricing, PackagePricing } from '@/store/slices/servicePricingSlice';
+import { useAppDispatch } from '@/store/hooks';
+import { resetServicePricing } from '@/store/slices/servicePricingSlice';
 import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
@@ -33,6 +35,7 @@ const PhoneInput = dynamic(() => import('react-phone-input-2'), {
 });
 
 const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) => {
+  const dispatch = useAppDispatch();
   const { services: availableServices, loading: servicesLoading } = useService();
 
   const {
@@ -63,11 +66,15 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
 
   // Filter services
   const realServices = useMemo(() => {
-    return availableServices.filter(service => service.type === 'real');
+    const filtered = availableServices.filter(service => service.type === 'real');
+    console.log('Real services:', filtered);
+    return filtered;
   }, [availableServices]);
 
   const virtualServices = useMemo(() => {
-    return availableServices.filter(service => service.type === 'virtual');
+    const filtered = availableServices.filter(service => service.type === 'virtual');
+    console.log('Virtual services:', filtered);
+    return filtered;
   }, [availableServices]);
 
   // Services and Pricing State
@@ -105,6 +112,13 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
       service_category: 'Packages',
     },
   ]);
+
+  // Reset service pricing state on component mount to trigger fresh data fetch
+  useEffect(() => {
+    // Reset the service pricing state to ensure fresh data is fetched
+    // The useServicePricing hook will automatically fetch when initialized is false
+    dispatch(resetServicePricing());
+  }, [dispatch]);
 
   // Load clinic information from Clinics table
   useEffect(() => {
@@ -199,21 +213,54 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
 
   // Sync service pricing with store data
   useEffect(() => {
-    if (storePricings.length > 0) {
-      const inPersonServices = storePricings.filter(sp => sp.service_category === 'In-Person / Clinic Visit');
-      const virtualServicesList = storePricings.filter(sp => sp.service_category === 'Virtual Visit');
+    const inPersonServices = storePricings.filter(sp => sp.service_category === 'In-Person / Clinic Visit');
+    const virtualServicesList = storePricings.filter(sp => sp.service_category === 'Virtual Visit');
 
-      if (inPersonServices.length > 0) {
-        setServicePricings(inPersonServices);
-      }
-
-      if (virtualServicesList.length > 0) {
-        setVirtualPricings(virtualServicesList);
-      }
+    // Update in-person services
+    if (inPersonServices.length > 0) {
+      setServicePricings(inPersonServices);
+    } else if (storePricings.length === 0) {
+      // Reset to initial empty state if no data from store
+      setServicePricings([{
+        service_name: '',
+        first_time_price: '',
+        first_time_duration: '',
+        returning_price: '',
+        returning_duration: '',
+        is_sliding_scale: false,
+        sliding_scale_info: '',
+        service_category: 'In-Person / Clinic Visit',
+      }]);
     }
 
+    // Update virtual services
+    if (virtualServicesList.length > 0) {
+      setVirtualPricings(virtualServicesList);
+    } else if (storePricings.length === 0) {
+      // Reset to initial empty state if no data from store
+      setVirtualPricings([{
+        service_name: '',
+        first_time_price: '',
+        first_time_duration: '',
+        returning_price: '',
+        returning_duration: '',
+        is_sliding_scale: false,
+        sliding_scale_info: '',
+        service_category: 'Virtual Visit',
+      }]);
+    }
+
+    // Update packages
     if (storePackagePricings.length > 0) {
       setPackagePricings(storePackagePricings);
+    } else {
+      // Reset to initial empty state if no data from store
+      setPackagePricings([{
+        service_name: '',
+        no_of_sessions: '',
+        price: '',
+        service_category: 'Packages',
+      }]);
     }
   }, [storePricings, storePackagePricings]);
 
@@ -295,7 +342,16 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
     const updated = [...pricingList];
 
     if (field === 'service_name') {
-      const selectedService = serviceList.find(s => s.title === value);
+      const selectedService = serviceList.find(s => s.title.trim() === value.trim());
+      console.log('Service selected:', {
+        category,
+        value,
+        trimmedValue: value.trim(),
+        selectedService,
+        service_id: selectedService?.id,
+        serviceListCount: serviceList.length,
+        availableServiceTitles: serviceList.map(s => s.title)
+      });
       updated[index] = {
         ...updated[index],
         [field]: value,
@@ -305,6 +361,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
       updated[index] = { ...updated[index], [field]: value };
     }
 
+    console.log('Updated service pricing:', updated[index]);
     setPricingList(updated);
   };
 
@@ -313,7 +370,15 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
     const updated = [...packagePricings];
 
     if (field === 'service_name') {
-      const selectedService = realServices.find(s => s.title === value);
+      const selectedService = realServices.find(s => s.title.trim() === value.trim());
+      console.log('Package service selected:', {
+        value,
+        trimmedValue: value.trim(),
+        selectedService,
+        service_id: selectedService?.id,
+        realServicesCount: realServices.length,
+        availableServiceTitles: realServices.map(s => s.title)
+      });
       updated[index] = {
         ...updated[index],
         [field]: value,
@@ -323,6 +388,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
       updated[index] = { ...updated[index], [field]: value };
     }
 
+    console.log('Updated package pricing:', updated[index]);
     setPackagePricings(updated);
   };
 
@@ -442,6 +508,13 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
                          packagePricings.some(pkg => pkg.service_name);
 
       if (hasServices) {
+        console.log('Saving service pricing:', {
+          servicePricings,
+          virtualPricings,
+          packagePricings,
+          combined: [...servicePricings, ...virtualPricings]
+        });
+
         await saveServicePricing(
           profile.id,
           [...servicePricings, ...virtualPricings],
@@ -796,9 +869,9 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
             <button
               type="button"
               onClick={() => handleAddService('In-Person / Clinic Visit')}
-              className="mt-5 w-full md:w-auto px-6 py-3 text-sm bg-primary text-white rounded-lg hover:bg-primary/90 transition-all shadow-md hover:shadow-lg font-medium flex items-center justify-center gap-2"
+              className="mt-5 w-full md:w-auto px-6 py-3 text-xs bg-primary text-white rounded-lg hover:bg-primary/90 transition-all shadow-md hover:shadow-lg font-medium flex items-center justify-center gap-2"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
               Add Service
@@ -914,9 +987,9 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
             <button
               type="button"
               onClick={() => handleAddService('Virtual Visit')}
-              className="mt-5 w-full md:w-auto px-6 py-3 text-sm bg-primary text-white rounded-lg hover:bg-primary/90 transition-all shadow-md hover:shadow-lg font-medium flex items-center justify-center gap-2"
+              className="mt-5 w-full md:w-auto px-6 py-3 text-xs bg-primary text-white rounded-lg hover:bg-primary/90 transition-all shadow-md hover:shadow-lg font-medium flex items-center justify-center gap-2"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
               Add Service
@@ -1004,9 +1077,9 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
             <button
               type="button"
               onClick={handleAddPackage}
-              className="mt-5 w-full md:w-auto px-6 py-3 text-sm bg-primary text-white rounded-lg hover:bg-primary/90 transition-all shadow-md hover:shadow-lg font-medium flex items-center justify-center gap-2"
+              className="mt-5 w-full md:w-auto px-6 py-3 text-xs bg-primary text-white rounded-lg hover:bg-primary/90 transition-all shadow-md hover:shadow-lg font-medium flex items-center justify-center gap-2"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
               Add Package
@@ -1017,19 +1090,19 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
 
       {/* Action Buttons */}
       <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-gray-600">
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-gray-600 text-center sm:text-left">
             <svg className="w-5 h-5 inline mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             Make sure all required fields are filled before saving
           </p>
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto sm:ml-auto">
             <button
               type="button"
               onClick={() => window.location.reload()}
               disabled={isSaving || saving}
-              className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              className="w-full sm:w-auto px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium whitespace-nowrap"
             >
               Cancel
             </button>
@@ -1037,7 +1110,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
               type="button"
               onClick={handleSaveAll}
               disabled={isSaving || saving || uploadingLogo || servicesLoading}
-              className="px-8 py-3 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium shadow-md hover:shadow-lg"
+              className="w-full sm:w-auto px-8 py-3 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium shadow-md hover:shadow-lg whitespace-nowrap"
             >
               {(isSaving || saving) ? (
                 <>

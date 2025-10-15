@@ -34,29 +34,34 @@ const ClinicsSkeleton = () => {
           </div>
 
           {/* Clinics Grid Skeleton */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {Array.from({ length: 9 }, (_, index) => (
               <div
                 key={index}
-                className="bg-white dark:bg-gray-dark rounded-lg border border-gray-200 dark:border-gray-700 p-4"
+                className="bg-white dark:bg-gray-dark rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden"
               >
-                <div className="flex items-center gap-4">
-                  {/* Clinic Image Skeleton */}
-                  <div className="w-12 h-12 rounded-lg bg-gray-200 flex-shrink-0"></div>
+                {/* Image Header Skeleton */}
+                <div className="h-48 bg-gray-200 dark:bg-gray-700"></div>
 
-                  {/* Clinic Info Skeleton */}
-                  <div className="flex-1 min-w-0">
-                    <div className="h-5 bg-gray-200 rounded w-3/4 mb-2"></div>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-1">
-                        <div className="w-4 h-4 bg-gray-200 rounded"></div>
-                        <div className="h-3 bg-gray-200 rounded w-16"></div>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <div className="w-2 h-2 bg-gray-200 rounded-full"></div>
-                        <div className="h-3 bg-gray-200 rounded w-12"></div>
-                      </div>
+                {/* Clinic Info Skeleton */}
+                <div className="p-6">
+                  <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-3"></div>
+
+                  <div className="flex items-start gap-2 mb-3">
+                    <div className="w-5 h-5 bg-gray-200 dark:bg-gray-700 rounded flex-shrink-0"></div>
+                    <div className="flex-1">
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full mb-1"></div>
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3"></div>
                     </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-5 h-5 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
+                  </div>
+
+                  <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-28"></div>
                   </div>
                 </div>
               </div>
@@ -83,13 +88,22 @@ const ClinicsPage = () => {
 
   // Filter clinics based on search and state
   const filteredClinics = useMemo(() => {
+    // Ensure allClinics is always an array
+    if (!allClinics || !Array.isArray(allClinics)) {
+      return [];
+    }
+
     let filtered = allClinics;
 
     if (searchTerm) {
-      filtered = filtered.filter(clinic =>
-        clinic.service.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        clinic.location.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      filtered = filtered.filter(clinic => {
+        const service = clinic.service || '';
+        const location = clinic.location || '';
+        return (
+          service.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          location.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      });
     }
 
     if (selectedState !== "All States") {
@@ -164,15 +178,25 @@ const ClinicsPage = () => {
 
   // Handle error state
   if (error) {
+    console.error('Clinics page error:', error);
     return (
       <>
         <Breadcrumb pageName="Clinics" />
         <section className="pb-[60px] sm:pb-[120px] pt-[80px] sm:pt-[150px]">
           <div className="container">
-            <div className="flex justify-center items-center min-h-[400px]">
-              <div className="text-red-500">
-                Error loading clinics: {error}
+            <div className="flex flex-col justify-center items-center min-h-[400px] gap-4">
+              <div className="text-red-500 text-xl font-semibold">
+                Error loading clinics
               </div>
+              <div className="text-gray-600">
+                {error}
+              </div>
+              <button
+                onClick={() => window.location.reload()}
+                className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary/90"
+              >
+                Retry
+              </button>
             </div>
           </div>
         </section>
@@ -241,52 +265,74 @@ const ClinicsPage = () => {
           </div>
 
           {/* Clinics Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {currentClinics.map((clinic, index) => {
               const style = getServiceStyle(clinic.service, index);
               return (
                 <div
                   key={clinic.id}
                   onClick={() => handleClinicClick(clinic.id)}
-                  className="bg-white dark:bg-gray-dark rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow duration-300 cursor-pointer"
+                  className="group bg-white dark:bg-gray-dark rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-xl hover:border-primary/50 transition-all duration-300 cursor-pointer transform hover:-translate-y-1"
                 >
-                  <div className="flex items-center gap-4">
-                    {/* Clinic Image */}
-                    <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
-                      {clinic.image && clinic.image.startsWith('http') ? (
-                        <div className="relative w-full h-full">
-                          <Image
-                            src={clinic.image}
-                            alt={clinic.service}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                      ) : (
-                        <div className={`w-full h-full ${style.iconBg} flex items-center justify-center`}>
-                          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h12a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V8z" clipRule="evenodd" />
+                  {/* Clinic Image/Icon Header */}
+                  <div className={`relative h-48 ${style.bg} flex items-center justify-center overflow-hidden`}>
+                    {clinic.image && clinic.image.startsWith('http') ? (
+                      <div className="relative w-full h-full">
+                        <Image
+                          src={clinic.image}
+                          alt={clinic.service}
+                          fill
+                          className="object-cover group-hover:scale-110 transition-transform duration-300"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <div className={`w-24 h-24 ${style.iconBg} rounded-2xl flex items-center justify-center shadow-2xl transform group-hover:scale-110 transition-transform duration-300`}>
+                          <svg className="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L9 4.323V3a1 1 0 011-1z" clipRule="evenodd" />
                           </svg>
                         </div>
-                      )}
-                    </div>
+                        {/* Decorative elements */}
+                        <div className={`absolute -top-4 -right-4 w-32 h-32 ${style.iconBg} opacity-10 rounded-full`}></div>
+                        <div className={`absolute -bottom-4 -left-4 w-24 h-24 ${style.iconBg} opacity-10 rounded-full`}></div>
+                      </div>
+                    )}
+                  </div>
 
-                    {/* Clinic Info */}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-base font-semibold text-black dark:text-white mb-1">
-                        {clinic.service}
-                      </h3>
-                      <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                        <div className="flex items-center gap-1">
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                          </svg>
-                          <span>{clinic.location}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <div className="w-2 h-2 rounded-full bg-primary"></div>
-                          <span>{clinic.member}</span>
-                        </div>
+                  {/* Clinic Info */}
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3 line-clamp-2 group-hover:text-primary transition-colors">
+                      {clinic.service}
+                    </h3>
+
+                    {/* Location */}
+                    {clinic.location && (
+                      <div className="flex items-start gap-2 mb-3">
+                        <svg className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{clinic.location}</span>
+                      </div>
+                    )}
+
+                    {/* Phone/Member */}
+                    {clinic.member && (
+                      <div className="flex items-center gap-2 mb-4">
+                        <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                        </svg>
+                        <span className="text-sm text-gray-600 dark:text-gray-400">{clinic.member}</span>
+                      </div>
+                    )}
+
+                    {/* View Details Button */}
+                    <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+                      <div className={`flex items-center justify-between ${style.textColor} font-medium text-sm group-hover:translate-x-2 transition-transform duration-300`}>
+                        <span>View Details</span>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
                       </div>
                     </div>
                   </div>
@@ -317,9 +363,25 @@ const ClinicsPage = () => {
               <h3 className="text-xl font-semibold text-black dark:text-white mb-2">
                 No clinics found
               </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-2">
+                {allClinics && allClinics.length > 0
+                  ? `${allClinics.length} total clinics available, but none match your current filters.`
+                  : 'No clinics available in the database.'}
+              </p>
               <p className="text-gray-600 dark:text-gray-400">
                 Try adjusting your search criteria or browse all clinics
               </p>
+              {(searchTerm || selectedState !== "All States") && (
+                <button
+                  onClick={() => {
+                    setSearchTerm("");
+                    setSelectedState("All States");
+                  }}
+                  className="mt-4 bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary/90"
+                >
+                  Clear Filters
+                </button>
+              )}
             </div>
           )}
         </div>

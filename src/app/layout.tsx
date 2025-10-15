@@ -44,14 +44,22 @@ export default function RootLayout({
       <head />
 
       <body className={`bg-[#FCFCFC] dark:bg-black ${merriweather.className}`}>
-        {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY && (
+        {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? (
           <Script
-            src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`}
+            src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places,marker&loading=async`}
             strategy="afterInteractive"
+            onLoad={() => {
+              console.log('Google Maps API loaded successfully');
+            }}
             onError={(e) => {
               console.error('Failed to load Google Maps script:', e);
+              console.error('Check: 1) API key is valid, 2) Domain is whitelisted in Google Cloud Console, 3) Billing is enabled');
             }}
           />
+        ) : (
+          <script dangerouslySetInnerHTML={{
+            __html: `console.error('NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is not set. Check your Vercel environment variables.');`
+          }} />
         )}
         <Providers>
           <LayoutContent>

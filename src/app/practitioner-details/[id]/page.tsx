@@ -365,7 +365,18 @@ const PractitionerDetailsPage = () => {
       // Only geocode if we don't already have the location
       if (practitionerLocation) return;
 
-      const coordinates = await geocodeAddress(practitioner.address);
+      // Validate address before geocoding
+      const cleanAddress = practitioner.address.trim();
+
+      // Skip geocoding for invalid addresses
+      if (!cleanAddress ||
+          cleanAddress === 'Address not available' ||
+          cleanAddress === 'Not specified' ||
+          /^[,\s]+$/.test(cleanAddress)) { // Only commas and spaces
+        return;
+      }
+
+      const coordinates = await geocodeAddress(cleanAddress);
       if (coordinates) {
         setPractitionerLocation(coordinates);
       }

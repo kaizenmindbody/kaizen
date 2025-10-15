@@ -1,6 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from "@/lib/supabase";
 
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const user_id = searchParams.get('user_id');
+
+    if (!user_id) {
+      return NextResponse.json(
+        { error: 'User ID is required' },
+        { status: 400 }
+      );
+    }
+
+    const supabase = createServerSupabaseClient();
+
+    // Fetch user profile from database
+    const { data, error } = await supabase
+      .from('Users')
+      .select('*')
+      .eq('id', user_id)
+      .single();
+
+    if (error) {
+      console.error('Error fetching profile:', error);
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      );
+    }
+
+    if (!data) {
+      return NextResponse.json(
+        { error: 'Profile not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(data);
+  } catch (err: any) {
+    console.error('Unexpected error:', err);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();

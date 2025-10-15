@@ -361,7 +361,21 @@ const UserDirectoryContent = () => {
 
       const newGeocodedLocations = new Map(geocodedLocations);
       const addressesToGeocode = filteredUsers
-        .filter(p => p.address && p.address.trim() !== '' && !newGeocodedLocations.has(p.address))
+        .filter(p => {
+          if (!p.address) return false;
+
+          const cleanAddress = p.address.trim();
+
+          // Skip invalid addresses
+          if (!cleanAddress ||
+              cleanAddress === 'Address not available' ||
+              cleanAddress === 'Not specified' ||
+              /^[,\s]+$/.test(cleanAddress)) { // Only commas and spaces
+            return false;
+          }
+
+          return !newGeocodedLocations.has(p.address);
+        })
         .map(p => p.address);
 
       if (addressesToGeocode.length === 0) return;

@@ -10,7 +10,7 @@ import { resetServicePricing } from '@/store/slices/servicePricingSlice';
 import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
-import { Building2, Globe, Phone, Mail, MapPin, Upload, X } from 'lucide-react';
+import { Building2, Globe, Phone, Mail, MapPin, Upload, X, Film, Image as ImageIcon } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import 'react-phone-input-2/lib/style.css';
 import '@placekit/autocomplete-js/dist/placekit-autocomplete.css';
@@ -59,6 +59,13 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Media upload states
+  const [clinicVideoFile, setClinicVideoFile] = useState<File | null>(null);
+  const [clinicVideoPreview, setClinicVideoPreview] = useState<string | null>(null);
+  const [clinicImages, setClinicImages] = useState<Array<{ file?: File; url: string; isNew: boolean }>>([]);
+  const [existingVideo, setExistingVideo] = useState<string | null>(null);
+  const [existingImages, setExistingImages] = useState<string[]>([]);
 
   // PlaceKit ref
   const addressInputRef = useRef<HTMLInputElement>(null);
@@ -140,6 +147,21 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
           clinic_address: data.clinic_address || '',
           clinic_logo: data.clinic_logo || '',
         });
+
+        // Load existing video
+        if (data.clinic_video) {
+          setExistingVideo(data.clinic_video);
+        }
+
+        // Load existing images
+        if (data.clinic_images && Array.isArray(data.clinic_images)) {
+          const imageObjects = data.clinic_images.map((url: string) => ({
+            url,
+            isNew: false
+          }));
+          setClinicImages(imageObjects);
+          setExistingImages(data.clinic_images);
+        }
       }
     };
 
@@ -328,6 +350,156 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
     }
   };
 
+  // Handle video file selection
+  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('video/')) {
+        toast.error('Please select a video file');
+        return;
+      }
+
+      // Validate file size (max 50MB)
+      if (file.size > 50 * 1024 * 1024) {
+        toast.error('Video size must be less than 50MB');
+        return;
+      }
+
+      setClinicVideoFile(file);
+
+      // Create preview
+      const url = URL.createObjectURL(file);
+      setClinicVideoPreview(url);
+    }
+  };
+
+  // Remove video
+  const handleRemoveVideo = () => {
+    if (clinicVideoPreview) {
+      URL.revokeObjectURL(clinicVideoPreview);
+    }
+    setClinicVideoFile(null);
+    setClinicVideoPreview(null);
+  };
+
+  // Handle image files selection
+  const handleImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+
+    if (files.length === 0) return;
+
+    // Check if adding these files would exceed 10 images
+    if (clinicImages.length + files.length > 10) {
+      toast.error('You can upload a maximum of 10 images');
+      return;
+    }
+
+    // Validate each file
+    const validFiles: Array<{ file: File; url: string; isNew: boolean }> = [];
+
+    for (const file of files) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error(`${file.name} is not an image file`);
+        continue;
+      }
+
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(`${file.name} is too large. Max size is 10MB`);
+        continue;
+      }
+
+      const url = URL.createObjectURL(file);
+      validFiles.push({ file, url, isNew: true });
+    }
+
+    if (validFiles.length > 0) {
+      setClinicImages([...clinicImages, ...validFiles]);
+    }
+  };
+
+  // Remove image
+  const handleRemoveImage = (index: number) => {
+    const imageToRemove = clinicImages[index];
+
+    // Revoke object URL if it's a new image
+    if (imageToRemove.isNew && imageToRemove.url.startsWith('blob:')) {
+      URL.revokeObjectURL(imageToRemove.url);
+    }
+
+    setClinicImages(clinicImages.filter((_, i) => i !== index));
+  };
+
+  // Upload video to storage
+  const uploadVideo = async (): Promise<string | null> => {
+    if (!clinicVideoFile || !profile?.id) return null;
+
+    try {
+      const fileExt = clinicVideoFile.name.split('.').pop();
+      const fileName = `${profile.id}-clinic-${Date.now()}.${fileExt}`;
+      const filePath = `clinic_videos/${fileName}`;
+
+      const { error } = await supabase.storage
+        .from('kaizen')
+        .upload(filePath, clinicVideoFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('kaizen')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading video:', error);
+      toast.error('Failed to upload video');
+      return null;
+    }
+  };
+
+  // Upload images to storage
+  const uploadImages = async (): Promise<string[]> => {
+    if (!profile?.id) return [];
+
+    const uploadedUrls: string[] = [];
+    const newImages = clinicImages.filter(img => img.isNew && img.file);
+
+    for (const imageObj of newImages) {
+      if (!imageObj.file) continue;
+
+      try {
+        const fileExt = imageObj.file.name.split('.').pop();
+        const fileName = `${profile.id}-clinic-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `clinic_images/${fileName}`;
+
+        const { error } = await supabase.storage
+          .from('kaizen')
+          .upload(filePath, imageObj.file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (error) throw error;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('kaizen')
+          .getPublicUrl(filePath);
+
+        uploadedUrls.push(publicUrl);
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        toast.error('Failed to upload some images');
+      }
+    }
+
+    return uploadedUrls;
+  };
+
   // Handle service changes
   const handleServiceChange = (
     index: number,
@@ -458,6 +630,27 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
         }
       }
 
+      // Upload video if changed
+      let videoUrl = existingVideo;
+      if (clinicVideoFile) {
+        const uploadedVideoUrl = await uploadVideo();
+        if (uploadedVideoUrl) {
+          videoUrl = uploadedVideoUrl;
+        } else {
+          throw new Error('Failed to upload video');
+        }
+      }
+
+      // Upload new images
+      const newImageUrls = await uploadImages();
+
+      // Combine existing images with newly uploaded ones
+      const existingImageUrls = clinicImages
+        .filter(img => !img.isNew)
+        .map(img => img.url);
+
+      const allImageUrls = [...existingImageUrls, ...newImageUrls];
+
       // Upsert clinic information in Clinics table
       // First try to update existing record
       const { data: existingClinic, error: selectError } = await supabase
@@ -479,9 +672,11 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
             clinic_email: clinicInfo.clinic_email,
             clinic_address: clinicInfo.clinic_address,
             clinic_logo: logoUrl,
+            clinic_video: videoUrl,
+            clinic_images: allImageUrls,
           })
           .eq('practitioner_id', profile.id);
-        
+
         clinicError = error;
       } else {
         // Insert new record
@@ -495,8 +690,10 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
             clinic_email: clinicInfo.clinic_email,
             clinic_address: clinicInfo.clinic_address,
             clinic_logo: logoUrl,
+            clinic_video: videoUrl,
+            clinic_images: allImageUrls,
           });
-        
+
         clinicError = error;
       }
 
@@ -526,6 +723,21 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
       // Clear logo file state
       setLogoFile(null);
       setLogoPreview(null);
+
+      // Clear media file state
+      setClinicVideoFile(null);
+      setClinicVideoPreview(null);
+
+      // Update existing media state with uploaded media
+      if (videoUrl) {
+        setExistingVideo(videoUrl);
+      }
+
+      // Update clinic images to mark all as existing
+      if (allImageUrls.length > 0) {
+        setClinicImages(allImageUrls.map(url => ({ url, isNew: false })));
+        setExistingImages(allImageUrls);
+      }
 
       toast.success('Clinic profile updated successfully!');
     } catch (error) {
@@ -707,6 +919,131 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
                 <span className="text-xs text-gray-500">Max size: 5MB (JPG, PNG)</span>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Media Upload Section */}
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <div className="border-b border-gray-200 bg-gradient-to-r from-purple-50 to-pink-50 px-6 py-4">
+          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <ImageIcon className="w-5 h-5 text-purple-600" />
+            Clinic Images & Video
+          </h3>
+          <p className="text-sm text-gray-600 mt-1">Upload images and video to showcase your clinic</p>
+        </div>
+
+        <div className="p-6 space-y-8">
+          {/* Video Upload Section */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+              <Film className="w-5 h-5 text-gray-500" />
+              Clinic Video
+              <span className="text-xs text-gray-500 font-normal">(Optional, Max 50MB)</span>
+            </label>
+
+            {/* Video Preview */}
+            {(clinicVideoPreview || existingVideo) && (
+              <div className="relative mb-4 rounded-lg overflow-hidden border-2 border-gray-200">
+                <video
+                  src={clinicVideoPreview || existingVideo || ''}
+                  controls
+                  className="w-full max-h-96 bg-black"
+                >
+                  Your browser does not support the video tag.
+                </video>
+                <button
+                  type="button"
+                  onClick={handleRemoveVideo}
+                  className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors shadow-lg"
+                  title="Remove video"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+
+            {/* Upload Button */}
+            {!clinicVideoPreview && !existingVideo && (
+              <div className="flex items-center gap-4">
+                <label className="cursor-pointer flex-1">
+                  <input
+                    type="file"
+                    accept="video/*"
+                    onChange={handleVideoChange}
+                    className="hidden"
+                  />
+                  <div className="flex items-center justify-center gap-3 px-6 py-8 bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-dashed border-purple-300 rounded-lg hover:border-purple-400 hover:bg-purple-100 transition-all">
+                    <Film className="w-6 h-6 text-purple-600" />
+                    <span className="text-sm font-medium text-gray-700">
+                      Click to upload clinic video (MP4, MOV, AVI)
+                    </span>
+                  </div>
+                </label>
+              </div>
+            )}
+          </div>
+
+          {/* Images Upload Section */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+              <ImageIcon className="w-5 h-5 text-gray-500" />
+              Clinic Images
+              <span className="text-xs text-gray-500 font-normal">(Optional, Max 10 images, 10MB each)</span>
+            </label>
+
+            {/* Images Grid */}
+            {clinicImages.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
+                {clinicImages.map((image, index) => (
+                  <div key={index} className="relative group">
+                    <div className="relative w-full h-32 border-2 border-gray-200 rounded-lg overflow-hidden">
+                      <Image
+                        src={image.url}
+                        alt={`Clinic image ${index + 1}`}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(index)}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors shadow-lg opacity-0 group-hover:opacity-100"
+                      title="Remove image"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Upload Button */}
+            {clinicImages.length < 10 && (
+              <div className="flex items-center gap-4">
+                <label className="cursor-pointer flex-1">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImagesChange}
+                    className="hidden"
+                  />
+                  <div className="flex items-center justify-center gap-3 px-6 py-8 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-dashed border-blue-300 rounded-lg hover:border-blue-400 hover:bg-blue-100 transition-all">
+                    <Upload className="w-6 h-6 text-blue-600" />
+                    <span className="text-sm font-medium text-gray-700">
+                      Click to upload clinic images (JPG, PNG, WEBP)
+                    </span>
+                  </div>
+                </label>
+              </div>
+            )}
+
+            {clinicImages.length >= 10 && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-700">
+                Maximum of 10 images reached. Remove an image to upload more.
+              </div>
+            )}
           </div>
         </div>
       </div>

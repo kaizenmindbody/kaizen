@@ -4,32 +4,34 @@ import { createServerSupabaseClient } from "@/lib/supabase";
 export async function GET() {
   try {
     const supabase = createServerSupabaseClient();
+
     const { data, error } = await supabase
       .from('Clinics')
       .select('*')
-      .order('service', { ascending: true });
+      .order('clinic_name', { ascending: true });
 
     if (error) {
-      console.error('Error fetching clinics:', error);
+      console.error('Error fetching clinics from Supabase:', error);
       return NextResponse.json(
-        { error: 'Failed to fetch clinics' },
+        { error: `Failed to fetch clinics: ${error.message}` },
         { status: 500 }
       );
     }
 
+    // Map database columns to expected format
     const clinicPreviews = data?.map(clinic => ({
       id: clinic.id,
-      service: clinic.service,
-      location: clinic.location,
-      image: clinic.image,
-      member: clinic.member,
+      service: clinic.clinic_name || '',
+      location: clinic.clinic_address || '',
+      image: clinic.clinic_logo || '',
+      member: clinic.clinic_phone || '',
     })) || [];
 
     return NextResponse.json({ data: clinicPreviews });
   } catch (err: any) {
-    console.error('Unexpected error:', err);
+    console.error('Unexpected error in GET /api/clinics:', err);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: `Internal server error: ${err.message}` },
       { status: 500 }
     );
   }
@@ -38,11 +40,18 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { service, location, image, member } = body;
+    const { service, location, image, member, practitioner_id } = body;
 
     if (!service || !service.trim()) {
       return NextResponse.json(
-        { error: 'Service name is required' },
+        { error: 'Clinic name is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!practitioner_id) {
+      return NextResponse.json(
+        { error: 'Practitioner ID is required' },
         { status: 400 }
       );
     }
@@ -51,10 +60,11 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabase
       .from('Clinics')
       .insert([{
-        service: service.trim(),
-        location: location || '',
-        image: image || '',
-        member: member || ''
+        clinic_name: service.trim(),
+        clinic_address: location || '',
+        clinic_logo: image || '',
+        clinic_phone: member || '',
+        practitioner_id: practitioner_id
       }])
       .select();
 
@@ -66,7 +76,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ data: data[0] });
+    // Map back to expected format
+    const clinicPreview = {
+      id: data[0].id,
+      service: data[0].clinic_name,
+      location: data[0].clinic_address,
+      image: data[0].clinic_logo,
+      member: data[0].clinic_phone,
+    };
+
+    return NextResponse.json({ data: clinicPreview });
   } catch (err: any) {
     console.error('Unexpected error:', err);
     return NextResponse.json(
@@ -90,7 +109,7 @@ export async function PUT(request: NextRequest) {
 
     if (!service || !service.trim()) {
       return NextResponse.json(
-        { error: 'Service name is required' },
+        { error: 'Clinic name is required' },
         { status: 400 }
       );
     }
@@ -99,10 +118,10 @@ export async function PUT(request: NextRequest) {
     const { data, error } = await supabase
       .from('Clinics')
       .update({
-        service: service.trim(),
-        location: location || '',
-        image: image || '',
-        member: member || ''
+        clinic_name: service.trim(),
+        clinic_address: location || '',
+        clinic_logo: image || '',
+        clinic_phone: member || ''
       })
       .eq('id', id)
       .select();
@@ -122,7 +141,16 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ data: data[0] });
+    // Map back to expected format
+    const clinicPreview = {
+      id: data[0].id,
+      service: data[0].clinic_name,
+      location: data[0].clinic_address,
+      image: data[0].clinic_logo,
+      member: data[0].clinic_phone,
+    };
+
+    return NextResponse.json({ data: clinicPreview });
   } catch (err: any) {
     console.error('Unexpected error:', err);
     return NextResponse.json(

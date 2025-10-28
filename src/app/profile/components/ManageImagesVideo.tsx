@@ -276,7 +276,7 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
                       unoptimized
                     />
                   </div>
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all rounded-lg flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all rounded-lg flex items-center justify-center">
                     <button
                       onClick={() => handleDeleteUploadedImage(imageUrl)}
                       className="opacity-0 group-hover:opacity-100 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all z-10"
@@ -312,7 +312,7 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
                   <div className="absolute top-2 left-2 px-2 py-1 bg-blue-600 text-white text-xs rounded z-10">
                     New
                   </div>
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all rounded-lg flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all rounded-lg flex items-center justify-center">
                     <button
                       onClick={() => handleRemovePendingImage(index)}
                       className="opacity-0 group-hover:opacity-100 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all z-10"

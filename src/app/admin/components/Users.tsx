@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2, Users, Activity, Mail, Calendar, UserCheck, Search, Download, X, AlertTriangle, User as UserIcon, Phone, MapPin, Clock, Globe, Star, Shield, BookOpen, Award, DollarSign, Languages, Heart, Eye, Building2, GraduationCap, Stethoscope } from 'lucide-react';
+import { Trash2, Users, Activity, Mail, Calendar, UserCheck, Search, Download, X, AlertTriangle, User as UserIcon, Phone, MapPin, Clock, Globe, Star, Shield, BookOpen, Award, DollarSign, Languages, Heart, Eye, Building2, GraduationCap, Stethoscope, Send, UserPlus } from 'lucide-react';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { FilterMatchMode } from 'primereact/api';
@@ -15,6 +15,7 @@ const UsersComponent = ({ users, specialties, onRefreshData }: UsersProps) => {
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [globalFilterValue, setGlobalFilterValue] = useState('');
   const [filters, setFilters] = useState({
     global: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -23,6 +24,15 @@ const UsersComponent = ({ users, specialties, onRefreshData }: UsersProps) => {
     user_type: { value: null, matchMode: FilterMatchMode.EQUALS }
   });
   const dt = useRef<DataTable<User[]>>(null);
+
+  // Invitation form state
+  const [inviteForm, setInviteForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    message: '',
+  });
+  const [sendingInvite, setSendingInvite] = useState(false);
 
   const { deleteUser: deleteUserFromDB, isDeleting } = useUsers();
 
@@ -74,6 +84,81 @@ const UsersComponent = ({ users, specialties, onRefreshData }: UsersProps) => {
   const closeProfileModal = () => {
     setShowProfileModal(false);
     setSelectedUser(null);
+  };
+
+  const openInviteModal = () => {
+    setShowInviteModal(true);
+  };
+
+  const closeInviteModal = () => {
+    setShowInviteModal(false);
+    setInviteForm({
+      firstName: '',
+      lastName: '',
+      email: '',
+      message: '',
+    });
+  };
+
+  const handleInviteFormChange = (field: string, value: string) => {
+    setInviteForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const sendInvitation = async () => {
+    // Validation
+    if (!inviteForm.firstName.trim() || !inviteForm.lastName.trim() || !inviteForm.email.trim()) {
+      showError('Please fill in all required fields');
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(inviteForm.email)) {
+      showError('Please enter a valid email address');
+      return;
+    }
+
+    setSendingInvite(true);
+
+    try {
+      // Call API to send invitation using Supabase Auth
+      const response = await fetch('/api/invite-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: inviteForm.email,
+          firstName: inviteForm.firstName,
+          lastName: inviteForm.lastName,
+          message: inviteForm.message,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        showError(result.error || 'Failed to send invitation');
+        return;
+      }
+
+      // Check if user already exists
+      if (result.userExists) {
+        showSuccess(`Invitation recorded! ${inviteForm.email} already has an account and can view the invitation from their dashboard.`);
+      } else {
+        showSuccess(`Invitation email sent successfully to ${inviteForm.email}`);
+      }
+
+      closeInviteModal();
+
+      // Optionally refresh the users list
+      onRefreshData();
+    } catch (error: any) {
+      console.error('Error sending invitation:', error);
+      showError(error.message || 'Failed to send invitation. Please try again.');
+    } finally {
+      setSendingInvite(false);
+    }
   };
 
   const deleteUser = async () => {
@@ -345,9 +430,18 @@ const UsersComponent = ({ users, specialties, onRefreshData }: UsersProps) => {
           <h1 className="text-4xl font-bold text-gray-900 mb-2">User Management</h1>
           <p className="text-lg text-gray-600">Manage and monitor all platform users</p>
         </div>
-        <div className="flex items-center space-x-2 bg-white rounded-lg px-4 py-2 shadow-sm border">
-          <Activity className="w-5 h-5 text-gray-400" />
-          <span className="text-sm text-gray-600">Total: {nonAdminUsers.length} users</span>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center space-x-2 bg-white rounded-lg px-4 py-2 shadow-sm border">
+            <Activity className="w-5 h-5 text-gray-400" />
+            <span className="text-sm text-gray-600">Total: {nonAdminUsers.length} users</span>
+          </div>
+          <button
+            onClick={openInviteModal}
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-blue-600 text-white rounded-lg hover:shadow-lg hover:scale-105 transition-all duration-200 font-semibold"
+          >
+            <UserPlus className="w-5 h-5" />
+            Invite Practitioner
+          </button>
         </div>
       </div>
 
@@ -1034,6 +1128,199 @@ const UsersComponent = ({ users, specialties, onRefreshData }: UsersProps) => {
                   <span>Delete User</span>
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Invite Practitioner Modal */}
+      {showInviteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Background overlay with blur */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={closeInviteModal}
+          ></div>
+
+          {/* Modal content */}
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-300">
+            {/* Header with gradient */}
+            <div className="bg-gradient-to-r from-primary to-blue-600 px-8 py-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                    <UserPlus className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-white">Invite Practitioner</h3>
+                    <p className="text-blue-100 text-sm mt-1">Send an invitation to join the platform</p>
+                  </div>
+                </div>
+                <button
+                  onClick={closeInviteModal}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/20 text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Form Content */}
+            <div className="p-8 overflow-y-auto max-h-[calc(90vh-180px)]">
+              <div className="space-y-6">
+                {/* Info Banner */}
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
+                  <Mail className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-blue-900 font-medium">An email invitation will be sent to the practitioner</p>
+                    <p className="text-xs text-blue-700 mt-1">They will receive a link to create their account and set up their profile.</p>
+                  </div>
+                </div>
+
+                {/* Name Fields */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      First Name <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <UserIcon className="w-5 h-5 text-gray-400" />
+                      </div>
+                      <input
+                        type="text"
+                        value={inviteForm.firstName}
+                        onChange={(e) => handleInviteFormChange('firstName', e.target.value)}
+                        placeholder="Enter first name"
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                        disabled={sendingInvite}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Last Name <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <UserIcon className="w-5 h-5 text-gray-400" />
+                      </div>
+                      <input
+                        type="text"
+                        value={inviteForm.lastName}
+                        onChange={(e) => handleInviteFormChange('lastName', e.target.value)}
+                        placeholder="Enter last name"
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                        disabled={sendingInvite}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Email Field */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Email Address <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Mail className="w-5 h-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="email"
+                      value={inviteForm.email}
+                      onChange={(e) => handleInviteFormChange('email', e.target.value)}
+                      placeholder="practitioner@example.com"
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                      disabled={sendingInvite}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    The invitation will be sent to this email address
+                  </p>
+                </div>
+
+                {/* Custom Message */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Personal Message <span className="text-gray-400 text-xs font-normal">(Optional)</span>
+                  </label>
+                  <div className="relative">
+                    <textarea
+                      value={inviteForm.message}
+                      onChange={(e) => handleInviteFormChange('message', e.target.value)}
+                      placeholder="Add a personal message to the invitation email..."
+                      rows={4}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all resize-none"
+                      disabled={sendingInvite}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    This message will be included in the invitation email
+                  </p>
+                </div>
+
+                {/* Preview Box */}
+                <div className="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-5">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                    <Eye className="w-4 h-4 mr-2 text-gray-500" />
+                    Email Preview
+                  </h4>
+                  <div className="bg-white rounded-lg p-4 border border-gray-200">
+                    <p className="text-sm text-gray-600 mb-2">
+                      <span className="font-semibold text-gray-900">To:</span> {inviteForm.email || 'practitioner@example.com'}
+                    </p>
+                    <p className="text-sm text-gray-600 mb-3">
+                      <span className="font-semibold text-gray-900">Subject:</span> You&apos;re invited to join Kaizen
+                    </p>
+                    <div className="border-t border-gray-200 pt-3">
+                      <p className="text-sm text-gray-700 mb-2">
+                        Hi {inviteForm.firstName || 'there'} {inviteForm.lastName},
+                      </p>
+                      {inviteForm.message && (
+                        <p className="text-sm text-gray-700 mb-3 italic bg-blue-50 p-3 rounded-lg border-l-4 border-primary">
+                          &quot;{inviteForm.message}&quot;
+                        </p>
+                      )}
+                      <p className="text-sm text-gray-700">
+                        You&apos;ve been invited to join our platform as a practitioner. Click the link below to create your account and get started.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="bg-gray-50 px-8 py-5 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={closeInviteModal}
+                disabled={sendingInvite}
+                className="px-6 py-2.5 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={sendInvitation}
+                disabled={sendingInvite || !inviteForm.firstName || !inviteForm.lastName || !inviteForm.email}
+                className="px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-primary to-blue-600 rounded-lg hover:shadow-lg hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none flex items-center gap-2"
+              >
+                {sendingInvite ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Sending Invitation...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Send Invitation
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

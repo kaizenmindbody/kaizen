@@ -14,3 +14,4 @@ export { default as ManageImagesVideo } from './ManageImagesVideo';
 
 // Clinic sub-sections
 export { default as UpdateClinicProfile } from './UpdateClinicProfile';
+export { default as ManagePractitionerInfo } from './ManagePractitionerInfo';

@@ -26,7 +26,8 @@ import {
   ManageServicesPricing,
   ManageDescriptions,
   ManageImagesVideo,
-  UpdateClinicProfile
+  UpdateClinicProfile,
+  ManagePractitionerInfo
 } from './components';
 
 // Dynamic imports for browser-only components
@@ -1452,7 +1453,7 @@ const ProfilePage = () => {
             )}
 
             {activeTab === 'Manage Practitioner Info' && (
-              <Clinic profile={profile} />
+              <ManagePractitionerInfo profile={profile} />
             )}
 
             {activeTab === 'Events' && (

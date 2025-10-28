@@ -13,7 +13,9 @@
       "Bash(cat:*)",
       "Bash(find:*)",
       "Bash(npx supabase db dump:*)",
-      "Bash(psql:*)"
+      "Bash(psql:*)",
+      "Bash(if exist .next rmdir /s /q .next)",
+      "Bash(powershell:*)"
     ],
     "deny": [],
     "ask": []

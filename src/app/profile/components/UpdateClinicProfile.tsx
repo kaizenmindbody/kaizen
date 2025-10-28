@@ -55,6 +55,16 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
     clinic_logo: '',
   });
 
+  // Separate address fields for UI display
+  const [addressFields, setAddressFields] = useState({
+    address1: '',
+    address2: '',
+    city: '',
+    state: '',
+    zip: '',
+    country: 'US',
+  });
+
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -70,6 +80,53 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
   // PlaceKit ref
   const addressInputRef = useRef<HTMLInputElement>(null);
   const placekitInstance = useRef<any>(null);
+
+  // Address field handlers
+  const handleAddressFieldChange = (field: keyof typeof addressFields, value: string) => {
+    setAddressFields(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Combine address fields into single string
+  const combineAddressFields = () => {
+    const parts = [
+      addressFields.address1?.trim(),
+      addressFields.address2?.trim(),
+      addressFields.city?.trim(),
+      addressFields.state?.trim(),
+      addressFields.zip?.trim(),
+    ].filter(Boolean);
+
+    return parts.join(', ');
+  };
+
+  // Parse address string into separate fields
+  const parseAddress = (addressString: string) => {
+    if (!addressString) {
+      return {
+        address1: '',
+        address2: '',
+        city: '',
+        state: '',
+        zip: '',
+        country: 'US',
+      };
+    }
+
+    // Split by comma and try to identify parts
+    const parts = addressString.split(',').map(p => p.trim()).filter(Boolean);
+
+    // Basic parsing logic (can be enhanced)
+    const parsed = {
+      address1: parts[0] || '',
+      address2: '',
+      city: parts[1] || '',
+      state: parts[2] || '',
+      zip: parts[3] || '',
+      country: 'US',
+    };
+
+    return parsed;
+  };
 
   // Filter services
   const realServices = useMemo(() => {
@@ -148,6 +205,9 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
           clinic_logo: data.clinic_logo || '',
         });
 
+        // Parse address into separate fields
+        setAddressFields(parseAddress(data.clinic_address || ''));
+
         // Load existing video
         if (data.clinic_video) {
           setExistingVideo(data.clinic_video);
@@ -185,29 +245,27 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
         });
 
         pk.on('pick', (value, item) => {
-          // Build full address string from PlaceKit item components
-          const addressParts = [];
-
-          if (item.name) addressParts.push(item.name);
-          if (item.city) addressParts.push(item.city);
-          if (item.administrative) addressParts.push(item.administrative);
-
           // Extract zip code - handle both string and array formats
           const zipCode = Array.isArray(item.zipcode)
             ? item.zipcode[0] || ''
             : item.zipcode || '';
-          if (zipCode) addressParts.push(zipCode);
 
-          // Join all parts with commas
-          const fullAddress = addressParts.join(', ');
+          // Populate separate address fields
+          setAddressFields({
+            address1: item.name || '',
+            address2: '',
+            city: item.city || '',
+            state: item.administrative || '',
+            zip: zipCode,
+            country: item.country || 'US',
+          });
 
-          // Update address field in React state
-          setClinicInfo(prev => ({
-            ...prev,
-            clinic_address: fullAddress
-          }));
-
-          console.log('Address selected:', fullAddress);
+          console.log('Address selected:', {
+            address1: item.name,
+            city: item.city,
+            state: item.administrative,
+            zip: zipCode,
+          });
 
           // Close the dropdown by blurring the input
           setTimeout(() => {
@@ -619,6 +677,9 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
     setIsSaving(true);
 
     try {
+      // Combine address fields into single address string
+      const combinedAddress = combineAddressFields();
+
       // Upload logo if changed
       let logoUrl = clinicInfo.clinic_logo;
       if (logoFile) {
@@ -670,7 +731,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
             clinic_website: clinicInfo.clinic_website,
             clinic_phone: clinicInfo.clinic_phone,
             clinic_email: clinicInfo.clinic_email,
-            clinic_address: clinicInfo.clinic_address,
+            clinic_address: combinedAddress,
             clinic_logo: logoUrl,
             clinic_video: videoUrl,
             clinic_images: allImageUrls,
@@ -688,7 +749,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
             clinic_website: clinicInfo.clinic_website,
             clinic_phone: clinicInfo.clinic_phone,
             clinic_email: clinicInfo.clinic_email,
-            clinic_address: clinicInfo.clinic_address,
+            clinic_address: combinedAddress,
             clinic_logo: logoUrl,
             clinic_video: videoUrl,
             clinic_images: allImageUrls,
@@ -854,21 +915,81 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
             />
           </div>
 
-          {/* Address */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-gray-500" />
-              Address
-            </label>
-            <input
-              ref={addressInputRef}
-              type="text"
-              value={clinicInfo.clinic_address}
-              onChange={(e) => setClinicInfo({ ...clinicInfo, clinic_address: e.target.value })}
-              placeholder="Start typing your address..."
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-              autoComplete="off"
-            />
+          {/* Address Information */}
+          <div className="space-y-4">
+            <h4 className="text-md font-semibold text-gray-800 flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-gray-500" />
+              Clinic Address
+            </h4>
+
+            {/* Address Line 1 with PlaceKit autocomplete */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Address Line 1 <span className="text-gray-500 text-xs">(Street Address)</span>
+              </label>
+              <input
+                ref={addressInputRef}
+                type="text"
+                value={addressFields.address1}
+                onChange={(e) => handleAddressFieldChange('address1', e.target.value)}
+                placeholder="Start typing your address..."
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                autoComplete="off"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Start typing to search for your address
+              </p>
+            </div>
+
+            {/* Address Line 2 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Address Line 2 <span className="text-gray-500 text-xs">(Suite, Unit, etc. - Optional)</span>
+              </label>
+              <input
+                type="text"
+                value={addressFields.address2}
+                onChange={(e) => handleAddressFieldChange('address2', e.target.value)}
+                placeholder="Suite, unit, building, floor, etc."
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+              />
+            </div>
+
+            {/* City, State, ZIP */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
+                <input
+                  type="text"
+                  value={addressFields.city}
+                  onChange={(e) => handleAddressFieldChange('city', e.target.value)}
+                  placeholder="City"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">State</label>
+                <input
+                  type="text"
+                  value={addressFields.state}
+                  onChange={(e) => handleAddressFieldChange('state', e.target.value)}
+                  placeholder="State"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">ZIP Code</label>
+                <input
+                  type="text"
+                  value={addressFields.zip}
+                  onChange={(e) => handleAddressFieldChange('zip', e.target.value)}
+                  placeholder="ZIP"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Clinic Logo */}

@@ -138,6 +138,7 @@ const Clinic: React.FC<ClinicProps> = ({ profile }) => {
                   height={160}
                   sizes="160px"
                   className="w-full h-full object-cover"
+                  unoptimized
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-gray-100">

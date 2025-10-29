@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     // Check if user already exists in auth.users
     const { data: existingUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers();
 
-    if (listError) {
+    if (listError || !existingUsers?.users) {
       console.error('Error checking existing users:', listError);
       return NextResponse.json(
         { error: 'Failed to check existing users' },
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const userExists = existingUsers.users.some(user => user.email === email);
+    const userExists = existingUsers.users.some((user: any) => user.email === email);
 
     if (userExists) {
       // User already has an account - send a custom notification instead

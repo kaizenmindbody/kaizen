@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash([ -f \"src/lib/database-migration.sql\" ])"
+      "Bash([ -f \"src/lib/database-migration.sql\" ])",
+      "Bash(timeout 30 npm run dev)"
     ],
     "deny": [],
     "ask": []

@@ -1007,6 +1007,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
                     alt="Clinic logo"
                     fill
                     className="object-cover"
+                    unoptimized
                   />
                   {logoPreview && (
                     <button

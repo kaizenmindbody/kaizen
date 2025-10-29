@@ -1,12 +1,14 @@
 "use client";
 
 import { ProfileData } from '@/types/user';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
-import { UserPlus, Users, Send, CheckCircle, XCircle, Clock, Trash2, Mail, Search, Building2, AlertCircle } from 'lucide-react';
+import { UserPlus, Users, Send, CheckCircle, XCircle, Clock, Trash2, Mail, Search, Building2, AlertCircle, Upload, FileUp } from 'lucide-react';
 import Select from 'react-select';
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
 
 interface ManagePractitionerInfoProps {
   profile: ProfileData | null;
@@ -52,16 +54,25 @@ interface ClinicMember {
   practitioner_type: string | null;
 }
 
+interface CSVRow {
+  email: string;
+  status: 'valid' | 'invalid' | 'exists' | 'pending';
+  practitionerId?: string;
+  message?: string;
+  [key: string]: string | undefined; // Allow dynamic columns from CSV
+}
+
 const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile }) => {
   const [practitioners, setPractitioners] = useState<Practitioner[]>([]);
-  const [selectedPractitioner, setSelectedPractitioner] = useState<PractitionerOption | null>(null);
-  const [pendingInvitations, setPendingInvitations] = useState<Invitation[]>([]);
   const [clinicMembers, setClinicMembers] = useState<ClinicMember[]>([]);
   const [clinicId, setClinicId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingPractitioners, setLoadingPractitioners] = useState(true);
-  const [sending, setSending] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [uploadingCSV, setUploadingCSV] = useState(false);
+  const [csvPreview, setCSVPreview] = useState<CSVRow[]>([]);
+  const [csvHeaders, setCSVHeaders] = useState<string[]>([]);
+  const [savingCSV, setSavingCSV] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch clinic ID
   useEffect(() => {
@@ -107,7 +118,6 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
 
         if (!data || data.length === 0) {
           console.warn('No practitioners found in database');
-          toast.info('No practitioners available to invite');
         }
 
         setPractitioners(data || []);
@@ -124,56 +134,17 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
     fetchPractitioners();
   }, [profile?.id]);
 
-  // Fetch pending invitations and clinic members
+  // Fetch clinic members
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchMembers = async () => {
       if (!clinicId) {
         setLoading(false);
         return;
       }
 
       try {
-        console.log('Fetching invitations and members for clinic:', clinicId);
+        console.log('Fetching members for clinic:', clinicId);
 
-        // Fetch pending invitations
-        const { data: invitationsData, error: invitationsError } = await supabase
-          .from('ClinicInvitations')
-          .select(`
-            id,
-            clinic_id,
-            invitee_id,
-            status,
-            created_at,
-            invitee:Users!ClinicInvitations_invitee_id_fkey(
-              email,
-              avatar,
-              firstname,
-              lastname
-            )
-          `)
-          .eq('clinic_id', clinicId)
-          .eq('status', 'pending');
-
-        if (invitationsError) {
-          console.error('Error fetching invitations:', invitationsError);
-        } else {
-          const formattedInvitations = (invitationsData || []).map((inv: any) => ({
-            id: inv.id,
-            clinic_id: inv.clinic_id,
-            invitee_id: inv.invitee_id,
-            status: inv.status,
-            created_at: inv.created_at,
-            invitee_name: inv.invitee?.firstname && inv.invitee?.lastname
-              ? `${inv.invitee.firstname} ${inv.invitee.lastname}`.trim()
-              : inv.invitee?.email || 'Unknown',
-            invitee_email: inv.invitee?.email || '',
-            invitee_avatar: inv.invitee?.avatar || null,
-          }));
-          console.log('Pending invitations:', formattedInvitations);
-          setPendingInvitations(formattedInvitations);
-        }
-
-        // Fetch clinic members
         const { data: membersData, error: membersError } = await supabase
           .from('ClinicMembers')
           .select(`
@@ -212,168 +183,228 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
           setClinicMembers(formattedMembers);
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error fetching members:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
+    fetchMembers();
   }, [clinicId]);
 
-  const practitionerOptions: PractitionerOption[] = practitioners
-    .filter(p => {
-      // Filter out practitioners who are already members or have pending invitations
-      const isMember = clinicMembers.some(m => m.practitioner_id === p.id);
-      const hasPendingInvite = pendingInvitations.some(i => i.invitee_id === p.id);
-      return !isMember && !hasPendingInvite;
-    })
-    .map(p => ({
-      value: p.id,
-      label: p.email, // Email as the main label
-      email: p.email,
-      avatar: p.avatar,
-      ptype: p.ptype,
-      degree: p.degree,
-    }));
 
-  const sendInvitation = async () => {
-    if (!selectedPractitioner || !clinicId || !profile?.id) {
-      toast.error('Please select a practitioner');
+  const handleCSVUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      toast.error('Please select a CSV file');
       return;
     }
 
-    setSending(true);
+    setUploadingCSV(true);
 
     try {
-      console.log('Sending invitation to:', selectedPractitioner.email);
+      const text = await file.text();
+      const lines = text.split('\n').filter(line => line.trim());
 
-      // Create invitation in database
-      const { data, error } = await supabase
-        .from('ClinicInvitations')
-        .insert({
-          clinic_id: clinicId,
-          inviter_id: profile.id,
-          invitee_id: selectedPractitioner.value,
-          status: 'pending',
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating invitation:', error);
-        if (error.code === '23505') {
-          toast.error('Invitation already sent to this practitioner');
-        } else {
-          toast.error(`Failed to send invitation: ${error.message}`);
-        }
+      if (lines.length < 2) {
+        toast.error('CSV file must contain headers and at least one row');
+        setUploadingCSV(false);
         return;
       }
 
-      console.log('Invitation created:', data);
+      // Helper function to parse CSV with quoted fields
+      const parseCSVLine = (line: string) => {
+        const result = [];
+        let current = '';
+        let insideQuotes = false;
 
-      // Send email invitation using Supabase Auth
-      try {
-        const emailResponse = await fetch('/api/invite-user', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: selectedPractitioner.email,
-            firstName: '', // You can add these fields to the form if needed
-            lastName: '',
-            message: `You've been invited to join ${profile?.firstname || 'our'} clinic on Kaizen`,
-            metadata: {
-              clinic_id: clinicId,
-              invitation_id: data.id,
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          const nextChar = line[i + 1];
+
+          if (char === '"') {
+            if (insideQuotes && nextChar === '"') {
+              current += '"';
+              i++;
+            } else {
+              insideQuotes = !insideQuotes;
             }
-          }),
-        });
-
-        const emailResult = await emailResponse.json();
-
-        if (!emailResponse.ok) {
-          console.error('Error sending email invitation:', emailResult.error);
-          toast.error(`Invitation saved but email failed: ${emailResult.error}`);
-        } else {
-          // Check if user already exists
-          if (emailResult.userExists) {
-            toast.success(`Invitation saved! ${selectedPractitioner.email} already has an account and can view this invitation from their dashboard.`);
+          } else if (char === ',' && !insideQuotes) {
+            result.push(current.trim().replace(/^"|"$/g, ''));
+            current = '';
           } else {
-            toast.success(`Invitation email sent to ${selectedPractitioner.email}`);
+            current += char;
           }
         }
-      } catch (emailError: any) {
-        console.error('Error sending email invitation:', emailError);
-        toast.error('Invitation saved but email failed to send');
+
+        result.push(current.trim().replace(/^"|"$/g, ''));
+        return result;
+      };
+
+      // Parse CSV headers (keep original case)
+      const rawHeaders = parseCSVLine(lines[0]);
+      const headers = rawHeaders.map(h => h.toLowerCase());
+      const emailIndex = headers.findIndex(h => h.includes('email'));
+
+      if (emailIndex === -1) {
+        toast.error('CSV must contain an "email" column');
+        setUploadingCSV(false);
+        return;
       }
 
-      setSelectedPractitioner(null);
+      // Store headers for table display
+      setCSVHeaders(rawHeaders);
 
-      // Refresh invitations list
-      const { data: invitationsData } = await supabase
-        .from('ClinicInvitations')
-        .select(`
-          id,
-          clinic_id,
-          invitee_id,
-          status,
-          created_at,
-          invitee:Users!ClinicInvitations_invitee_id_fkey(
-            email,
-            avatar,
-            firstname,
-            lastname
-          )
-        `)
-        .eq('clinic_id', clinicId)
-        .eq('status', 'pending');
+      // Parse rows and validate
+      const csvRows: CSVRow[] = [];
+      const emailSet = new Set<string>();
 
-      if (invitationsData) {
-        const formattedInvitations = invitationsData.map((inv: any) => ({
-          id: inv.id,
-          clinic_id: inv.clinic_id,
-          invitee_id: inv.invitee_id,
-          status: inv.status,
-          created_at: inv.created_at,
-          invitee_name: inv.invitee?.firstname && inv.invitee?.lastname
-            ? `${inv.invitee.firstname} ${inv.invitee.lastname}`.trim()
-            : inv.invitee?.email || 'Unknown',
-          invitee_email: inv.invitee?.email || '',
-          invitee_avatar: inv.invitee?.avatar || null,
-        }));
-        setPendingInvitations(formattedInvitations);
+      for (let i = 1; i < lines.length; i++) {
+        const values = parseCSVLine(lines[i]);
+        const email = values[emailIndex];
+
+        if (!email || !email.includes('@')) {
+          continue; // Skip invalid emails
+        }
+
+        if (emailSet.has(email)) {
+          continue; // Skip duplicates
+        }
+
+        emailSet.add(email);
+
+        // Create row with all CSV columns
+        const row: CSVRow = {
+          email,
+          status: 'valid', // Mark as valid for saving
+          practitionerId: email, // Store email as ID for now
+          message: '',
+        };
+
+        // Add all CSV columns dynamically
+        for (let j = 0; j < rawHeaders.length; j++) {
+          if (values[j]) {
+            row[rawHeaders[j]] = values[j];
+          }
+        }
+
+        csvRows.push(row);
       }
 
+      if (csvRows.length === 0) {
+        toast.error('No valid email addresses found in CSV');
+        setUploadingCSV(false);
+        return;
+      }
+
+      setCSVPreview(csvRows);
+      toast.success(`Found ${csvRows.length} practitioners to invite`);
     } catch (error: any) {
-      console.error('Error sending invitation:', error);
-      toast.error('Failed to send invitation');
+      console.error('Error processing CSV:', error);
+      toast.error('Failed to process CSV file');
     } finally {
-      setSending(false);
+      setUploadingCSV(false);
     }
   };
 
-  const cancelInvitation = async (invitationId: string) => {
+  const saveCSVInvitations = async () => {
+    if (!clinicId || !profile?.id || csvPreview.length === 0) {
+      toast.error('No valid invitations to save');
+      return;
+    }
+
+    setSavingCSV(true);
+
     try {
-      console.log('Cancelling invitation:', invitationId);
+      let successCount = 0;
+      let failureCount = 0;
 
-      const { error } = await supabase
-        .from('ClinicInvitations')
-        .delete()
-        .eq('id', invitationId);
+      // Filter only valid rows
+      const validRows = csvPreview.filter(row => row.status === 'valid' && row.practitionerId);
 
-      if (error) {
-        console.error('Error cancelling invitation:', error);
-        toast.error(`Failed to cancel invitation: ${error.message}`);
-        return;
+      // Process each valid email
+      for (const row of validRows) {
+        try {
+          // Find practitioner by email
+          const { data: practitionerData, error: practitionerError } = await supabase
+            .from('Users')
+            .select('id')
+            .eq('email', row.email)
+            .single();
+
+          if (!practitionerData || practitionerError) {
+            console.warn(`Practitioner not found for email: ${row.email}`);
+            failureCount++;
+            continue;
+          }
+
+          // Create invitation
+          const { data: invitationData, error: invitationError } = await supabase
+            .from('ClinicInvitations')
+            .insert({
+              clinic_id: clinicId,
+              inviter_id: profile.id,
+              invitee_id: practitionerData.id,
+              status: 'pending',
+            })
+            .select()
+            .single();
+
+          if (invitationError) {
+            console.error(`Error creating invitation for ${row.email}:`, invitationError);
+            failureCount++;
+            continue;
+          }
+
+          // Send email invitation
+          try {
+            await fetch('/api/invite-user', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                email: row.email,
+                firstName: '',
+                lastName: '',
+                message: `You've been invited to join ${profile?.firstname || 'a'} clinic on Kaizen`,
+                metadata: {
+                  clinic_id: clinicId,
+                  invitation_id: invitationData?.id,
+                }
+              }),
+            });
+
+            successCount++;
+          } catch (emailError: any) {
+            console.error(`Error sending email to ${row.email}:`, emailError);
+            successCount++; // Still count as success if invitation was created
+          }
+        } catch (error) {
+          console.error(`Error processing ${row.email}:`, error);
+          failureCount++;
+        }
       }
 
-      toast.success('Invitation cancelled');
-      setPendingInvitations(prev => prev.filter(inv => inv.id !== invitationId));
-    } catch (error) {
-      console.error('Error cancelling invitation:', error);
-      toast.error('Failed to cancel invitation');
+      // Show results
+      if (successCount > 0) {
+        toast.success(`Successfully invited ${successCount} practitioner(s)`);
+      }
+      if (failureCount > 0) {
+        toast.error(`Failed to invite ${failureCount} practitioner(s)`);
+      }
+
+      // Reset preview
+      setCSVPreview([]);
+      setCSVHeaders([]);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error: any) {
+      console.error('Error saving CSV invitations:', error);
+      toast.error('Failed to save invitations');
+    } finally {
+      setSavingCSV(false);
     }
   };
 
@@ -404,31 +435,6 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
     }
   };
 
-  const formatOption = ({ email, avatar, ptype }: PractitionerOption) => (
-    <div className="flex items-center gap-3 py-1">
-      <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
-        {avatar ? (
-          <Image src={avatar} alt={email} width={32} height={32} className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary font-semibold text-sm">
-            {email.charAt(0).toUpperCase()}
-          </div>
-        )}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-gray-900 truncate">{email}</p>
-        {ptype && <p className="text-xs text-gray-500 truncate">Type: {ptype}</p>}
-      </div>
-    </div>
-  );
-
-  // Custom filter function to search by email
-  const filterOption = (option: any, inputValue: string) => {
-    const searchTerm = inputValue.toLowerCase();
-    const email = option.data.email?.toLowerCase() || '';
-    return email.includes(searchTerm);
-  };
-
   if (!clinicId) {
     return (
       <div className="space-y-6">
@@ -456,153 +462,148 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
         <p className="text-lg text-gray-600">Invite practitioners to join your clinic and manage your team</p>
       </div>
 
-      {/* Send Invitation Section */}
-      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-8 shadow-sm">
+      {/* CSV Upload Section */}
+      <div className="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 rounded-2xl p-8 shadow-sm">
         <div className="flex items-start gap-4 mb-6">
-          <div className="w-14 h-14 bg-gradient-to-br from-primary to-blue-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
-            <UserPlus className="w-7 h-7 text-white" />
+          <div className="w-14 h-14 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+            <FileUp className="w-7 h-7 text-white" />
           </div>
           <div className="flex-1">
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">Invite a Practitioner</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">Add Team Members via CSV</h3>
             <p className="text-gray-600">
-              Search and select a practitioner to send them an invitation to join your clinic
+              Upload a CSV file containing practitioner emails to invite multiple members at once
             </p>
-            {!loadingPractitioners && (
-              <p className="text-sm text-blue-600 mt-2">
-                {practitioners.length} practitioner{practitioners.length !== 1 ? 's' : ''} available
-              </p>
-            )}
           </div>
         </div>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Select Practitioner <span className="text-red-500">*</span>
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
+              CSV File <span className="text-red-500">*</span>
             </label>
-            <Select
-              value={selectedPractitioner}
-              onChange={setSelectedPractitioner}
-              options={practitionerOptions}
-              formatOptionLabel={formatOption}
-              filterOption={filterOption}
-              placeholder={loadingPractitioners ? "Loading practitioners..." : "Search by email..."}
-              isClearable
-              isSearchable
-              isLoading={loadingPractitioners}
-              isDisabled={loadingPractitioners}
-              className="text-sm"
-              classNamePrefix="react-select"
-              noOptionsMessage={() => loadingPractitioners ? "Loading..." : "No practitioners available"}
-              loadingMessage={() => "Loading practitioners..."}
-              styles={{
-                control: (base) => ({
-                  ...base,
-                  minHeight: '48px',
-                  borderRadius: '0.5rem',
-                  borderColor: '#d1d5db',
-                  '&:hover': { borderColor: '#9ca3af' },
-                }),
-                menu: (base) => ({
-                  ...base,
-                  borderRadius: '0.5rem',
-                  overflow: 'hidden',
-                }),
-              }}
-            />
-            <p className="text-xs text-gray-500 mt-2">
-              Type email to search. Practitioners who are already members or have pending invitations are not shown.
-            </p>
-          </div>
-
-          <button
-            onClick={sendInvitation}
-            disabled={!selectedPractitioner || sending}
-            className="w-full md:w-auto px-8 py-3 bg-gradient-to-r from-primary to-blue-600 text-white font-semibold rounded-lg hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none flex items-center justify-center gap-2"
-          >
-            {sending ? (
-              <>
-                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Sending Invitation...
-              </>
-            ) : (
-              <>
-                <Send className="w-5 h-5" />
-                Send Invitation
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* Pending Invitations */}
-      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm">
-        <div className="border-b border-gray-200 bg-gradient-to-r from-amber-50 to-yellow-50 px-6 py-5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-              <Clock className="w-5 h-5 text-amber-600" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-gray-900">Pending Invitations</h3>
-              <p className="text-sm text-gray-600">Practitioners you&apos;ve invited who haven&apos;t responded yet</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-6">
-          {pendingInvitations.length === 0 ? (
-            <div className="text-center py-12">
-              <Mail className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 text-lg font-medium">No pending invitations</p>
-              <p className="text-gray-400 text-sm mt-2">Invitations you send will appear here</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {pendingInvitations.map((invitation) => (
-                <div
-                  key={invitation.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
-                      {invitation.invitee_avatar ? (
-                        <Image
-                          src={invitation.invitee_avatar}
-                          alt={invitation.invitee_name}
-                          width={48}
-                          height={48}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary font-semibold text-lg">
-                          {invitation.invitee_name.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-900">{invitation.invitee_name}</p>
-                      <p className="text-sm text-gray-500">{invitation.invitee_email}</p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        Invited {new Date(invitation.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => cancelInvitation(invitation.id)}
-                    className="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg border border-red-200 hover:border-red-300 transition-colors flex items-center gap-2"
-                  >
-                    <XCircle className="w-4 h-4" />
-                    Cancel
-                  </button>
+            <div className="relative">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                onChange={handleCSVUpload}
+                disabled={uploadingCSV}
+                className="hidden"
+                id="csv-upload"
+              />
+              <label
+                htmlFor="csv-upload"
+                className="flex items-center justify-center gap-3 p-8 border-2 border-dashed border-purple-300 rounded-xl hover:border-purple-400 hover:bg-purple-100/30 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="text-center">
+                  {uploadingCSV ? (
+                    <>
+                      <svg className="animate-spin h-8 w-8 text-purple-600 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <p className="text-purple-700 font-semibold">Processing CSV...</p>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-8 h-8 text-purple-600 mx-auto mb-2" />
+                      <p className="text-purple-700 font-semibold">Click to upload CSV</p>
+                      <p className="text-sm text-gray-600 mt-1">or drag and drop</p>
+                    </>
+                  )}
                 </div>
-              ))}
+              </label>
             </div>
-          )}
+            <p className="text-xs text-gray-600 mt-3">
+              <span className="font-semibold">CSV Format Required:</span> First row must contain headers. Include an &quot;email&quot; column with practitioner email addresses.
+            </p>
+            <div className="mt-3 p-3 bg-purple-100 rounded-lg">
+              <p className="text-xs text-purple-900 font-semibold mb-2">Example CSV format:</p>
+              <code className="text-xs text-purple-800 block font-mono whitespace-pre-wrap">
+email,name,type{'\n'}doctor1@example.com,John Doe,MD{'\n'}doctor2@example.com,Jane Smith,DDS
+              </code>
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* CSV Preview Table */}
+      {csvPreview.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm">
+          <div className="border-b border-gray-200 bg-gradient-to-r from-cyan-50 to-blue-50 px-6 py-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-cyan-100 rounded-lg flex items-center justify-center">
+                  <FileUp className="w-5 h-5 text-cyan-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">CSV Preview</h3>
+                  <p className="text-sm text-gray-600">{csvPreview.length} practitioner(s) ready to invite</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setCSVPreview([]);
+                  setCSVHeaders([]);
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+
+          <div className="p-6">
+            <DataTable
+              value={csvPreview}
+              scrollable
+              className="p-datatable-sm"
+              style={{ width: '100%' }}
+            >
+              {csvHeaders.map((header) => (
+                <Column
+                  key={header}
+                  field={header}
+                  header={header}
+                  body={(rowData) => rowData[header] || '-'}
+                />
+              ))}
+            </DataTable>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                onClick={saveCSVInvitations}
+                disabled={savingCSV || csvPreview.filter(r => r.status === 'valid').length === 0}
+                className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+              >
+                {savingCSV ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4" />
+                    Save
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => {
+                  setCSVPreview([]);
+                  setCSVHeaders([]);
+                }}
+                className="px-4 py-2 text-gray-700 text-sm font-medium border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Clinic Members */}
       <div className="bg-white border border-gray-200 rounded-2xl shadow-sm">
@@ -682,10 +683,12 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
         <div className="text-sm text-blue-900">
           <p className="font-semibold mb-1">How it works:</p>
           <ul className="list-disc list-inside space-y-1 text-blue-800">
-            <li>Select and invite practitioners to join your clinic</li>
+            <li>Upload a CSV file with practitioner email addresses</li>
+            <li>System will match emails and create invitations automatically</li>
             <li>Invited practitioners will receive a notification to accept or decline</li>
             <li>Once accepted, they become members of your clinic team</li>
             <li>You can remove members at any time</li>
+            <li>Practitioners who are already members or have pending invitations will be skipped</li>
           </ul>
         </div>
       </div>

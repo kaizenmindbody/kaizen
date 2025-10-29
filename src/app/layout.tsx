@@ -19,13 +19,14 @@ const merriweather = Merriweather({
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAdminRoute = pathname?.startsWith('/admin');
+  const isProfileRoute = pathname?.startsWith('/profile');
 
   return (
     <>
-      {!isAdminRoute && <Header />}
+      {!isAdminRoute && !isProfileRoute && <Header />}
       {children}
-      {!isAdminRoute && <Footer />}
-      {!isAdminRoute && <ScrollToTop />}
+      {!isAdminRoute && !isProfileRoute && <Footer />}
+      {!isAdminRoute && !isProfileRoute && <ScrollToTop />}
     </>
   );
 }

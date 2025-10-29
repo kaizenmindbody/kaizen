@@ -12,13 +12,13 @@ const GoogleMap = dynamic(
   { ssr: false }
 );
 
-const AdvancedMarkerElement = dynamic(
-  () => import('@react-google-maps/api').then((mod) => mod.AdvancedMarkerElement),
+const MarkerF = dynamic(
+  () => import('@react-google-maps/api').then((mod) => mod.MarkerF),
   { ssr: false }
 );
 
 const InfoWindow = dynamic(
-  () => import('@react-google-maps/api').then((mod) => mod.InfoWindow),
+  () => import('@react-google-maps/api').then((mod) => mod.InfoWindowF),
   { ssr: false }
 );
 
@@ -123,10 +123,9 @@ export const Location = ({ practitioner, mapCenter, showInfoWindow, setShowInfoW
                       streetViewControl: false,
                       mapTypeControl: false,
                       fullscreenControl: false,
-                      mapId: 'kaizen-practitioner-map', // Required for AdvancedMarkerElement
                     }}
                   >
-                    <AdvancedMarkerElement
+                    <MarkerF
                       position={mapCenter}
                       title={practitioner.full_name}
                       onClick={() => setShowInfoWindow(true)}

@@ -134,14 +134,17 @@ export const updateBasicInfo = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      // Construct full address from parts
+      // Construct full address from parts, filtering out empty values
       const addressParts = [
         data.address_line1,
         data.address_line2,
         data.city,
         data.state,
         data.zip_code
-      ].map(part => (part || '').trim()).join(', ');
+      ]
+        .map(part => (part || '').trim())
+        .filter(part => part !== '')
+        .join(', ');
 
       const updateData = {
         user_id: userId,
@@ -156,6 +159,9 @@ export const updateBasicInfo = createAsyncThunk(
         phone: data.business_phone || null,
         address: addressParts || null,
       };
+
+      console.log('Updating profile with type_of_practitioner:', data.type_of_practitioner);
+      console.log('Sending ptype to API:', updateData.ptype);
 
       const response = await fetch('/api/profile', {
         method: 'PUT',

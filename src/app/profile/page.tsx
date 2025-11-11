@@ -187,15 +187,25 @@ const ProfilePage = () => {
   // Fetch degrees from database
   useEffect(() => {
     const fetchDegrees = async () => {
-      const { data, error } = await supabase
-        .from('Degrees')
-        .select('title')
-        .order('title', { ascending: true });
+      try {
+        const { data, error } = await supabase
+          .from('Degrees')
+          .select('title')
+          .order('title', { ascending: true });
 
-      if (error) {
-        console.error('Error fetching degrees:', error);
-      } else if (data) {
-        setAvailableDegrees(data.map(d => d.title));
+        if (error) {
+          setAvailableDegrees([]);
+          return;
+        }
+
+        if (data && Array.isArray(data)) {
+          setAvailableDegrees(data.map(d => d.title || '').filter(Boolean));
+        } else {
+          setAvailableDegrees([]);
+        }
+      } catch (err) {
+        console.error('Unexpected error fetching degrees:', err instanceof Error ? err.message : String(err));
+        setAvailableDegrees([]);
       }
     };
 
@@ -580,7 +590,10 @@ const ProfilePage = () => {
   // Fetch user profile
   useEffect(() => {
     const fetchProfile = async () => {
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
       try {
         const { data, error } = await supabase
@@ -590,7 +603,56 @@ const ProfilePage = () => {
           .single();
 
         if (error) {
-          console.error('Error fetching profile:', error);
+          try {
+            console.error('Error fetching user profile:', {
+              code: error.code || 'unknown',
+              message: error.message || 'Unknown error'
+            });
+          } catch (logError) {
+            console.error('Error fetching user profile: Unable to log full error details');
+          }
+
+          // If user not found in Users table, create a basic profile
+          if (error.code === 'PGRST116') {
+            console.warn('User not found in Users table, creating basic profile');
+            const defaultProfile: ProfileData = {
+              id: user.id,
+              email: user.email || '',
+              full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+              phone: '',
+              address: '',
+              avatar: null,
+              type: 'patient',
+              user_type: 'patient',
+              degree: '',
+              languages: [],
+              specialty: '',
+              gender: '',
+              date_of_birth: '',
+              emergency_contact_name: '',
+              emergency_contact_phone: '',
+              medical_conditions: [],
+              insurance_provider: '',
+              years_of_experience: 0,
+              specialty_rate: {},
+              video: null,
+              images: null,
+              clinic: '',
+              title: '',
+              website: '',
+              clinicpage: 'no',
+              created_at: new Date().toISOString()
+            };
+            setProfile(defaultProfile);
+            setOriginalProfile(defaultProfile);
+          }
+          setLoading(false);
+          return;
+        }
+
+        if (!data) {
+          console.warn('No user data returned');
+          setLoading(false);
           return;
         }
 
@@ -637,9 +699,9 @@ const ProfilePage = () => {
         setProfile(profileData);
         setOriginalProfile(profileData);
         setAddressInput(profileData.address || '');
-        
+
       } catch (error) {
-        console.error('Error:', error);
+        console.error('Error fetching profile:', error instanceof Error ? error.message : String(error));
       } finally {
         setLoading(false);
       }
@@ -1111,11 +1173,20 @@ const ProfilePage = () => {
                           <div key={tab}>
                             <button
                               type="button"
-                              onClick={() => {
-                                setExpandedMenu(expandedMenu === 'Profile' ? null : 'Profile');
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                // If dropdown is closed, open it and show View Profile
+                                if (expandedMenu !== 'Profile') {
+                                  setExpandedMenu('Profile');
+                                  handleTabChange('View Profile');
+                                } else {
+                                  // If dropdown is already open, just close it
+                                  setExpandedMenu(null);
+                                }
                               }}
                               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg font-medium transition-all text-sm ${
-                                activeTab === 'Profile' || profileSubItems.includes(activeTab)
+                                profileSubItems.includes(activeTab)
                                   ? 'bg-primary text-white shadow-sm'
                                   : 'text-gray-700 hover:bg-gray-50'
                               }`}
@@ -1204,11 +1275,20 @@ const ProfilePage = () => {
                           <div key={tab}>
                             <button
                               type="button"
-                              onClick={() => {
-                                setExpandedMenu(expandedMenu === 'Clinic' ? null : 'Clinic');
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                // If dropdown is closed, open it and show View Clinic Profile
+                                if (expandedMenu !== 'Clinic') {
+                                  setExpandedMenu('Clinic');
+                                  handleTabChange('View Clinic Profile');
+                                } else {
+                                  // If dropdown is already open, just close it
+                                  setExpandedMenu(null);
+                                }
                               }}
                               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg font-medium transition-all text-sm ${
-                                activeTab === 'Clinic' || clinicSubItems.includes(activeTab)
+                                clinicSubItems.includes(activeTab)
                                   ? 'bg-primary text-white shadow-sm'
                                   : 'text-gray-700 hover:bg-gray-50'
                               }`}

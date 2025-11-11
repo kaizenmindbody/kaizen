@@ -1,6 +1,5 @@
 "use client";
 
-import { useDescriptions } from '@/hooks/useDescriptions';
 import {
   User,
   GraduationCap,
@@ -12,11 +11,13 @@ import {
 
 interface AboutProps {
   practitioner: any;
+  descriptionsData?: any;
 }
 
-export const About = ({ practitioner }: AboutProps) => {
-  // Fetch descriptions data from Descriptions table using the hook
-  const { descriptions, loading } = useDescriptions(practitioner?.id);
+export const About = ({ practitioner, descriptionsData }: AboutProps) => {
+  // Use the descriptions data passed from parent
+  const descriptions = descriptionsData;
+  const loading = false; // Data is already loaded by parent
 
   if (loading) {
     return (

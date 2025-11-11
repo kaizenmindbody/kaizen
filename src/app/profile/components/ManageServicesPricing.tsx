@@ -10,6 +10,24 @@ interface ManageServicesPricingProps {
   profile: ProfileData | null;
 }
 
+// Helper function to auto-format price with $ prefix
+const formatPrice = (value: string): string => {
+  if (!value || value.trim() === '') return '';
+
+  // Remove all $ signs first
+  let cleaned = value.replace(/\$/g, '').trim();
+
+  // Check if it's a range (contains -)
+  if (cleaned.includes('-')) {
+    const parts = cleaned.split('-').map(p => p.trim());
+    // Add $ to each part
+    return parts.map(p => p ? `$${p}` : '').join(' - ');
+  }
+
+  // Single price - just add $
+  return cleaned ? `$${cleaned}` : '';
+};
+
 const ManageServicesPricing: React.FC<ManageServicesPricingProps> = ({ profile }) => {
   const { services: availableServices, loading: servicesLoading } = useService();
 
@@ -170,6 +188,20 @@ const ManageServicesPricing: React.FC<ManageServicesPricingProps> = ({ profile }
     setPricingList(updated);
   };
 
+  // Handler to auto-format price on blur
+  const handlePriceBlur = (index: number, field: 'first_time_price' | 'returning_price', category: 'In-Person / Clinic Visit' | 'Virtual Visit') => {
+    const pricingList = category === 'In-Person / Clinic Visit' ? servicePricings : virtualPricings;
+    const setPricingList = category === 'In-Person / Clinic Visit' ? setServicePricings : setVirtualPricings;
+
+    const updated = [...pricingList];
+    const currentValue = updated[index][field];
+
+    if (currentValue) {
+      updated[index] = { ...updated[index], [field]: formatPrice(currentValue) };
+      setPricingList(updated);
+    }
+  };
+
   const handlePackageChange = (index: number, field: keyof PackagePricing, value: any) => {
     const updated = [...packagePricings];
 
@@ -186,6 +218,17 @@ const ManageServicesPricing: React.FC<ManageServicesPricingProps> = ({ profile }
     }
 
     setPackagePricings(updated);
+  };
+
+  // Handler to auto-format package price on blur
+  const handlePackagePriceBlur = (index: number) => {
+    const updated = [...packagePricings];
+    const currentValue = updated[index].price;
+
+    if (currentValue) {
+      updated[index] = { ...updated[index], price: formatPrice(currentValue) };
+      setPackagePricings(updated);
+    }
   };
 
   const handleSave = async () => {
@@ -240,7 +283,7 @@ const ManageServicesPricing: React.FC<ManageServicesPricingProps> = ({ profile }
           {/* Sliding Scale Dropdown */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Sliding Scale? For sliding scale, please enter the price range into the Pricing field. i.e. $85 - $100
+              Sliding Scale? For sliding scale, enter the price range into the Pricing field (e.g., 85 - 100). The $ sign will be added automatically.
             </label>
             <select
               value={servicePricings[0]?.is_sliding_scale ? 'yes' : 'no'}
@@ -292,7 +335,8 @@ const ManageServicesPricing: React.FC<ManageServicesPricingProps> = ({ profile }
                       type="text"
                       value={pricing.first_time_price}
                       onChange={(e) => handleServiceChange(index, 'first_time_price', e.target.value, 'In-Person / Clinic Visit')}
-                      placeholder={pricing.is_sliding_scale ? "$85 - $100" : "$85"}
+                      onBlur={() => handlePriceBlur(index, 'first_time_price', 'In-Person / Clinic Visit')}
+                      placeholder={pricing.is_sliding_scale ? "85 - 100" : "85"}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                     />
                   </div>
@@ -320,7 +364,8 @@ const ManageServicesPricing: React.FC<ManageServicesPricingProps> = ({ profile }
                       type="text"
                       value={pricing.returning_price}
                       onChange={(e) => handleServiceChange(index, 'returning_price', e.target.value, 'In-Person / Clinic Visit')}
-                      placeholder={pricing.is_sliding_scale ? "$75 - $90" : "$75"}
+                      onBlur={() => handlePriceBlur(index, 'returning_price', 'In-Person / Clinic Visit')}
+                      placeholder={pricing.is_sliding_scale ? "75 - 90" : "75"}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                     />
                   </div>
@@ -400,7 +445,8 @@ const ManageServicesPricing: React.FC<ManageServicesPricingProps> = ({ profile }
                       type="text"
                       value={pricing.first_time_price}
                       onChange={(e) => handleServiceChange(index, 'first_time_price', e.target.value, 'Virtual Visit')}
-                      placeholder={pricing.is_sliding_scale ? "$85 - $100" : "$85"}
+                      onBlur={() => handlePriceBlur(index, 'first_time_price', 'Virtual Visit')}
+                      placeholder={pricing.is_sliding_scale ? "85 - 100" : "85"}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                     />
                   </div>
@@ -428,7 +474,8 @@ const ManageServicesPricing: React.FC<ManageServicesPricingProps> = ({ profile }
                       type="text"
                       value={pricing.returning_price}
                       onChange={(e) => handleServiceChange(index, 'returning_price', e.target.value, 'Virtual Visit')}
-                      placeholder={pricing.is_sliding_scale ? "$75 - $90" : "$75"}
+                      onBlur={() => handlePriceBlur(index, 'returning_price', 'Virtual Visit')}
+                      placeholder={pricing.is_sliding_scale ? "75 - 90" : "75"}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                     />
                   </div>
@@ -522,7 +569,8 @@ const ManageServicesPricing: React.FC<ManageServicesPricingProps> = ({ profile }
                       type="text"
                       value={packagePricing.price}
                       onChange={(e) => handlePackageChange(index, 'price', e.target.value)}
-                      placeholder="$400"
+                      onBlur={() => handlePackagePriceBlur(index)}
+                      placeholder="400"
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                     />
                   </div>
@@ -555,6 +603,7 @@ const ManageServicesPricing: React.FC<ManageServicesPricingProps> = ({ profile }
         <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h4 className="text-sm font-semibold text-blue-900 mb-2">Pricing Guidelines</h4>
           <ul className="text-sm text-blue-800 space-y-1">
+            <li>• Enter prices without the $ sign (e.g., 85 or 85 - 100) - it will be added automatically</li>
             <li>• Set competitive rates based on your experience and specialty</li>
             <li>• Consider offering package deals for multiple sessions</li>
             <li>• Review and adjust pricing quarterly based on demand</li>

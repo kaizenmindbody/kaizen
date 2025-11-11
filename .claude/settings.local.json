@@ -8,7 +8,17 @@
       "Bash(powershell -Command \"Remove-Item -Recurse -Force -Path ''.\\.next'' -ErrorAction SilentlyContinue; Write-Host ''Cache cleared''\")",
       "Bash(powershell -Command:*)",
       "Bash(timeout 20 npm run dev:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(npm run dev:*)",
+      "Bash(timeout 5 bash:*)",
+      "Bash(timeout 15 bash:*)",
+      "Bash(taskkill:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash($null)",
+      "Bash(Write-Host \"Cleaned up old process\")",
+      "Bash(timeout 10 bash:*)",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": []

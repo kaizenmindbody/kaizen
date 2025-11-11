@@ -2,18 +2,36 @@
 
 import { ProfileData } from '@/types/user';
 import { useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
 import toast from 'react-hot-toast';
 import { useDescriptions } from '@/hooks/useDescriptions';
-
-const LanguageSelector = dynamic(() => import('react-language-selector-lite'), {
-  ssr: false,
-  loading: () => <div className="w-full h-12 bg-gray-100 animate-pulse rounded-lg"></div>
-});
 
 interface ManageDescriptionsProps {
   profile: ProfileData | null;
 }
+
+// Common languages for TCM practitioners with Cantonese and Mandarin separate
+const COMMON_LANGUAGES = [
+  'English',
+  'Mandarin',
+  'Cantonese',
+  'Spanish',
+  'Korean',
+  'Japanese',
+  'Vietnamese',
+  'Tagalog',
+  'Hindi',
+  'Thai',
+  'French',
+  'German',
+  'Italian',
+  'Portuguese',
+  'Russian',
+  'Arabic',
+  'Punjabi',
+  'Urdu',
+  'Persian',
+  'Polish',
+].sort();
 
 const ManageDescriptions: React.FC<ManageDescriptionsProps> = ({ profile }) => {
   const { descriptions, loading, updateDescriptions, isUpdating, refreshDescriptions } = useDescriptions(profile?.id);
@@ -55,9 +73,12 @@ const ManageDescriptions: React.FC<ManageDescriptionsProps> = ({ profile }) => {
     }
   }, [descriptions, background, education, treatment, firstVisit, insurance, cancellation, language]);
 
-  const handleLanguageSelect = (lang: any) => {
-    if (lang && lang.name && !language.includes(lang.name)) {
-      setLanguage([...language, lang.name]);
+  const handleLanguageSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedLang = e.target.value;
+    if (selectedLang && !language.includes(selectedLang)) {
+      setLanguage([...language, selectedLang]);
+      // Reset the select to show placeholder
+      e.target.value = '';
     }
   };
 
@@ -163,14 +184,24 @@ const ManageDescriptions: React.FC<ManageDescriptionsProps> = ({ profile }) => {
               Education and Credentials
             </label>
             <p className="text-sm text-gray-500 mb-2">
-              List all your educational accolades here!
+              List all your educational accolades here! Format as a list, one credential per line.
             </p>
+            <div className="mb-2 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+              <p className="text-xs font-medium text-gray-600 mb-1">Examples:</p>
+              <p className="text-sm text-gray-400 leading-relaxed">
+                • Master of Science in Traditional Chinese Medicine, Five Branches University<br/>
+                • Licensed Acupuncturist (L.Ac.), California Acupuncture Board<br/>
+                • National Certification Commission for Acupuncture and Oriental Medicine (NCCAOM)<br/>
+                • Diplomate in Oriental Medicine (Dipl. O.M.)<br/>
+                • Advanced Training in Cosmetic Acupuncture, Facial Enhancement Institute
+              </p>
+            </div>
             <textarea
-              rows={5}
+              rows={6}
               value={education}
               onChange={(e) => setEducation(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-              placeholder="List your degrees, certifications, and training..."
+              placeholder="• Degree name, Institution&#10;• Certification name, Certifying body&#10;• Training program, Organization"
             />
           </div>
 
@@ -252,12 +283,18 @@ const ManageDescriptions: React.FC<ManageDescriptionsProps> = ({ profile }) => {
               (Choose as many as apply)
             </p>
 
-            <div className="border rounded-lg p-3 bg-white mb-3">
-              <LanguageSelector
-                onSelect={handleLanguageSelect}
-                includeDetails={true}
-              />
-            </div>
+            <select
+              onChange={handleLanguageSelect}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent mb-3"
+              defaultValue=""
+            >
+              <option value="" disabled>Select a language to add...</option>
+              {COMMON_LANGUAGES.filter(lang => !language.includes(lang)).map((lang) => (
+                <option key={lang} value={lang}>
+                  {lang}
+                </option>
+              ))}
+            </select>
 
             {/* Selected Languages Display */}
             <div className="min-h-[48px] flex items-start p-3 border border-gray-200 rounded-lg bg-gray-50">
@@ -266,13 +303,13 @@ const ManageDescriptions: React.FC<ManageDescriptionsProps> = ({ profile }) => {
                   {language.map((lang, index) => (
                     <span
                       key={index}
-                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800"
+                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary/10 text-primary border border-primary/20"
                     >
                       {lang}
                       <button
                         type="button"
                         onClick={() => handleRemoveLanguage(lang)}
-                        className="ml-2 text-green-600 hover:text-green-800 text-lg leading-none"
+                        className="ml-2 text-primary hover:text-primary/80 text-lg leading-none"
                       >
                         ×
                       </button>

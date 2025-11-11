@@ -13,7 +13,7 @@ interface ManageImagesVideoProps {
 const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
   const {
     images: uploadedImages,
-    video: uploadedVideo,
+    videos: uploadedVideos,
     loading,
     saving,
     error,
@@ -26,9 +26,9 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
   } = useImageVideo(profile?.id);
 
   const [pendingImages, setPendingImages] = useState<File[]>([]);
-  const [pendingVideo, setPendingVideo] = useState<File | null>(null);
+  const [pendingVideos, setPendingVideos] = useState<File[]>([]);
   const [imagesPreviews, setImagesPreviews] = useState<string[]>([]);
-  const [videoPreview, setVideoPreview] = useState<string | null>(null);
+  const [videosPreviews, setVideosPreviews] = useState<string[]>([]);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
@@ -109,26 +109,38 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
-    const file = files[0];
+    // Convert FileList to Array
+    const filesArray = Array.from(files);
 
-    // Validate file type
-    if (!file.type.startsWith('video/')) {
-      toast.error('Please select a valid video file');
-      return;
+    // Validate all files first
+    for (const file of filesArray) {
+      // Validate file type
+      if (!file.type.startsWith('video/')) {
+        toast.error(`${file.name} is not a valid video file`);
+        return;
+      }
+
+      // Validate file size (50MB)
+      if (file.size > 50 * 1024 * 1024) {
+        toast.error(`${file.name} is larger than 50MB`);
+        return;
+      }
     }
 
-    // Validate file size (50MB)
-    if (file.size > 50 * 1024 * 1024) {
-      toast.error('Video size must be less than 50MB');
-      return;
-    }
+    // Process all files
+    const newFiles: File[] = [];
+    const newPreviews: string[] = [];
 
-    // Set pending video
-    setPendingVideo(file);
+    filesArray.forEach((file) => {
+      newFiles.push(file);
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+      newPreviews.push(previewUrl);
+    });
 
-    // Create preview
-    const previewUrl = URL.createObjectURL(file);
-    setVideoPreview(previewUrl);
+    setPendingVideos(prev => [...prev, ...newFiles]);
+    setVideosPreviews(prev => [...prev, ...newPreviews]);
+    toast.success(`${filesArray.length} video${filesArray.length > 1 ? 's' : ''} added! Click "Save Changes" to upload.`);
 
     // Reset input
     if (videoInputRef.current) videoInputRef.current.value = '';
@@ -139,12 +151,13 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
     setImagesPreviews(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleRemovePendingVideo = () => {
-    setPendingVideo(null);
-    if (videoPreview) {
-      URL.revokeObjectURL(videoPreview);
-      setVideoPreview(null);
+  const handleRemovePendingVideo = (index: number) => {
+    // Revoke the object URL to free memory
+    if (videosPreviews[index]) {
+      URL.revokeObjectURL(videosPreviews[index]);
     }
+    setPendingVideos(prev => prev.filter((_, i) => i !== index));
+    setVideosPreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleDeleteUploadedImage = async (imageUrl: string) => {
@@ -157,10 +170,10 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
     }
   };
 
-  const handleDeleteUploadedVideo = async () => {
-    if (!profile?.id || !uploadedVideo) return;
+  const handleDeleteUploadedVideo = async (videoUrl: string) => {
+    if (!profile?.id) return;
 
-    const success = await deleteVideo(profile.id, uploadedVideo);
+    const success = await deleteVideo(profile.id, videoUrl);
     if (!success) {
       // Error toast will be shown by the useEffect hook
       console.error('Failed to delete video');
@@ -173,23 +186,22 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
       return;
     }
 
-    if (pendingImages.length === 0 && !pendingVideo) {
+    if (pendingImages.length === 0 && pendingVideos.length === 0) {
       toast.error('No changes to save');
       return;
     }
 
-    const success = await uploadMedia(profile.id, pendingImages, pendingVideo);
+    const success = await uploadMedia(profile.id, pendingImages, pendingVideos);
 
     if (success) {
       // Clear pending items and previews
       setPendingImages([]);
-      setPendingVideo(null);
+      setPendingVideos([]);
       setImagesPreviews([]);
 
-      if (videoPreview) {
-        URL.revokeObjectURL(videoPreview);
-        setVideoPreview(null);
-      }
+      // Revoke all video preview URLs to free memory
+      videosPreviews.forEach(previewUrl => URL.revokeObjectURL(previewUrl));
+      setVideosPreviews([]);
 
       // Success toast will be shown by the useEffect hook
     }
@@ -197,7 +209,7 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
   };
 
   // Track if there are unsaved changes
-  const hasChanges = pendingImages.length > 0 || pendingVideo !== null;
+  const hasChanges = pendingImages.length > 0 || pendingVideos.length > 0;
 
   // Memoize filtered images to prevent re-filtering on every render
   const validUploadedImages = useMemo(() => {
@@ -338,12 +350,13 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
       {/* Video Section */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-semibold text-gray-900">Profile Video</h3>
+          <h3 className="text-xl font-semibold text-gray-900">Profile Videos</h3>
           <div>
             <input
               ref={videoInputRef}
               type="file"
               accept="video/*"
+              multiple
               onChange={handleVideoSelect}
               className="hidden"
               disabled={saving}
@@ -354,51 +367,59 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
               className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <i className="pi pi-video mr-2"></i>
-              {videoPreview || uploadedVideo ? 'Replace Video' : 'Add Video'}
+              Add Videos
             </button>
           </div>
         </div>
 
-        {/* Video Display */}
-        {videoPreview ? (
-          <div className="relative">
-            <div className="absolute top-2 left-2 px-2 py-1 bg-blue-600 text-white text-xs rounded z-10">
-              New Video (Preview)
-            </div>
-            <video
-              src={videoPreview}
-              controls
-              className="w-full max-w-2xl rounded-lg border-2 border-dashed border-blue-400"
-            />
-            <button
-              onClick={handleRemovePendingVideo}
-              className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              <i className="pi pi-times mr-2"></i>
-              Cancel Video
-            </button>
-          </div>
-        ) : uploadedVideo ? (
-          <div className="relative">
-            <video
-              src={uploadedVideo}
-              controls
-              className="w-full max-w-2xl rounded-lg border border-gray-200"
-            />
-            <button
-              onClick={handleDeleteUploadedVideo}
-              className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              <i className="pi pi-trash mr-2"></i>
-              Remove Video
-            </button>
+        {/* Videos Grid */}
+        {uploadedVideos.length > 0 || videosPreviews.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Uploaded Videos */}
+            {uploadedVideos.map((videoUrl, index) => (
+              <div key={`uploaded-video-${index}-${videoUrl.substring(videoUrl.length - 20)}`} className="relative group">
+                <video
+                  src={videoUrl}
+                  controls
+                  className="w-full rounded-lg border border-gray-200"
+                />
+                <button
+                  onClick={() => handleDeleteUploadedVideo(videoUrl)}
+                  className="mt-2 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors w-full"
+                >
+                  <i className="pi pi-trash mr-2"></i>
+                  Remove Video
+                </button>
+              </div>
+            ))}
+
+            {/* Pending Videos (Previews) */}
+            {videosPreviews.map((previewUrl, index) => (
+              <div key={`preview-video-${index}`} className="relative">
+                <div className="absolute top-2 left-2 px-2 py-1 bg-blue-600 text-white text-xs rounded z-10">
+                  New
+                </div>
+                <video
+                  src={previewUrl}
+                  controls
+                  className="w-full rounded-lg border-2 border-dashed border-blue-400"
+                />
+                <button
+                  onClick={() => handleRemovePendingVideo(index)}
+                  className="mt-2 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors w-full"
+                >
+                  <i className="pi pi-times mr-2"></i>
+                  Cancel Video
+                </button>
+              </div>
+            ))}
           </div>
         ) : (
           <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
             <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
-            <p className="mt-2 text-sm text-gray-600">No video yet. Click &ldquo;Add Video&rdquo; to get started.</p>
+            <p className="mt-2 text-sm text-gray-600">No videos yet. Click &ldquo;Add Videos&rdquo; to upload multiple videos at once.</p>
           </div>
         )}
       </div>
@@ -407,13 +428,13 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <h4 className="text-sm font-semibold text-blue-900 mb-2">Media Guidelines</h4>
         <ul className="text-sm text-blue-800 space-y-1">
-          <li>• Use high-quality, professional images</li>
+          <li>• Use high-quality, professional images and videos</li>
           <li>• Ensure good lighting in photos and videos</li>
           <li>• Show your practice space and equipment</li>
           <li>• Keep videos concise and engaging (1-2 minutes recommended)</li>
           <li>• Avoid copyrighted music in videos</li>
-          <li>• Images: Max 10MB each</li>
-          <li>• Video: Max 50MB, replaces existing video</li>
+          <li>• Images: Max 10MB each, upload multiple at once</li>
+          <li>• Videos: Max 50MB each, upload multiple at once</li>
         </ul>
       </div>
     </div>

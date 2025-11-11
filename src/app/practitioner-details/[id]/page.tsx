@@ -450,7 +450,7 @@ const PractitionerDetailsPage = () => {
           {/* Tab Content */}
           <div className="p-4 md:p-8">
             {activeTab === 'About' && (
-              <About practitioner={practitioner} />
+              <About practitioner={practitioner} descriptionsData={descriptionsData} />
             )}
 
             {activeTab === 'Location' && (
@@ -466,7 +466,7 @@ const PractitionerDetailsPage = () => {
 
             {activeTab === 'Reviews' && <Reviews />}
             {activeTab === 'Services & Pricing' && (
-              <ServicesPricing practitioner={practitioner} />
+              <ServicesPricing practitioner={practitioner} descriptionsData={descriptionsData} />
             )}
           </div>
         </div>

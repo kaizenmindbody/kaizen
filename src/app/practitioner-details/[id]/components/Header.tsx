@@ -76,7 +76,7 @@ export const Header = ({ practitioner, user, descriptionsData }: HeaderProps) =>
                 {/* Profile Information */}
                 <div className="lg:col-span-2 space-y-6">
                   <div>
-                    <h1 className="text-4xl font-bold text-green-700 mb-3">
+                    <h1 className="text-4xl font-bold mb-3" style={{ color: '#35375F' }}>
                       {practitioner.title ? `${practitioner.title} ` : ''}{practitioner.full_name}
                     </h1>
                     <div className="flex items-start mb-3">
@@ -104,32 +104,23 @@ export const Header = ({ practitioner, user, descriptionsData }: HeaderProps) =>
                       </div>
                     )}
 
+                    {/* Languages - from Descriptions table - Simple text display */}
+                    {descriptionsData?.language && descriptionsData.language.length > 0 && (
+                      <div className="flex items-center mb-4">
+                        <Languages className="w-4 h-4 text-gray-400 mr-2" />
+                        <span className="text-sm text-gray-600">
+                          <span className="font-medium text-gray-700">Languages: </span>
+                          {(Array.isArray(descriptionsData.language)
+                            ? descriptionsData.language
+                            : [descriptionsData.language]).join(', ')}
+                        </span>
+                      </div>
+                    )}
+
                     <div className="mb-4">
                       {/* Contact Information */}
                       <div className="flex flex-col md:flex-row md:justify-between md:items-start">
                         <div className="space-y-3 text-sm text-gray-600 mb-4 md:mb-0">
-                          {/* Languages - from Descriptions table */}
-                          {descriptionsData?.language && descriptionsData.language.length > 0 && (
-                            <div className="mb-3">
-                              <div className="flex items-center mb-2">
-                                <Languages className="w-4 h-4 text-gray-400 mr-2" />
-                                <span className="font-medium text-gray-700 text-sm">Languages:</span>
-                              </div>
-                              <div className="flex flex-wrap gap-2 ml-6">
-                                {(Array.isArray(descriptionsData.language)
-                                  ? descriptionsData.language
-                                  : [descriptionsData.language]).map((lang, index) => (
-                                  <span
-                                    key={index}
-                                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200"
-                                  >
-                                    {lang.trim()}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
                           {practitioner.address && (
                             <div className="flex items-center">
                               <MapPin className="w-4 h-4 text-gray-400 mr-2" />
@@ -162,12 +153,12 @@ export const Header = ({ practitioner, user, descriptionsData }: HeaderProps) =>
                             <div className="flex items-center">
                               <Globe className="w-4 h-4 text-gray-400 mr-2" />
                               <a
-                                href={practitioner.website}
+                                href={practitioner.website.startsWith('http') ? practitioner.website : `https://${practitioner.website}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-blue-600 hover:text-blue-800 hover:underline transition-colors"
                               >
-                                {practitioner.website}
+                                {practitioner.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
                               </a>
                             </div>
                           )}
@@ -293,6 +284,7 @@ export const Header = ({ practitioner, user, descriptionsData }: HeaderProps) =>
                           <BookAppointmentButton
                             practitionerId={practitioner.id}
                             user={user}
+                            practitionerWebsite={practitioner.website}
                           />
                         </div>
                       </div>
@@ -418,6 +410,7 @@ export const Header = ({ practitioner, user, descriptionsData }: HeaderProps) =>
                           <BookAppointmentButton
                             practitionerId={practitioner.id}
                             user={user}
+                            practitionerWebsite={practitioner.website}
                           />
                         </div>
                       </div>

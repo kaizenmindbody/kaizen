@@ -135,43 +135,37 @@ export async function POST(request: NextRequest) {
       uploadedMedia.push(insertedMedia);
     }
 
-    // Upload video (replaces existing video if any)
-    const videoFile = formData.get('video') as File | null;
+    // Upload videos (support multiple videos)
+    const videoEntries = Array.from(formData.entries()).filter(([key]) => key.startsWith('video_'));
 
-    if (videoFile && videoFile instanceof File) {
-      // Delete existing video first
-      const { data: existingVideo } = await supabase
-        .from('UserMedia')
-        .select('file_url')
-        .eq('user_id', userId)
-        .eq('file_type', 'video')
-        .single();
+    // Get current video count to set display_order
+    const { data: existingVideos } = await supabase
+      .from('UserMedia')
+      .select('display_order')
+      .eq('user_id', userId)
+      .eq('file_type', 'video')
+      .order('display_order', { ascending: false })
+      .limit(1);
 
-      if (existingVideo) {
-        // Delete from storage
-        const oldVideoPath = existingVideo.file_url.split('/').slice(-2).join('/');
-        await supabase.storage.from('kaizen').remove([oldVideoPath]);
+    let nextVideoDisplayOrder = existingVideos && existingVideos.length > 0
+      ? (existingVideos[0].display_order || 0) + 1
+      : 0;
 
-        // Delete from database
-        await supabase
-          .from('UserMedia')
-          .delete()
-          .eq('user_id', userId)
-          .eq('file_type', 'video');
-      }
+    for (const [key, file] of videoEntries) {
+      if (!(file instanceof File)) continue;
 
-      // Upload new video
-      const fileExt = videoFile.name.split('.').pop();
-      const fileName = `${userId}_${Date.now()}.${fileExt}`;
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userId}_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `usermedia/${fileName}`;
 
+      // Upload to storage
       const { error: uploadError } = await supabase.storage
         .from('kaizen')
-        .upload(filePath, videoFile);
+        .upload(filePath, file);
 
       if (uploadError) {
         console.error('Video upload error:', uploadError);
-        throw new Error(`Failed to upload video: ${uploadError.message}`);
+        throw new Error(`Failed to upload ${file.name}: ${uploadError.message}`);
       }
 
       // Get public URL
@@ -185,18 +179,18 @@ export async function POST(request: NextRequest) {
         .insert({
           user_id: userId,
           file_url: publicUrl,
-          file_name: videoFile.name,
+          file_name: file.name,
           file_type: 'video',
-          mime_type: videoFile.type,
-          is_primary: true,
-          display_order: 0,
+          mime_type: file.type,
+          is_primary: false,
+          display_order: nextVideoDisplayOrder++,
         })
         .select()
         .single();
 
       if (dbError) {
         console.error('Video database insert error:', dbError);
-        throw new Error(`Failed to save video to database: ${dbError.message}`);
+        throw new Error(`Failed to save ${file.name} to database: ${dbError.message}`);
       }
 
       uploadedMedia.push(insertedMedia);

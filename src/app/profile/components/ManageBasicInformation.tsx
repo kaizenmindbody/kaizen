@@ -5,7 +5,8 @@ import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useAuth } from '@/contexts/AuthContext';
 import toast from 'react-hot-toast';
-import Select from 'react-select';
+import Select, { MultiValue } from 'react-select';
+import makeAnimated from 'react-select/animated';
 import { useDegrees } from '@/hooks/useDegrees';
 import { usePractitionerTypes } from '@/hooks/usePractitionerTypes';
 import { useBasicInformation } from '@/hooks/useBasicInformation';
@@ -22,6 +23,70 @@ interface ManageBasicInformationProps {
   profile: ProfileData | null;
   onProfileUpdate?: () => void;
 }
+
+// Helper function to parse degree field
+const parseDegree = (degree: any): string[] => {
+  if (!degree) return [];
+
+  // If it's already an array, return it
+  if (Array.isArray(degree)) {
+    return degree.filter(Boolean).map(d => String(d).trim());
+  }
+
+  // If it's a string, try to parse it
+  if (typeof degree === 'string') {
+    const trimmed = degree.trim();
+
+    // Check if it's a JSON array string
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(Boolean).map(d => String(d).trim());
+        }
+      } catch (e) {
+        // If JSON parsing fails, fall through to comma-separated parsing
+      }
+    }
+
+    // Treat as comma-separated string
+    return trimmed.split(',').map(d => d.trim()).filter(Boolean);
+  }
+
+  return [];
+};
+
+// Helper function to parse practitioner type field (same logic as degree)
+const parsePractitionerType = (ptype: any): string[] => {
+  if (!ptype) return [];
+
+  // If it's already an array, return it
+  if (Array.isArray(ptype)) {
+    return ptype.filter(Boolean).map(d => String(d).trim());
+  }
+
+  // If it's a string, try to parse it
+  if (typeof ptype === 'string') {
+    const trimmed = ptype.trim();
+
+    // Check if it's a JSON array string
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(Boolean).map(d => String(d).trim());
+        }
+      } catch (e) {
+        // If JSON parsing fails, fall through to comma-separated parsing
+      }
+    }
+
+    // Treat as comma-separated string
+    return trimmed.split(',').map(d => d.trim()).filter(Boolean);
+  }
+
+  return [];
+};
 
 const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile, onProfileUpdate }) => {
   const { user, refreshProfile } = useAuth();
@@ -43,8 +108,8 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
     first_name: profile?.firstname || '',
     last_name: profile?.lastname || '',
     title: profile?.title || '',
-    degree: profile?.degree || '',
-    type_of_practitioner: profile?.ptype || '',
+    degree: parseDegree(profile?.degree),
+    type_of_practitioner: parsePractitionerType(profile?.ptype),
     clinic_name: profile?.clinic || '',
     create_clinic_page: profile?.clinicpage || 'no',
     website: profile?.website || '',
@@ -68,6 +133,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const addressInputRef = useRef<HTMLInputElement>(null);
   const placekitInstance = useRef<any>(null);
+  const animatedComponents = makeAnimated();
 
   // Show success/error toasts
   useEffect(() => {
@@ -84,7 +150,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
     }
   }, [successMessage, clearSuccessMessage]);
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: string | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -283,13 +349,36 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
       return;
     }
 
-    // Combine address fields into single address string
-    const combinedAddress = combineAddressFields();
+    // Upload avatar first if there's a pending file
+    if (avatarFile) {
+      const avatarSuccess = await uploadAvatar(user.id, avatarFile, profile?.avatar || null);
+      if (!avatarSuccess) {
+        toast.error('Failed to upload avatar. Please try again.');
+        return;
+      }
+      // Clear the pending avatar file after successful upload
+      setAvatarFile(null);
+    }
 
-    // Create updated form data with combined address
+    // Create updated form data with separate address fields, degree, and practitioner type as strings
     const dataToSave = {
-      ...formData,
-      address: combinedAddress,
+      first_name: formData.first_name,
+      last_name: formData.last_name,
+      title: formData.title,
+      degree: Array.isArray(formData.degree) ? formData.degree.join(', ') : formData.degree,
+      type_of_practitioner: Array.isArray(formData.type_of_practitioner)
+        ? formData.type_of_practitioner.join(', ')
+        : formData.type_of_practitioner,
+      clinic_name: formData.clinic_name,
+      create_clinic_page: formData.create_clinic_page,
+      website: formData.website,
+      business_phone: formData.business_phone,
+      // Send separate address fields instead of combined address
+      address_line1: addressFields.address1,
+      address_line2: addressFields.address2,
+      city: addressFields.city,
+      state: addressFields.state,
+      zip_code: addressFields.zip,
     };
 
     const success = await updateBasicInfo(user.id, dataToSave);
@@ -313,8 +402,8 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
         first_name: profile.firstname || '',
         last_name: profile.lastname || '',
         title: profile.title || '',
-        degree: profile.degree || '',
-        type_of_practitioner: profile.ptype || '',
+        degree: parseDegree(profile.degree),
+        type_of_practitioner: parsePractitionerType(profile.ptype),
         clinic_name: profile.clinic || '',
         create_clinic_page: profile.clinicpage || 'no',
         website: profile.website || '',
@@ -325,18 +414,26 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
 
       // Reset address fields
       setAddressFields(parseAddress(profile.address || ''));
+
+      // Reset avatar file and preview
+      setAvatarFile(null);
+      setAvatarPreview(profile.avatar || null);
     }
   };
 
   // Update form data when profile changes
   useEffect(() => {
     if (profile) {
+      const parsedPtype = parsePractitionerType(profile.ptype);
+      console.log('Profile ptype from DB:', profile.ptype);
+      console.log('Parsed type_of_practitioner:', parsedPtype);
+
       setFormData({
         first_name: profile.firstname || '',
         last_name: profile.lastname || '',
         title: profile.title || '',
-        degree: profile.degree || '',
-        type_of_practitioner: profile.ptype || '',
+        degree: parseDegree(profile.degree),
+        type_of_practitioner: parsedPtype,
         clinic_name: profile.clinic || '',
         create_clinic_page: profile.clinicpage || 'no',
         website: profile.website || '',
@@ -348,9 +445,12 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
       // Parse address into separate fields
       setAddressFields(parseAddress(profile.address || ''));
 
-      setAvatarPreview(profile.avatar || null);
+      // Only update avatar preview if there's no pending avatar file
+      if (!avatarFile) {
+        setAvatarPreview(profile.avatar || null);
+      }
     }
-  }, [profile]);
+  }, [profile, avatarFile]);
 
   // Custom styles for react-select
   const customSelectStyles = {
@@ -418,49 +518,35 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
                 <button
                   type="button"
                   onClick={() => avatarInputRef.current?.click()}
-                  disabled={uploadingAvatar}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={saving || uploadingAvatar}
+                  className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <i className="pi pi-upload mr-2"></i>
-                  Choose Avatar
+                  <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  {avatarFile ? 'Change Avatar' : 'Choose Avatar'}
                 </button>
 
-                {avatarFile && (
-                  <button
-                    type="button"
-                    onClick={handleAvatarUpload}
-                    disabled={uploadingAvatar}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {uploadingAvatar ? (
-                      <>
-                        <i className="pi pi-spin pi-spinner mr-2"></i>
-                        Uploading...
-                      </>
-                    ) : (
-                      <>
-                        <i className="pi pi-check mr-2"></i>
-                        Save Avatar
-                      </>
-                    )}
-                  </button>
-                )}
-
-                {avatarPreview && !avatarFile && (
+                {avatarPreview && (
                   <button
                     type="button"
                     onClick={handleAvatarRemove}
-                    disabled={uploadingAvatar}
+                    disabled={saving || uploadingAvatar}
                     className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <i className="pi pi-trash mr-2"></i>
+                    <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
                     Remove Avatar
                   </button>
                 )}
               </div>
 
               <p className="text-sm text-gray-500">
-                Recommended: Square image, at least 200x200px. Max size: 5MB
+                {avatarFile
+                  ? 'New avatar selected. Click "Update Changes" below to save.'
+                  : 'Recommended: Square image, at least 200x200px. Max size: 5MB'
+                }
               </p>
             </div>
           </div>
@@ -506,25 +592,30 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
-              <input
-                type="text"
-                value={formData.title}
-                onChange={(e) => handleInputChange('title', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-                placeholder="e.g., Dr., Mr., Ms."
-                disabled={saving}
+              <Select
+                value={formData.title ? { value: formData.title, label: formData.title } : null}
+                onChange={(option) => handleInputChange('title', option?.value || '')}
+                options={[{ value: 'Dr', label: 'Dr' }]}
+                styles={customSelectStyles}
+                placeholder="Select title"
+                isClearable
+                isDisabled={saving}
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Degrees</label>
               <Select
-                value={formData.degree ? { value: formData.degree, label: formData.degree } : null}
-                onChange={(option) => handleInputChange('degree', option?.value || '')}
+                isMulti
+                components={animatedComponents}
+                value={Array.isArray(formData.degree)
+                  ? formData.degree.map(d => ({ value: d, label: d }))
+                  : []
+                }
+                onChange={(options: MultiValue<{ value: string; label: string }>) => handleInputChange('degree', options ? options.map(opt => opt.value) : [])}
                 options={degrees.map(degree => ({ value: degree.title, label: degree.title }))}
                 styles={customSelectStyles}
-                placeholder="Select your degree"
-                isClearable
+                placeholder="Select your degrees"
                 isDisabled={saving}
               />
             </div>
@@ -534,12 +625,17 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Type of Practitioner</label>
             <Select
-              value={formData.type_of_practitioner ? { value: formData.type_of_practitioner, label: formData.type_of_practitioner } : null}
-              onChange={(option) => handleInputChange('type_of_practitioner', option?.value || '')}
+              key={`practitioner-types-${JSON.stringify(formData.type_of_practitioner)}`}
+              isMulti
+              components={animatedComponents}
+              value={Array.isArray(formData.type_of_practitioner)
+                ? formData.type_of_practitioner.map(p => ({ value: p, label: p }))
+                : []
+              }
+              onChange={(options: MultiValue<{ value: string; label: string }>) => handleInputChange('type_of_practitioner', options ? options.map(opt => opt.value) : [])}
               options={practitionerTypes.map(type => ({ value: type.title, label: type.title }))}
               styles={customSelectStyles}
-              placeholder="Select practitioner type"
-              isClearable
+              placeholder="Select practitioner types"
               isDisabled={saving}
             />
           </div>

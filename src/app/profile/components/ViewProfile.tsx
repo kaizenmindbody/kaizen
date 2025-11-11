@@ -39,6 +39,14 @@ const ViewProfile: React.FC<ViewProfileProps> = ({ profile }) => {
     return phone;
   };
 
+  // Format website URL to remove protocol for display
+  const formatWebsiteDisplay = (url: string | undefined) => {
+    if (!url) return '';
+
+    // Remove http://, https://, and trailing slashes
+    return url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  };
+
   const formattedAddress = profile?.address
     ? profile.address.split(',').map(p => p.trim()).filter(p => p).join(', ')
     : null;
@@ -85,7 +93,12 @@ const ViewProfile: React.FC<ViewProfileProps> = ({ profile }) => {
             <h3 className="text-4xl font-bold text-gray-900 mb-2">
               {profile?.title && `${profile.title} `}
               {profile?.full_name || `${profile?.firstname} ${profile?.lastname}` || 'User Name'}
-              {profile?.degree && `, ${profile.degree}`}
+              {profile?.degree &&
+                (Array.isArray(profile.degree)
+                  ? profile.degree.length > 0 && `, ${profile.degree.join(', ')}`
+                  : profile.degree.trim() && `, ${profile.degree}`
+                )
+              }
             </h3>
             <div className="flex flex-col md:flex-row items-center md:items-center gap-2 md:gap-4 mb-4">
               <span className="inline-flex items-center px-4 py-1.5 bg-primary/10 text-primary rounded-full text-sm font-medium capitalize">
@@ -152,7 +165,7 @@ const ViewProfile: React.FC<ViewProfileProps> = ({ profile }) => {
               <div>
                 <h4 className="text-sm font-semibold text-gray-700 mb-1">Website</h4>
                 <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
-                  {profile.website}
+                  {formatWebsiteDisplay(profile.website)}
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                   </svg>
@@ -555,15 +568,15 @@ const ViewProfile: React.FC<ViewProfileProps> = ({ profile }) => {
       {/* Video */}
       {video && (
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-2 mb-6">
+          <div className="flex items-center gap-2 mb-4">
             <div className="w-10 h-10 bg-rose-50 rounded-lg flex items-center justify-center">
               <svg className="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
             </div>
-            <h3 className="text-xl font-bold text-gray-900">Introduction Video</h3>
+            <h3 className="text-lg font-bold text-gray-900">Introduction Video</h3>
           </div>
-          <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black shadow-lg">
+          <div className="relative w-full md:w-96 aspect-video rounded-xl overflow-hidden bg-black shadow-lg">
             <video
               src={video}
               controls

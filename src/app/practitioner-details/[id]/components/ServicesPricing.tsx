@@ -1,13 +1,33 @@
 "use client";
 
-import { CheckCircle, DollarSign, Clock } from 'lucide-react';
+import { CheckCircle, Clock, Building2, Video, Package, DollarSign } from 'lucide-react';
 import { useServicePricing } from '@/hooks/useServicePricing';
 
 interface ServicesPricingProps {
   practitioner: any;
+  descriptionsData?: any;
 }
 
-export const ServicesPricing = ({ practitioner }: ServicesPricingProps) => {
+// Helper function to ensure price has $ prefix
+const formatPriceDisplay = (price: string | undefined | null): string => {
+  if (!price || price.trim() === '') return '';
+
+  const trimmed = price.trim();
+
+  // If already has $, return as is
+  if (trimmed.startsWith('$')) return trimmed;
+
+  // Handle ranges (e.g., "85 - 100")
+  if (trimmed.includes('-')) {
+    const parts = trimmed.split('-').map(p => p.trim());
+    return parts.map(p => p ? `$${p}` : '').join(' - ');
+  }
+
+  // Single price - add $
+  return `$${trimmed}`;
+};
+
+export const ServicesPricing = ({ practitioner, descriptionsData }: ServicesPricingProps) => {
   const { servicePricings, packagePricings, loading } = useServicePricing(practitioner?.id);
   return (
     <div>
@@ -28,7 +48,7 @@ export const ServicesPricing = ({ practitioner }: ServicesPricingProps) => {
               <div className="bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-2xl p-6 md:p-8 shadow-sm">
                 <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                   <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                    <DollarSign className="w-5 h-5 text-white" />
+                    <Building2 className="w-5 h-5 text-white" />
                   </div>
                   In-Person / Clinic Visit
                 </h4>
@@ -47,7 +67,7 @@ export const ServicesPricing = ({ practitioner }: ServicesPricingProps) => {
                           <div className="bg-gray-50 rounded-lg p-4">
                             <p className="text-sm text-gray-600 mb-2">First Time Patient</p>
                             <div className="flex items-baseline gap-2">
-                              <span className="text-2xl font-bold text-gray-900">{service.first_time_price}</span>
+                              <span className="text-2xl font-bold text-gray-900">{formatPriceDisplay(service.first_time_price)}</span>
                               {service.first_time_duration && (
                                 <span className="text-sm text-gray-500 flex items-center gap-1">
                                   <Clock className="w-3 h-3" />
@@ -59,7 +79,7 @@ export const ServicesPricing = ({ practitioner }: ServicesPricingProps) => {
                           <div className="bg-gray-50 rounded-lg p-4">
                             <p className="text-sm text-gray-600 mb-2">Returning Patient</p>
                             <div className="flex items-baseline gap-2">
-                              <span className="text-2xl font-bold text-gray-900">{service.returning_price}</span>
+                              <span className="text-2xl font-bold text-gray-900">{formatPriceDisplay(service.returning_price)}</span>
                               {service.returning_duration && (
                                 <span className="text-sm text-gray-500 flex items-center gap-1">
                                   <Clock className="w-3 h-3" />
@@ -80,7 +100,7 @@ export const ServicesPricing = ({ practitioner }: ServicesPricingProps) => {
               <div className="bg-gradient-to-br from-purple-50 to-white border border-purple-100 rounded-2xl p-6 md:p-8 shadow-sm">
                 <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                   <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                    <DollarSign className="w-5 h-5 text-white" />
+                    <Video className="w-5 h-5 text-white" />
                   </div>
                   Virtual Visit
                 </h4>
@@ -99,7 +119,7 @@ export const ServicesPricing = ({ practitioner }: ServicesPricingProps) => {
                           <div className="bg-gray-50 rounded-lg p-4">
                             <p className="text-sm text-gray-600 mb-2">First Time Patient</p>
                             <div className="flex items-baseline gap-2">
-                              <span className="text-2xl font-bold text-gray-900">{service.first_time_price}</span>
+                              <span className="text-2xl font-bold text-gray-900">{formatPriceDisplay(service.first_time_price)}</span>
                               {service.first_time_duration && (
                                 <span className="text-sm text-gray-500 flex items-center gap-1">
                                   <Clock className="w-3 h-3" />
@@ -111,7 +131,7 @@ export const ServicesPricing = ({ practitioner }: ServicesPricingProps) => {
                           <div className="bg-gray-50 rounded-lg p-4">
                             <p className="text-sm text-gray-600 mb-2">Returning Patient</p>
                             <div className="flex items-baseline gap-2">
-                              <span className="text-2xl font-bold text-gray-900">{service.returning_price}</span>
+                              <span className="text-2xl font-bold text-gray-900">{formatPriceDisplay(service.returning_price)}</span>
                               {service.returning_duration && (
                                 <span className="text-sm text-gray-500 flex items-center gap-1">
                                   <Clock className="w-3 h-3" />
@@ -132,7 +152,7 @@ export const ServicesPricing = ({ practitioner }: ServicesPricingProps) => {
               <div className="bg-gradient-to-br from-green-50 to-white border border-green-100 rounded-2xl p-6 md:p-8 shadow-sm">
                 <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                   <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                    <DollarSign className="w-5 h-5 text-white" />
+                    <Package className="w-5 h-5 text-white" />
                   </div>
                   Packages
                 </h4>
@@ -141,7 +161,7 @@ export const ServicesPricing = ({ practitioner }: ServicesPricingProps) => {
                     <div key={index} className="bg-white border border-gray-200 rounded-xl p-4 md:p-6">
                       <h5 className="text-lg font-semibold text-gray-900 mb-2">{pkg.service_name}</h5>
                       <div className="flex items-baseline gap-2 mb-2">
-                        <span className="text-3xl font-bold text-gray-900">{pkg.price}</span>
+                        <span className="text-3xl font-bold text-gray-900">{formatPriceDisplay(pkg.price)}</span>
                       </div>
                       <p className="text-sm text-gray-600">{pkg.no_of_sessions} sessions</p>
                     </div>
@@ -175,7 +195,7 @@ export const ServicesPricing = ({ practitioner }: ServicesPricingProps) => {
                 Insurance
               </h4>
               <p className="text-sm md:text-base text-gray-700 leading-relaxed">
-                We currently do not directly bill insurance. If you would like to submit a receipt to your insurance company, we can generate an invoice for you.
+                {descriptionsData?.insurance || 'We currently do not directly bill insurance. If you would like to submit a receipt to your insurance company, we can generate an invoice for you.'}
               </p>
             </div>
 
@@ -183,8 +203,8 @@ export const ServicesPricing = ({ practitioner }: ServicesPricingProps) => {
             <div className="bg-gradient-to-br from-indigo-50 to-white border border-indigo-200 rounded-xl p-6 shadow-sm">
               <h4 className="text-lg font-bold text-gray-900 mb-4">Cancellation Policy</h4>
               <div className="text-sm md:text-base text-gray-700 leading-relaxed">
-                {practitioner?.cancellation_policy ? (
-                  <p>{practitioner.cancellation_policy}</p>
+                {descriptionsData?.cancellation ? (
+                  <p>{descriptionsData.cancellation}</p>
                 ) : (
                   <div className="space-y-2">
                     <p>Please provide 24 hours notice for cancellations.</p>

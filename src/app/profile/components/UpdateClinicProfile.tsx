@@ -76,6 +76,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
   const [clinicImages, setClinicImages] = useState<Array<{ file?: File; url: string; isNew: boolean }>>([]);
   const [existingVideo, setExistingVideo] = useState<string | null>(null);
   const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [videoDeleted, setVideoDeleted] = useState(false);
 
   // PlaceKit ref
   const addressInputRef = useRef<HTMLInputElement>(null);
@@ -439,6 +440,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
     }
     setClinicVideoFile(null);
     setClinicVideoPreview(null);
+    setVideoDeleted(true);
   };
 
   // Handle image files selection
@@ -700,6 +702,9 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
         } else {
           throw new Error('Failed to upload video');
         }
+      } else if (videoDeleted) {
+        // Video was explicitly deleted
+        videoUrl = null;
       }
 
       // Upload new images
@@ -788,16 +793,22 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
       // Clear media file state
       setClinicVideoFile(null);
       setClinicVideoPreview(null);
+      setVideoDeleted(false);
 
       // Update existing media state with uploaded media
       if (videoUrl) {
         setExistingVideo(videoUrl);
+      } else {
+        setExistingVideo(null);
       }
 
       // Update clinic images to mark all as existing
       if (allImageUrls.length > 0) {
-        setClinicImages(allImageUrls.map(url => ({ url, isNew: false })));
+        setClinicImages(allImageUrls.map(url => ({ url, isNew: false, file: undefined })));
         setExistingImages(allImageUrls);
+      } else {
+        setClinicImages([]);
+        setExistingImages([]);
       }
 
       toast.success('Clinic profile updated successfully!');

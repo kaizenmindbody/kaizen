@@ -234,7 +234,7 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
     };
 
     fetchMembers();
-  }, [clinicId]);
+  }, [clinicId, profile?.id]);
 
 
   const handleCSVUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {

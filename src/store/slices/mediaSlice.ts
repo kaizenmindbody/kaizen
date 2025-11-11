@@ -13,7 +13,7 @@ export interface MediaItem {
 
 interface MediaState {
   images: string[];
-  video: string | null;
+  videos: string[];
   loading: boolean;
   saving: boolean;
   error: string | null;
@@ -23,7 +23,7 @@ interface MediaState {
 
 const initialState: MediaState = {
   images: [],
-  video: null,
+  videos: [],
   loading: false,
   saving: false,
   error: null,
@@ -158,12 +158,12 @@ const mediaSlice = createSlice({
     setImages: (state, action) => {
       state.images = action.payload;
     },
-    setVideo: (state, action) => {
-      state.video = action.payload;
+    setVideos: (state, action) => {
+      state.videos = action.payload;
     },
     resetMedia: (state) => {
       state.images = [];
-      state.video = null;
+      state.videos = [];
       state.error = null;
       state.successMessage = null;
       state.initialized = false;
@@ -179,16 +179,19 @@ const mediaSlice = createSlice({
       .addCase(fetchMedia.fulfilled, (state, action) => {
         state.loading = false;
 
-        // Separate images and video
+        // Separate images and videos
         const images = action.payload
           .filter((item: MediaItem) => item.file_type === 'image')
           .map((item: MediaItem) => item.file_url)
           .filter((url: string) => url && url.trim() !== '');
 
-        const videoItem = action.payload.find((item: MediaItem) => item.file_type === 'video');
+        const videos = action.payload
+          .filter((item: MediaItem) => item.file_type === 'video')
+          .map((item: MediaItem) => item.file_url)
+          .filter((url: string) => url && url.trim() !== '');
 
         state.images = images;
-        state.video = videoItem?.file_url || null;
+        state.videos = videos;
         state.initialized = true;
       })
       .addCase(fetchMedia.rejected, (state, action) => {
@@ -207,6 +210,23 @@ const mediaSlice = createSlice({
       .addCase(uploadMedia.fulfilled, (state, action) => {
         state.saving = false;
         state.successMessage = 'Media uploaded successfully!';
+
+        // Update state with newly uploaded media
+        if (action.payload.media && Array.isArray(action.payload.media)) {
+          const newImages = action.payload.media
+            .filter((item: MediaItem) => item.file_type === 'image')
+            .map((item: MediaItem) => item.file_url);
+
+          const newVideos = action.payload.media
+            .filter((item: MediaItem) => item.file_type === 'video')
+            .map((item: MediaItem) => item.file_url);
+
+          // Append new images to existing ones
+          state.images = [...state.images, ...newImages];
+
+          // Append new videos to existing ones
+          state.videos = [...state.videos, ...newVideos];
+        }
       })
       .addCase(uploadMedia.rejected, (state, action) => {
         state.saving = false;
@@ -222,7 +242,7 @@ const mediaSlice = createSlice({
         if (action.payload.fileType === 'image') {
           state.images = state.images.filter(url => url !== action.payload.fileUrl);
         } else if (action.payload.fileType === 'video') {
-          state.video = null;
+          state.videos = state.videos.filter(url => url !== action.payload.fileUrl);
         }
         state.successMessage = 'Media deleted successfully!';
       })
@@ -236,7 +256,7 @@ export const {
   clearError,
   clearSuccessMessage,
   setImages,
-  setVideo,
+  setVideos,
   resetMedia,
 } = mediaSlice.actions;
 

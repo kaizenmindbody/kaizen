@@ -7,7 +7,7 @@ import {
   clearError,
   clearSuccessMessage,
   setImages,
-  setVideo,
+  setVideos,
   resetMedia,
   MediaItem,
 } from '@/store/slices/mediaSlice';
@@ -15,19 +15,19 @@ import { supabase } from '@/lib/supabase';
 
 export interface UseImageVideoReturn {
   images: string[];
-  video: string | null;
+  videos: string[];
   loading: boolean;
   saving: boolean;
   error: string | null;
   successMessage: string | null;
   fetchMedia: (userId: string) => Promise<void>;
   uploadImages: (userId: string, images: File[]) => Promise<boolean>;
-  uploadVideo: (userId: string, video: File) => Promise<boolean>;
-  uploadMedia: (userId: string, images: File[], video: File | null) => Promise<boolean>;
+  uploadVideos: (userId: string, videos: File[]) => Promise<boolean>;
+  uploadMedia: (userId: string, images: File[], videos: File[]) => Promise<boolean>;
   deleteImage: (userId: string, fileUrl: string) => Promise<boolean>;
   deleteVideo: (userId: string, fileUrl: string) => Promise<boolean>;
   updateImages: (images: string[]) => void;
-  updateVideo: (video: string | null) => void;
+  updateVideos: (videos: string[]) => void;
   clearError: () => void;
   clearSuccessMessage: () => void;
   resetMedia: () => void;
@@ -37,7 +37,7 @@ export function useImageVideo(userId?: string): UseImageVideoReturn {
   const dispatch = useAppDispatch();
   const {
     images,
-    video,
+    videos,
     loading,
     saving,
     error,
@@ -83,8 +83,8 @@ export function useImageVideo(userId?: string): UseImageVideoReturn {
     [dispatch]
   );
 
-  const uploadVideoHandler = useCallback(
-    async (userId: string, video: File): Promise<boolean> => {
+  const uploadVideosHandler = useCallback(
+    async (userId: string, videos: File[]): Promise<boolean> => {
       try {
         // Get the session token
         const { data: { session } } = await supabase.auth.getSession();
@@ -94,23 +94,30 @@ export function useImageVideo(userId?: string): UseImageVideoReturn {
           throw new Error('Not authenticated. Please sign in again.');
         }
 
-        const result = await dispatch(
-          uploadMediaAction({
-            userId,
-            images: [],
-            video,
-            token,
-          })
-        );
+        const formData = new FormData();
+        formData.append('userId', userId);
 
-        if (result.meta.requestStatus === 'fulfilled') {
+        // Add videos to formData
+        videos.forEach((video, index) => {
+          formData.append(`video_${index}`, video);
+        });
+
+        const response = await fetch('/api/media', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          body: formData,
+        });
+
+        if (response.ok) {
           // Reload data after successful upload
           await dispatch(fetchMediaAction(userId));
           return true;
         }
         return false;
       } catch (error) {
-        console.error('Error in uploadVideo:', error);
+        console.error('Error in uploadVideos:', error);
         return false;
       }
     },
@@ -118,7 +125,7 @@ export function useImageVideo(userId?: string): UseImageVideoReturn {
   );
 
   const uploadMediaHandler = useCallback(
-    async (userId: string, images: File[], video: File | null): Promise<boolean> => {
+    async (userId: string, images: File[], videos: File[]): Promise<boolean> => {
       try {
         // Get the session token
         const { data: { session } } = await supabase.auth.getSession();
@@ -128,16 +135,28 @@ export function useImageVideo(userId?: string): UseImageVideoReturn {
           throw new Error('Not authenticated. Please sign in again.');
         }
 
-        const result = await dispatch(
-          uploadMediaAction({
-            userId,
-            images,
-            video,
-            token,
-          })
-        );
+        const formData = new FormData();
+        formData.append('userId', userId);
 
-        if (result.meta.requestStatus === 'fulfilled') {
+        // Add images to formData
+        images.forEach((image, index) => {
+          formData.append(`image_${index}`, image);
+        });
+
+        // Add videos to formData
+        videos.forEach((video, index) => {
+          formData.append(`video_${index}`, video);
+        });
+
+        const response = await fetch('/api/media', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          body: formData,
+        });
+
+        if (response.ok) {
           // Reload data after successful upload
           await dispatch(fetchMediaAction(userId));
           return true;
@@ -222,9 +241,9 @@ export function useImageVideo(userId?: string): UseImageVideoReturn {
     [dispatch]
   );
 
-  const updateVideo = useCallback(
-    (video: string | null) => {
-      dispatch(setVideo(video));
+  const updateVideos = useCallback(
+    (videos: string[]) => {
+      dispatch(setVideos(videos));
     },
     [dispatch]
   );
@@ -250,19 +269,19 @@ export function useImageVideo(userId?: string): UseImageVideoReturn {
 
   return {
     images,
-    video,
+    videos,
     loading,
     saving,
     error,
     successMessage,
     fetchMedia,
     uploadImages: uploadImagesHandler,
-    uploadVideo: uploadVideoHandler,
+    uploadVideos: uploadVideosHandler,
     uploadMedia: uploadMediaHandler,
     deleteImage: deleteImageHandler,
     deleteVideo: deleteVideoHandler,
     updateImages,
-    updateVideo,
+    updateVideos,
     clearError: clearErrorHandler,
     clearSuccessMessage: clearSuccessMessageHandler,
     resetMedia: resetMediaHandler,

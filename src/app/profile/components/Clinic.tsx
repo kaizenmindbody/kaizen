@@ -370,13 +370,13 @@ const Clinic: React.FC<ClinicProps> = ({ profile }) => {
       {/* Clinic Video */}
       {clinicData.clinic_video && (
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-2 mb-6">
+          <div className="flex items-center gap-2 mb-4">
             <div className="w-10 h-10 bg-rose-50 rounded-lg flex items-center justify-center">
               <Film className="w-5 h-5 text-rose-600" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900">Clinic Video</h3>
+            <h3 className="text-lg font-bold text-gray-900">Clinic Video</h3>
           </div>
-          <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black shadow-lg">
+          <div className="relative w-full md:w-96 aspect-video rounded-xl overflow-hidden bg-black shadow-lg">
             <video
               src={clinicData.clinic_video}
               controls

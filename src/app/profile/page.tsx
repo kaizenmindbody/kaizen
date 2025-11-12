@@ -220,33 +220,61 @@ const ProfilePage = () => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const section = urlParams.get('section');
-      if (section && ['dashboard', 'info', 'clinic', 'events', 'books', 'help', 'support'].includes(section)) {
-        setActiveTab(
-          section === 'dashboard' ? 'Dashboard' :
-          section === 'info' ? 'Profile' :
-          section === 'clinic' ? 'Clinic' :
-          section === 'events' ? 'Events' :
-          section === 'books' ? 'Books' :
-          section === 'help' ? 'Help Center' :
-          section === 'support' ? 'Support' : 'Dashboard'
-        );
+      if (section) {
+        // Map URL sections to specific tabs
+        const sectionTabMap: {[key: string]: string} = {
+          'dashboard': 'Dashboard',
+          'info': 'View Profile',  // Changed from 'Profile' to 'View Profile'
+          'view-profile': 'View Profile',
+          'basic-info': 'Manage Basic Information',
+          'services-pricing': 'Manage Services and Pricing',
+          'descriptions': 'Manage Descriptions',
+          'media': 'Manage Images and Video',
+          'clinic': 'View Clinic Profile',  // Changed to default to View Clinic Profile
+          'view-clinic-profile': 'View Clinic Profile',
+          'update-clinic-page': 'Update Clinic Page',
+          'manage-practitioner-info': 'Manage Practitioner Info',
+          'events': 'Events',
+          'books': 'Books',
+          'help': 'Help Center',
+          'support': 'Support'
+        };
+
+        const mappedTab = sectionTabMap[section];
+        if (mappedTab) {
+          setActiveTab(mappedTab);
+          // Auto-expand menus for sub-items
+          if (['View Profile', 'Manage Basic Information', 'Manage Services and Pricing', 'Manage Descriptions', 'Manage Images and Video'].includes(mappedTab)) {
+            setExpandedMenu('Profile');
+          } else if (['View Clinic Profile', 'Update Clinic Page', 'Manage Practitioner Info'].includes(mappedTab)) {
+            setExpandedMenu('Clinic');
+          }
+        }
       }
     }
   }, []);
 
   // Update URL when tab changes
   const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
+    // Special handling: 'Profile' and 'Clinic' parent tabs should navigate to their first sub-item
+    let actualTab = tab;
+    if (tab === 'Profile') {
+      actualTab = 'View Profile';
+    } else if (tab === 'Clinic') {
+      actualTab = 'View Clinic Profile';
+    }
+
+    setActiveTab(actualTab);
     if (typeof window !== 'undefined') {
       const sectionMap: {[key: string]: string} = {
         'Dashboard': 'dashboard',
-        'Profile': 'info',
+        'Profile': 'view-profile',  // Changed to default to view-profile
         'View Profile': 'view-profile',
         'Manage Basic Information': 'basic-info',
         'Manage Services and Pricing': 'services-pricing',
         'Manage Descriptions': 'descriptions',
         'Manage Images and Video': 'media',
-        'Clinic': 'clinic',
+        'Clinic': 'view-clinic-profile',  // Changed to default to view-clinic-profile
         'View Clinic Profile': 'view-clinic-profile',
         'Update Clinic Page': 'update-clinic-page',
         'Manage Practitioner Info': 'manage-practitioner-info',
@@ -255,7 +283,7 @@ const ProfilePage = () => {
         'Help Center': 'help',
         'Support': 'support'
       };
-      const section = sectionMap[tab as keyof typeof sectionMap];
+      const section = sectionMap[actualTab as keyof typeof sectionMap];
 
       // Create new URLSearchParams to avoid read-only issues
       const currentUrl = new URL(window.location.href);
@@ -346,10 +374,10 @@ const ProfilePage = () => {
   const handleVideoUpload = (file: File | undefined) => {
     if (!file || !user) return;
 
-    // Validate file size (50MB limit)
-    const maxSize = 50 * 1024 * 1024; // 50MB in bytes
+    // Validate file size (600MB limit)
+    const maxSize = 600 * 1024 * 1024; // 600MB in bytes
     if (file.size > maxSize) {
-      toast.error('Video file size must be less than 50MB');
+      toast.error('Video file size must be less than 600MB');
       return;
     }
 
@@ -1440,7 +1468,7 @@ const ProfilePage = () => {
                     await supabase.auth.signOut();
                     router.push('/');
                   }}
-                  className="w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg font-medium transition-all text-sm text-white bg-red-600 hover:bg-red-700"
+                  className="w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg font-medium transition-all text-sm text-white bg-[#8ED083] hover:bg-[#7FC071]"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -1474,13 +1502,11 @@ const ProfilePage = () => {
               <h1 className="text-lg lg:text-xl font-semibold text-gray-900">{activeTab}</h1>
               <p className="text-xs lg:text-sm text-gray-500 hidden lg:block">
                 {activeTab === 'Dashboard' ? 'Overview and statistics' :
-                 activeTab === 'Profile' ? 'Manage your profile information' :
                  activeTab === 'View Profile' ? 'View your public profile' :
                  activeTab === 'Manage Basic Information' ? 'Update basic information' :
                  activeTab === 'Manage Services and Pricing' ? 'Configure services and pricing' :
                  activeTab === 'Manage Descriptions' ? 'Edit professional bio' :
                  activeTab === 'Manage Images and Video' ? 'Upload and manage media' :
-                 activeTab === 'Clinic' ? 'Clinic settings and information' :
                  activeTab === 'View Clinic Profile' ? 'View your clinic profile' :
                  activeTab === 'Update Clinic Page' ? 'Update your clinic information' :
                  activeTab === 'Manage Practitioner Info' ? 'Manage practitioner information' :
@@ -1520,9 +1546,7 @@ const ProfilePage = () => {
               <Dashboard profile={profile} handleTabChange={handleTabChange} />
             )}
 
-            {activeTab === 'Clinic' && (
-              <Clinic profile={profile} />
-            )}
+            {/* Remove the standalone Clinic rendering since it's now handled by View Clinic Profile */}
 
             {activeTab === 'View Clinic Profile' && (
               <Clinic profile={profile} />

@@ -24,6 +24,31 @@ interface ManageBasicInformationProps {
   onProfileUpdate?: () => void;
 }
 
+// Helper function to capitalize names properly (e.g., "chris smith" -> "Chris Smith")
+const capitalizeName = (name: string): string => {
+  if (!name) return '';
+
+  // Split by spaces and hyphens to handle compound names
+  return name
+    .split(/(\s+|-)/)
+    .map((part, index, array) => {
+      // Keep spaces and hyphens as is
+      if (part === ' ' || part === '-' || part === '') return part;
+
+      // Handle special cases like "McDonald", "O'Brien", etc.
+      if (part.toLowerCase().startsWith('mc') && part.length > 2) {
+        return 'Mc' + part.charAt(2).toUpperCase() + part.slice(3).toLowerCase();
+      }
+      if (part.toLowerCase().startsWith("o'") && part.length > 2) {
+        return "O'" + part.charAt(2).toUpperCase() + part.slice(3).toLowerCase();
+      }
+
+      // Standard capitalization: first letter uppercase, rest lowercase
+      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+    })
+    .join('');
+};
+
 // Helper function to parse degree field
 const parseDegree = (degree: any): string[] => {
   if (!degree) return [];
@@ -105,8 +130,8 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
   } = useBasicInformation();
 
   const [formData, setFormData] = useState({
-    first_name: profile?.firstname || '',
-    last_name: profile?.lastname || '',
+    first_name: capitalizeName(profile?.firstname || ''),
+    last_name: capitalizeName(profile?.lastname || ''),
     title: profile?.title || '',
     degree: parseDegree(profile?.degree),
     type_of_practitioner: parsePractitionerType(profile?.ptype),
@@ -151,7 +176,13 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
   }, [successMessage, clearSuccessMessage]);
 
   const handleInputChange = (field: string, value: string | string[]) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    // Apply capitalization for name fields
+    if (field === 'first_name' || field === 'last_name') {
+      const capitalizedValue = typeof value === 'string' ? capitalizeName(value) : value;
+      setFormData(prev => ({ ...prev, [field]: capitalizedValue }));
+    } else {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    }
   };
 
   const handleAddressFieldChange = (field: keyof typeof addressFields, value: string) => {
@@ -160,13 +191,14 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
 
   // Combine address fields into single string
   const combineAddressFields = () => {
+    // Don't filter out empty fields - preserve their positions
     const parts = [
-      addressFields.address1?.trim(),
-      addressFields.address2?.trim(),
-      addressFields.city?.trim(),
-      addressFields.state?.trim(),
-      addressFields.zip?.trim(),
-    ].filter(Boolean);
+      addressFields.address1?.trim() || '',
+      addressFields.address2?.trim() || '',
+      addressFields.city?.trim() || '',
+      addressFields.state?.trim() || '',
+      addressFields.zip?.trim() || '',
+    ];
 
     return parts.join(', ');
   };
@@ -184,16 +216,18 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
       };
     }
 
-    // Split by comma and try to identify parts
-    const parts = addressString.split(',').map(p => p.trim()).filter(Boolean);
+    // Split by comma but DON'T filter out empty strings yet
+    // This preserves the position of fields even if some are empty
+    const parts = addressString.split(',').map(p => p.trim());
 
-    // Basic parsing logic (can be enhanced)
+    // Improved parsing logic that handles empty fields correctly
+    // Expected format: address1, address2, city, state, zip
     const parsed = {
       address1: parts[0] || '',
-      address2: '',
-      city: parts[1] || '',
-      state: parts[2] || '',
-      zip: parts[3] || '',
+      address2: parts[1] || '',
+      city: parts[2] || '',
+      state: parts[3] || '',
+      zip: parts[4] || '',
       country: 'US',
     };
 
@@ -361,9 +395,10 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
     }
 
     // Create updated form data with separate address fields, degree, and practitioner type as strings
+    // Apply capitalization to names before saving
     const dataToSave = {
-      first_name: formData.first_name,
-      last_name: formData.last_name,
+      first_name: capitalizeName(formData.first_name),
+      last_name: capitalizeName(formData.last_name),
       title: formData.title,
       degree: Array.isArray(formData.degree) ? formData.degree.join(', ') : formData.degree,
       type_of_practitioner: Array.isArray(formData.type_of_practitioner)
@@ -399,8 +434,8 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
     // Reset form to original profile values
     if (profile) {
       setFormData({
-        first_name: profile.firstname || '',
-        last_name: profile.lastname || '',
+        first_name: capitalizeName(profile.firstname || ''),
+        last_name: capitalizeName(profile.lastname || ''),
         title: profile.title || '',
         degree: parseDegree(profile.degree),
         type_of_practitioner: parsePractitionerType(profile.ptype),
@@ -532,7 +567,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
                     type="button"
                     onClick={handleAvatarRemove}
                     disabled={saving || uploadingAvatar}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 bg-[#8ED083] text-white rounded-lg hover:bg-[#7FC071] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

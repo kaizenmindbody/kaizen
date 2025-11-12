@@ -1,0 +1,17 @@
+{
+  "functions": {
+    "src/app/api/media/route.ts": {
+      "maxDuration": 60
+    }
+  },
+  "routes": [
+    {
+      "src": "/api/media",
+      "methods": ["POST"],
+      "dest": "/api/media",
+      "headers": {
+        "Access-Control-Allow-Origin": "*"
+      }
+    }
+  ]
+}

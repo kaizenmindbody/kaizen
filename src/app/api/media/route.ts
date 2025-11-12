@@ -273,3 +273,12 @@ export async function DELETE(request: NextRequest) {
 
 // Mark this route as dynamic
 export const dynamic = 'force-dynamic';
+
+// Configure the route to accept larger file uploads (600MB)
+export const maxDuration = 60; // Maximum allowed duration for Vercel is 60 seconds
+export const runtime = 'nodejs';
+
+// Note: Next.js 13+ doesn't have a direct bodyParser config in route handlers
+// The actual file size limit is controlled by the server configuration
+// For local development, this should work fine
+// For production (Vercel), you may need to configure limits in vercel.json

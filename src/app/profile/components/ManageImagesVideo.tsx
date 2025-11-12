@@ -120,9 +120,9 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
         return;
       }
 
-      // Validate file size (50MB)
-      if (file.size > 50 * 1024 * 1024) {
-        toast.error(`${file.name} is larger than 50MB`);
+      // Validate file size (600MB)
+      if (file.size > 600 * 1024 * 1024) {
+        toast.error(`${file.name} is larger than 600MB`);
         return;
       }
     }
@@ -434,7 +434,7 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
           <li>• Keep videos concise and engaging (1-2 minutes recommended)</li>
           <li>• Avoid copyrighted music in videos</li>
           <li>• Images: Max 10MB each, upload multiple at once</li>
-          <li>• Videos: Max 50MB each, upload multiple at once</li>
+          <li>• Videos: Max 600MB each, upload multiple at once</li>
         </ul>
       </div>
     </div>

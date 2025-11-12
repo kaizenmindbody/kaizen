@@ -134,7 +134,8 @@ export const updateBasicInfo = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      // Construct full address from parts, filtering out empty values
+      // Construct full address from parts, preserving empty fields to maintain position
+      // This ensures the address can be parsed back correctly
       const addressParts = [
         data.address_line1,
         data.address_line2,
@@ -143,7 +144,6 @@ export const updateBasicInfo = createAsyncThunk(
         data.zip_code
       ]
         .map(part => (part || '').trim())
-        .filter(part => part !== '')
         .join(', ');
 
       const updateData = {

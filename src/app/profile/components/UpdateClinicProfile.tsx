@@ -89,13 +89,14 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
 
   // Combine address fields into single string
   const combineAddressFields = () => {
+    // Don't filter out empty fields - preserve their positions
     const parts = [
-      addressFields.address1?.trim(),
-      addressFields.address2?.trim(),
-      addressFields.city?.trim(),
-      addressFields.state?.trim(),
-      addressFields.zip?.trim(),
-    ].filter(Boolean);
+      addressFields.address1?.trim() || '',
+      addressFields.address2?.trim() || '',
+      addressFields.city?.trim() || '',
+      addressFields.state?.trim() || '',
+      addressFields.zip?.trim() || '',
+    ];
 
     return parts.join(', ');
   };
@@ -113,16 +114,18 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
       };
     }
 
-    // Split by comma and try to identify parts
-    const parts = addressString.split(',').map(p => p.trim()).filter(Boolean);
+    // Split by comma but DON'T filter out empty strings
+    // This preserves the position of fields even if some are empty
+    const parts = addressString.split(',').map(p => p.trim());
 
-    // Basic parsing logic (can be enhanced)
+    // Improved parsing logic that handles empty fields correctly
+    // Expected format: address1, address2, city, state, zip
     const parsed = {
       address1: parts[0] || '',
-      address2: '',
-      city: parts[1] || '',
-      state: parts[2] || '',
-      zip: parts[3] || '',
+      address2: parts[1] || '',
+      city: parts[2] || '',
+      state: parts[3] || '',
+      zip: parts[4] || '',
       country: 'US',
     };
 

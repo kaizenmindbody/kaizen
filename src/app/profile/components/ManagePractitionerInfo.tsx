@@ -623,14 +623,14 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
   };
 
   const combineAddressFields = () => {
+    // Don't filter out empty fields - preserve their positions
     return [
-      editAddressFields.address1?.trim(),
-      editAddressFields.address2?.trim(),
-      editAddressFields.city?.trim(),
-      editAddressFields.state?.trim(),
-      editAddressFields.zip?.trim(),
+      editAddressFields.address1?.trim() || '',
+      editAddressFields.address2?.trim() || '',
+      editAddressFields.city?.trim() || '',
+      editAddressFields.state?.trim() || '',
+      editAddressFields.zip?.trim() || '',
     ]
-      .filter(Boolean)
       .join(', ');
   };
 

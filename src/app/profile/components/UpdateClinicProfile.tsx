@@ -193,13 +193,23 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
     const fetchClinicInfo = async () => {
       if (!profile?.id) return;
 
+      console.log('[Clinic Info] Fetching clinic data for practitioner_id:', profile.id);
+
       const { data, error } = await supabase
         .from('Clinics')
         .select('*')
         .eq('practitioner_id', profile.id)
-        .single();
+        .maybeSingle(); // Use maybeSingle() instead of single() to handle missing records
 
-      if (data && !error) {
+      console.log('[Clinic Info] Fetch result:', { data, error });
+
+      if (error) {
+        console.error('[Clinic Info] Error fetching clinic data:', error);
+        toast.error('Failed to load clinic information');
+        return;
+      }
+
+      if (data) {
         setClinicInfo({
           clinic_name: data.clinic_name || '',
           clinic_website: data.clinic_website || '',
@@ -226,6 +236,8 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
           setClinicImages(imageObjects);
           setExistingImages(data.clinic_images);
         }
+      } else {
+        console.log('[Clinic Info] No clinic record found, will create on save');
       }
     };
 
@@ -722,17 +734,27 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
 
       // Upsert clinic information in Clinics table
       // First try to update existing record
+      console.log('[Clinic Save] Checking for existing clinic record for practitioner_id:', profile.id);
+
       const { data: existingClinic, error: selectError } = await supabase
         .from('Clinics')
         .select('id')
         .eq('practitioner_id', profile.id)
-        .single();
+        .maybeSingle(); // Use maybeSingle() to handle missing records
+
+      console.log('[Clinic Save] Existing clinic check:', { existingClinic, selectError });
+
+      if (selectError) {
+        console.error('[Clinic Save] Error checking for existing clinic:', selectError);
+        throw new Error(`Failed to check existing clinic: ${selectError.message}`);
+      }
 
       let clinicError = null;
 
       if (existingClinic) {
         // Update existing record
-        const { error } = await supabase
+        console.log('[Clinic Save] Updating existing clinic record');
+        const { data: updatedData, error } = await supabase
           .from('Clinics')
           .update({
             clinic_name: clinicInfo.clinic_name,
@@ -744,12 +766,15 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
             clinic_video: videoUrl,
             clinic_images: allImageUrls,
           })
-          .eq('practitioner_id', profile.id);
+          .eq('practitioner_id', profile.id)
+          .select();
 
+        console.log('[Clinic Save] Update result:', { updatedData, error });
         clinicError = error;
       } else {
         // Insert new record
-        const { error } = await supabase
+        console.log('[Clinic Save] Creating new clinic record');
+        const { data: insertedData, error } = await supabase
           .from('Clinics')
           .insert({
             practitioner_id: profile.id,
@@ -761,12 +786,17 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
             clinic_logo: logoUrl,
             clinic_video: videoUrl,
             clinic_images: allImageUrls,
-          });
+          })
+          .select();
 
+        console.log('[Clinic Save] Insert result:', { insertedData, error });
         clinicError = error;
       }
 
-      if (clinicError) throw clinicError;
+      if (clinicError) {
+        console.error('[Clinic Save] Error saving clinic:', clinicError);
+        throw clinicError;
+      }
 
       // Save service pricing if any services are filled
       const hasServices = servicePricings.some(sp => sp.service_name) ||

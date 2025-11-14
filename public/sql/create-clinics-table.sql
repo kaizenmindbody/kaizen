@@ -8,7 +8,7 @@
 -- Create Clinics table (separate from Users)
 CREATE TABLE IF NOT EXISTS "Clinics" (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  practitioner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  practitioner_id UUID NOT NULL REFERENCES "Users"(id) ON DELETE CASCADE,
 
   -- Clinic Information (matches UpdateClinicProfile fields exactly)
   clinic_name TEXT NOT NULL,

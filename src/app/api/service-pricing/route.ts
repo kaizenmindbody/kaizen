@@ -177,14 +177,28 @@ export async function POST(request: NextRequest) {
       .select();
 
     if (error) {
+      console.error('=== SERVICE PRICING INSERT ERROR ===');
       console.error('Supabase insert error:', error);
-      console.error('Error details:', JSON.stringify(error, null, 2));
-    }
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
+      console.error('Error details:', error.details);
+      console.error('Error hint:', error.hint);
+      console.error('Full error object:', JSON.stringify(error, null, 2));
+      console.error('Data attempted to insert:', JSON.stringify(allPricingsToInsert, null, 2));
+      console.error('===================================');
 
-    if (error) {
-      console.error('Database error:', error);
       return NextResponse.json(
-        { error: 'Failed to create service pricing', details: error.message },
+        {
+          error: 'Failed to create service pricing',
+          details: error.message,
+          code: error.code,
+          hint: error.hint,
+          debugInfo: {
+            errorCode: error.code,
+            errorMessage: error.message,
+            attemptedInsert: allPricingsToInsert
+          }
+        },
         { status: 500 }
       );
     }

@@ -193,6 +193,12 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
     const fetchClinicInfo = async () => {
       if (!profile?.id) return;
 
+      // Check authenticated user
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      console.log('[Clinic Info] Auth user ID:', authUser?.id);
+      console.log('[Clinic Info] Profile ID:', profile.id);
+      console.log('[Clinic Info] IDs match:', authUser?.id === profile.id);
+
       console.log('[Clinic Info] Fetching clinic data for practitioner_id:', profile.id);
 
       const { data, error } = await supabase
@@ -691,6 +697,21 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
       return;
     }
 
+    // Check authenticated user vs profile ID
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    console.log('[Clinic Save] Auth user ID:', authUser?.id);
+    console.log('[Clinic Save] Profile ID:', profile.id);
+    console.log('[Clinic Save] IDs match:', authUser?.id === profile.id);
+
+    if (authUser?.id !== profile.id) {
+      toast.error('Authentication mismatch: Your session user ID does not match the profile ID. Please sign out and sign in again.');
+      setIsSaving(false);
+      return;
+    }
+
+    console.log('[Clinic Save] Starting save process for profile:', profile.id);
+    console.log('[Clinic Save] Clinic info:', clinicInfo);
+
     setIsSaving(true);
 
     try {
@@ -804,19 +825,28 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
                          packagePricings.some(pkg => pkg.service_name);
 
       if (hasServices) {
-        console.log('Saving service pricing:', {
+        console.log('[Clinic Save] Saving service pricing:', {
+          practitionerId: profile.id,
           servicePricings,
           virtualPricings,
           packagePricings,
           combined: [...servicePricings, ...virtualPricings]
         });
 
-        await saveServicePricing(
-          profile.id,
-          [...servicePricings, ...virtualPricings],
-          packagePricings,
-          true // true = clinic-specific pricing
-        );
+        try {
+          await saveServicePricing(
+            profile.id,
+            [...servicePricings, ...virtualPricings],
+            packagePricings,
+            true // true = clinic-specific pricing
+          );
+          console.log('[Clinic Save] Service pricing saved successfully');
+        } catch (pricingError: any) {
+          console.error('[Clinic Save] Service pricing error:', pricingError);
+          throw new Error(`Failed to save service pricing: ${pricingError.message || JSON.stringify(pricingError)}`);
+        }
+      } else {
+        console.log('[Clinic Save] No services to save, skipping service pricing');
       }
 
       // Clear logo file state
@@ -845,9 +875,30 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
       }
 
       toast.success('Clinic profile updated successfully!');
-    } catch (error) {
-      console.error('Error saving clinic profile:', error);
-      toast.error('Failed to save clinic profile. Please try again.');
+    } catch (error: any) {
+      console.error('[Clinic Save] Error saving clinic profile:', error);
+
+      // Provide more detailed error messages
+      let errorMessage = 'Failed to save clinic profile. ';
+
+      if (error?.message) {
+        errorMessage += error.message;
+      } else if (error?.code) {
+        errorMessage += `Error code: ${error.code}`;
+      } else {
+        errorMessage += 'Please try again.';
+      }
+
+      // Check for specific error types
+      if (error?.message?.includes('permission') || error?.code === '42501') {
+        errorMessage = 'Permission denied. Please ensure you have access to update clinic information.';
+      } else if (error?.message?.includes('violates') || error?.code === '23505') {
+        errorMessage = 'A clinic with this information already exists.';
+      } else if (error?.code === 'PGRST116') {
+        errorMessage = 'User record not found. Please ensure your account is properly set up.';
+      }
+
+      toast.error(errorMessage);
     } finally {
       setIsSaving(false);
     }

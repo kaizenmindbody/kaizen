@@ -77,7 +77,34 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    console.log('[Profile Update] Received user_id:', user_id);
+
     const supabase = createServerSupabaseClient();
+
+    // First, check if the user exists
+    const { data: existingUser, error: fetchError } = await supabase
+      .from('Users')
+      .select('id')
+      .eq('id', user_id)
+      .maybeSingle();
+
+    console.log('[Profile Update] Existing user check:', { existingUser, fetchError });
+
+    if (fetchError) {
+      console.error('[Profile Update] Error checking user existence:', fetchError);
+      return NextResponse.json(
+        { error: `Failed to verify user: ${fetchError.message}` },
+        { status: 500 }
+      );
+    }
+
+    if (!existingUser) {
+      console.error('[Profile Update] User not found with id:', user_id);
+      return NextResponse.json(
+        { error: 'User not found. Please ensure your account is properly set up.' },
+        { status: 404 }
+      );
+    }
 
     // Build update object with only provided fields
     const updateData: any = {};
@@ -99,23 +126,28 @@ export async function PUT(request: NextRequest) {
     if (gender !== undefined) updateData.gender = gender;
     if (specialty_rate !== undefined) updateData.specialty_rate = specialty_rate ? JSON.stringify(specialty_rate) : null;
 
+    console.log('[Profile Update] Update data:', updateData);
+
     // Update profile in database
-    const { error } = await supabase
+    const { data: updatedData, error } = await supabase
       .from('Users')
       .update(updateData)
-      .eq('id', user_id);
+      .eq('id', user_id)
+      .select();
+
+    console.log('[Profile Update] Update result:', { updatedData, error });
 
     if (error) {
-      console.error('Error updating profile:', error);
+      console.error('[Profile Update] Error updating profile:', error);
       return NextResponse.json(
         { error: error.message },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, data: updatedData });
   } catch (err: any) {
-    console.error('Unexpected error:', err);
+    console.error('[Profile Update] Unexpected error:', err);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

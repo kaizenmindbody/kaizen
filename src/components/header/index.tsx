@@ -265,10 +265,13 @@ const Header = () => {
                             : userProfile?.avatar;
                           
                           return avatarUrl && typeof avatarUrl === 'string' && avatarUrl.trim().length > 0 ? (
-                            <img
+                            <Image
                               src={avatarUrl}
                               alt="Profile"
+                              width={40}
+                              height={40}
                               className="cursor-pointer w-10 h-10 rounded-full object-cover ring-2 ring-white dark:ring-gray-800 shadow-lg"
+                              unoptimized
                               onError={(e) => {
                                 const target = e.target as HTMLImageElement;
                                 target.style.display = 'none';

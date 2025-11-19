@@ -260,7 +260,7 @@ const HelpCenter: React.FC = () => {
       question: "What if I want to post a free event?",
       answer: (
         <div className="space-y-2">
-          <p>Simply enter <strong className="text-green-600">$0</strong> in the ticket price field when creating your event.</p>
+          <p>Simply enter <strong className="text-gray-900">$0</strong> in the ticket price field when creating your event.</p>
           <div className="bg-green-50 border border-green-200 rounded-lg p-3">
             <p className="text-sm">✓ Free events are a great way to build community and attract attendees!</p>
           </div>

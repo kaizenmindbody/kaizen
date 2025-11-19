@@ -427,7 +427,7 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
       // Step 1: Verify that the logged-in user is the Clinic Admin (clinic owner)
       const { data: clinicData, error: clinicError } = await supabase
         .from('Clinics')
-        .select('practitioner_id')
+        .select('practitioner_id, clinic_name')
         .eq('id', clinicId)
         .single();
 
@@ -447,6 +447,7 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
       let successCount = 0;
       let failureCount = 0;
       const errors: string[] = [];
+      const newMemberIds: string[] = [];
 
       // Filter only valid rows
       const validRows = csvPreview.filter(row => row.status === 'valid' && row.email);
@@ -457,7 +458,7 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
           // Save practitioner data directly to ClinicMembers table
           // clinic_id = profile.id (the clinic owner's practitioner_id)
           // practitioner_id = auto-generated UUID
-          const { error: memberError } = await supabase
+          const { data: insertedMember, error: memberError } = await supabase
             .from('ClinicMembers')
             .insert({
               clinic_id: profile.id, // UUID of clinic owner
@@ -470,8 +471,11 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
               address: row.address || null,
               avatar: row.avatar || null,
               role: 'member', // Default role is 'member'
+              invitation_status: 'pending', // Set initial invitation status
               // practitioner_id is auto-generated with gen_random_uuid()
-            });
+            })
+            .select('id')
+            .single();
 
           if (memberError) {
             // If duplicate (already added), skip and count as success
@@ -486,6 +490,10 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
             continue;
           }
 
+          if (insertedMember?.id) {
+            newMemberIds.push(insertedMember.id);
+          }
+
           successCount++;
           console.log(`Successfully added ${row.email} to clinic members`);
         } catch (error) {
@@ -498,6 +506,7 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
       // Show results
       if (successCount > 0) {
         toast.success(`Successfully added ${successCount} practitioner(s) to your clinic`);
+
         // Refresh clinic members list
         const { data: updatedMembers } = await supabase
           .from('ClinicMembers')
@@ -541,6 +550,46 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
             avatar: member.avatar || null,
           }));
           setClinicMembers(formattedMembers);
+        }
+
+        // Send invitations to newly added members
+        if (newMemberIds.length > 0) {
+          toast.loading('Sending invitation emails...', { id: 'sending-invites' });
+
+          try {
+            const inviteResponse = await fetch('/api/clinic-members/send-invitations', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                memberIds: newMemberIds,
+                clinicName: clinicData.clinic_name || 'Our Clinic'
+              })
+            });
+
+            const inviteData = await inviteResponse.json();
+
+            if (inviteResponse.ok) {
+              const successfulInvites = inviteData.results?.success?.length || 0;
+              const failedInvites = inviteData.results?.failed?.length || 0;
+
+              toast.dismiss('sending-invites');
+
+              if (successfulInvites > 0) {
+                toast.success(`Sent ${successfulInvites} invitation email(s) successfully!`);
+              }
+
+              if (failedInvites > 0) {
+                toast.error(`Failed to send ${failedInvites} invitation email(s). Members were added but didn't receive email.`);
+              }
+            } else {
+              toast.dismiss('sending-invites');
+              toast.error('Members added but failed to send invitation emails');
+            }
+          } catch (inviteError) {
+            console.error('Error sending invitations:', inviteError);
+            toast.dismiss('sending-invites');
+            toast.error('Members added but failed to send invitation emails');
+          }
         }
       }
 
@@ -1054,12 +1103,13 @@ email,name,type{'\n'}doctor1@example.com,John Doe,MD{'\n'}doctor2@example.com,Ja
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 flex items-start gap-3">
         <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
         <div className="text-sm text-blue-900">
-          <p className="font-semibold mb-1">How it works:</p>
+          <p className="font-semibold mb-1">How the Invitation System Works:</p>
           <ul className="list-disc list-inside space-y-1 text-blue-800">
             <li>Upload a CSV file with practitioner information (email is required)</li>
-            <li>For existing practitioners: they will be added as members of your clinic</li>
-            <li>For new practitioners: they will be created in the system and added as members</li>
-            <li>All practitioners will immediately become members of your clinic team</li>
+            <li>New practitioners will be added to your clinic and receive an invitation email</li>
+            <li>They'll click the invitation link and complete their signup with a password</li>
+            <li>After signing up, they can log in and access the platform as clinic members</li>
+            <li>Invitation links expire after 7 days</li>
             <li>You can remove members at any time</li>
             <li>Only the clinic owner (admin) can add members to the clinic</li>
             <li>Practitioners who are already members will be skipped</li>

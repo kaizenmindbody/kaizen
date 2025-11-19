@@ -132,7 +132,8 @@ const ClinicsPage = () => {
       });
     }
 
-    return filtered.sort((a, b) => a.service.localeCompare(b.service));
+    // Create a copy of the array before sorting to avoid mutating Redux state
+    return [...filtered].sort((a, b) => a.service.localeCompare(b.service));
   }, [allClinics, searchTerm, selectedState]);
 
   // Get US states for dropdown

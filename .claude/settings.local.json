@@ -21,7 +21,8 @@
       "Bash(findstr:*)",
       "Bash(npm run clean:*)",
       "Bash(set NODE_OPTIONS=--trace-warnings)",
-      "Bash(npx next build)"
+      "Bash(npx next build)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

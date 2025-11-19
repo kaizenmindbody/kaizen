@@ -234,13 +234,22 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
         }
 
         // Load existing images
-        if (data.clinic_images && Array.isArray(data.clinic_images)) {
-          const imageObjects = data.clinic_images.map((url: string) => ({
-            url,
-            isNew: false
-          }));
-          setClinicImages(imageObjects);
-          setExistingImages(data.clinic_images);
+        if (data.clinic_images) {
+          // Parse if it's a JSON string, otherwise use as-is if it's already an array
+          const parsedImages = typeof data.clinic_images === 'string'
+            ? JSON.parse(data.clinic_images)
+            : Array.isArray(data.clinic_images)
+              ? data.clinic_images
+              : [];
+
+          if (Array.isArray(parsedImages) && parsedImages.length > 0) {
+            const imageObjects = parsedImages.map((url: string) => ({
+              url,
+              isNew: false
+            }));
+            setClinicImages(imageObjects);
+            setExistingImages(parsedImages);
+          }
         }
       } else {
         console.log('[Clinic Info] No clinic record found, will create on save');
@@ -581,6 +590,24 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
     return uploadedUrls;
   };
 
+  // Helper function to auto-format price with $ prefix
+  const formatPrice = (value: string): string => {
+    if (!value || value.trim() === '') return '';
+
+    // Remove all $ signs first
+    let cleaned = value.replace(/\$/g, '').trim();
+
+    // Check if it's a range (contains -)
+    if (cleaned.includes('-')) {
+      const parts = cleaned.split('-').map(p => p.trim());
+      // Add $ to each part
+      return parts.map(p => p ? `$${p}` : '').join(' - ');
+    }
+
+    // Single price - just add $
+    return cleaned ? `$${cleaned}` : '';
+  };
+
   // Handle service changes
   const handleServiceChange = (
     index: number,
@@ -616,6 +643,35 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
 
     console.log('Updated service pricing:', updated[index]);
     setPricingList(updated);
+  };
+
+  // Handler to auto-format price on blur
+  const handlePriceBlur = (
+    index: number,
+    field: 'first_time_price' | 'returning_price',
+    category: 'In-Person / Clinic Visit' | 'Virtual Visit'
+  ) => {
+    const pricingList = category === 'In-Person / Clinic Visit' ? servicePricings : virtualPricings;
+    const setPricingList = category === 'In-Person / Clinic Visit' ? setServicePricings : setVirtualPricings;
+
+    const updated = [...pricingList];
+    const currentValue = updated[index][field];
+
+    if (currentValue) {
+      updated[index] = { ...updated[index], [field]: formatPrice(currentValue) };
+      setPricingList(updated);
+    }
+  };
+
+  // Handler to auto-format package price on blur
+  const handlePackagePriceBlur = (index: number) => {
+    const updated = [...packagePricings];
+    const currentValue = updated[index].price;
+
+    if (currentValue) {
+      updated[index] = { ...updated[index], price: formatPrice(currentValue) };
+      setPackagePricings(updated);
+    }
   };
 
   // Handle package changes
@@ -1354,6 +1410,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
                         type="text"
                         value={pricing.first_time_price}
                         onChange={(e) => handleServiceChange(index, 'first_time_price', e.target.value, 'In-Person / Clinic Visit')}
+                        onBlur={() => handlePriceBlur(index, 'first_time_price', 'In-Person / Clinic Visit')}
                         placeholder={pricing.is_sliding_scale ? "$85 - $100" : "$85"}
                         className="w-full px-3 py-2.5 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
                       />
@@ -1382,6 +1439,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
                         type="text"
                         value={pricing.returning_price}
                         onChange={(e) => handleServiceChange(index, 'returning_price', e.target.value, 'In-Person / Clinic Visit')}
+                        onBlur={() => handlePriceBlur(index, 'returning_price', 'In-Person / Clinic Visit')}
                         placeholder={pricing.is_sliding_scale ? "$75 - $90" : "$75"}
                         className="w-full px-3 py-2.5 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
                       />
@@ -1472,6 +1530,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
                         type="text"
                         value={pricing.first_time_price}
                         onChange={(e) => handleServiceChange(index, 'first_time_price', e.target.value, 'Virtual Visit')}
+                        onBlur={() => handlePriceBlur(index, 'first_time_price', 'Virtual Visit')}
                         placeholder={pricing.is_sliding_scale ? "$85 - $100" : "$85"}
                         className="w-full px-3 py-2.5 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
                       />
@@ -1500,6 +1559,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
                         type="text"
                         value={pricing.returning_price}
                         onChange={(e) => handleServiceChange(index, 'returning_price', e.target.value, 'Virtual Visit')}
+                        onBlur={() => handlePriceBlur(index, 'returning_price', 'Virtual Visit')}
                         placeholder={pricing.is_sliding_scale ? "$75 - $90" : "$75"}
                         className="w-full px-3 py-2.5 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
                       />
@@ -1604,6 +1664,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
                         type="text"
                         value={pkg.price}
                         onChange={(e) => handlePackageChange(index, 'price', e.target.value)}
+                        onBlur={() => handlePackagePriceBlur(index)}
                         placeholder="$400"
                         className="w-full px-3 py-2.5 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
                       />

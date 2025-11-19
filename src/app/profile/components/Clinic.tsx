@@ -70,7 +70,22 @@ const Clinic: React.FC<ClinicProps> = ({ profile }) => {
           console.error('Error fetching clinic data:', error);
           setClinicData(null);
         } else {
-          setClinicData(data);
+          // Parse clinic_images if it's a JSON string
+          if (data) {
+            const parsedData = {
+              ...data,
+              clinic_images: data.clinic_images
+                ? (typeof data.clinic_images === 'string'
+                    ? JSON.parse(data.clinic_images)
+                    : Array.isArray(data.clinic_images)
+                      ? data.clinic_images
+                      : [])
+                : null
+            };
+            setClinicData(parsedData);
+          } else {
+            setClinicData(null);
+          }
         }
       } catch (err) {
         console.error('Unexpected error:', err);
@@ -237,7 +252,7 @@ const Clinic: React.FC<ClinicProps> = ({ profile }) => {
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center gap-2 mb-6">
             <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center">
-              <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
@@ -261,7 +276,7 @@ const Clinic: React.FC<ClinicProps> = ({ profile }) => {
                         <div className="flex items-center justify-between p-3 bg-white rounded-lg">
                           <div>
                             <p className="text-xs text-gray-500 mb-1">First Time Patient</p>
-                            <p className="text-emerald-600 font-bold text-lg">{service.first_time_price}</p>
+                            <p className="text-gray-900 font-bold text-lg">{service.first_time_price}</p>
                           </div>
                           <div className="text-right">
                             <p className="text-xs text-gray-500 mb-1">Duration</p>
@@ -271,7 +286,7 @@ const Clinic: React.FC<ClinicProps> = ({ profile }) => {
                         <div className="flex items-center justify-between p-3 bg-white rounded-lg">
                           <div>
                             <p className="text-xs text-gray-500 mb-1">Returning Patient</p>
-                            <p className="text-emerald-600 font-bold text-lg">{service.returning_price}</p>
+                            <p className="text-gray-900 font-bold text-lg">{service.returning_price}</p>
                           </div>
                           <div className="text-right">
                             <p className="text-xs text-gray-500 mb-1">Duration</p>
@@ -312,7 +327,7 @@ const Clinic: React.FC<ClinicProps> = ({ profile }) => {
                         <div className="flex items-center justify-between p-3 bg-white rounded-lg">
                           <div>
                             <p className="text-xs text-gray-500 mb-1">First Time Patient</p>
-                            <p className="text-emerald-600 font-bold text-lg">{service.first_time_price}</p>
+                            <p className="text-gray-900 font-bold text-lg">{service.first_time_price}</p>
                           </div>
                           <div className="text-right">
                             <p className="text-xs text-gray-500 mb-1">Duration</p>
@@ -322,7 +337,7 @@ const Clinic: React.FC<ClinicProps> = ({ profile }) => {
                         <div className="flex items-center justify-between p-3 bg-white rounded-lg">
                           <div>
                             <p className="text-xs text-gray-500 mb-1">Returning Patient</p>
-                            <p className="text-emerald-600 font-bold text-lg">{service.returning_price}</p>
+                            <p className="text-gray-900 font-bold text-lg">{service.returning_price}</p>
                           </div>
                           <div className="text-right">
                             <p className="text-xs text-gray-500 mb-1">Duration</p>
@@ -352,11 +367,11 @@ const Clinic: React.FC<ClinicProps> = ({ profile }) => {
                     <div className="flex items-center justify-between p-3 bg-white rounded-lg">
                       <div>
                         <p className="text-xs text-gray-500 mb-1">Sessions</p>
-                        <p className="text-gray-900 font-bold text-2xl">{pkg.no_of_sessions}</p>
+                        <p className="text-gray-900 font-bold text-lg">{pkg.no_of_sessions}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-xs text-gray-500 mb-1">Total</p>
-                        <p className="text-emerald-600 font-bold text-xl">{pkg.price}</p>
+                        <p className="text-gray-900 font-bold text-lg">{pkg.price}</p>
                       </div>
                     </div>
                   </div>
@@ -376,11 +391,11 @@ const Clinic: React.FC<ClinicProps> = ({ profile }) => {
             </div>
             <h3 className="text-lg font-bold text-gray-900">Clinic Video</h3>
           </div>
-          <div className="relative w-full md:w-96 aspect-video rounded-xl overflow-hidden bg-black shadow-lg">
+          <div className="flex justify-center items-center">
             <video
               src={clinicData.clinic_video}
               controls
-              className="w-full h-full"
+              className="w-full max-w-2xl rounded-xl shadow-lg bg-black"
             >
               Your browser does not support the video tag.
             </video>

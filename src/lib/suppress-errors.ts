@@ -5,8 +5,8 @@
 export function suppressSupabaseAuthErrors() {
   if (typeof window === 'undefined') return;
 
-  const originalError = console.error;
-  const originalWarn = console.warn;
+  const originalError = console.error.bind(console);
+  const originalWarn = console.warn.bind(console);
 
   // Suppress Supabase auth token refresh errors
   console.error = function (...args: any[]) {
@@ -28,7 +28,7 @@ export function suppressSupabaseAuthErrors() {
     }
 
     // Log other errors normally
-    originalError.apply(console, args as any);
+    originalError(...args);
   };
 
   console.warn = function (...args: any[]) {
@@ -44,6 +44,6 @@ export function suppressSupabaseAuthErrors() {
     }
 
     // Log other warnings normally
-    originalWarn.apply(console, args as any);
+    originalWarn(...args);
   };
 }

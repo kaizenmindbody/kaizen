@@ -191,21 +191,27 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
       return;
     }
 
-    const success = await uploadMedia(profile.id, pendingImages, pendingVideos);
+    try {
+      const success = await uploadMedia(profile.id, pendingImages, pendingVideos);
 
-    if (success) {
-      // Clear pending items and previews
-      setPendingImages([]);
-      setPendingVideos([]);
-      setImagesPreviews([]);
+      if (success) {
+        // Clear pending items and previews
+        setPendingImages([]);
+        setPendingVideos([]);
+        setImagesPreviews([]);
 
-      // Revoke all video preview URLs to free memory
-      videosPreviews.forEach(previewUrl => URL.revokeObjectURL(previewUrl));
-      setVideosPreviews([]);
+        // Revoke all video preview URLs to free memory
+        videosPreviews.forEach(previewUrl => URL.revokeObjectURL(previewUrl));
+        setVideosPreviews([]);
 
-      // Success toast will be shown by the useEffect hook
+        toast.success('Media uploaded successfully!');
+      } else {
+        toast.error('Upload failed. Please check console for details.');
+      }
+    } catch (err: any) {
+      console.error('Upload error:', err);
+      toast.error(err.message || 'Failed to upload media');
     }
-    // Error toast will be shown by the useEffect hook if upload failed
   };
 
   // Track if there are unsaved changes

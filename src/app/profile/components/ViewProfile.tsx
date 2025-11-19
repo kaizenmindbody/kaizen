@@ -4,6 +4,7 @@ import { ProfileData } from '@/types/user';
 import { useEffect } from 'react';
 import { useViewProfile } from '@/hooks/useViewProfile';
 import Image from 'next/image';
+import { formatPractitionerType } from '@/lib/formatters';
 
 interface ViewProfileProps {
   profile: ProfileData | null;
@@ -144,23 +145,20 @@ const ViewProfile: React.FC<ViewProfileProps> = ({ profile }) => {
                 <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                 </svg>
-                {profile?.type || profile?.user_type || 'User'}
+                {(() => {
+                  // Display practitioner type if available, otherwise fall back to user type
+                  const practitionerTypeField = profile?.ptype || profile?.practitioner_type;
+                  if (practitionerTypeField) {
+                    const formattedType = formatPractitionerType(practitionerTypeField);
+                    // Only use formatted type if it's not the default 'General Practice'
+                    // Otherwise fall back to showing the generic user type
+                    if (formattedType && formattedType !== 'General Practice') {
+                      return formattedType;
+                    }
+                  }
+                  return profile?.type || profile?.user_type || 'User';
+                })()}
               </span>
-              {profile?.practitioner_type && (() => {
-                const parsedPractitionerType = parseFieldValue(profile.practitioner_type);
-                const practitionerTypeStr = Array.isArray(parsedPractitionerType)
-                  ? parsedPractitionerType.join(', ')
-                  : parsedPractitionerType;
-
-                return practitionerTypeStr ? (
-                  <span className="inline-flex items-center px-4 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm font-medium">
-                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
-                    </svg>
-                    {practitionerTypeStr}
-                  </span>
-                ) : null;
-              })()}
             </div>
             {profile?.clinic && (
               <p className="text-gray-600 flex items-center justify-center md:justify-start gap-2">
@@ -484,7 +482,7 @@ const ViewProfile: React.FC<ViewProfileProps> = ({ profile }) => {
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center gap-2 mb-6">
             <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center">
-              <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
@@ -510,7 +508,7 @@ const ViewProfile: React.FC<ViewProfileProps> = ({ profile }) => {
                         <div className="flex items-center justify-between p-3 bg-white rounded-lg">
                           <div>
                             <p className="text-xs text-gray-500 mb-1">First Time Patient</p>
-                            <p className="text-emerald-600 font-bold text-lg">{service.first_time_price}</p>
+                            <p className="text-gray-900 font-bold text-lg">{service.first_time_price}</p>
                           </div>
                           <div className="text-right">
                             <p className="text-xs text-gray-500 mb-1">Duration</p>
@@ -520,7 +518,7 @@ const ViewProfile: React.FC<ViewProfileProps> = ({ profile }) => {
                         <div className="flex items-center justify-between p-3 bg-white rounded-lg">
                           <div>
                             <p className="text-xs text-gray-500 mb-1">Returning Patient</p>
-                            <p className="text-emerald-600 font-bold text-lg">{service.returning_price}</p>
+                            <p className="text-gray-900 font-bold text-lg">{service.returning_price}</p>
                           </div>
                           <div className="text-right">
                             <p className="text-xs text-gray-500 mb-1">Duration</p>
@@ -561,7 +559,7 @@ const ViewProfile: React.FC<ViewProfileProps> = ({ profile }) => {
                         <div className="flex items-center justify-between p-3 bg-white rounded-lg">
                           <div>
                             <p className="text-xs text-gray-500 mb-1">First Time Patient</p>
-                            <p className="text-emerald-600 font-bold text-lg">{service.first_time_price}</p>
+                            <p className="text-gray-900 font-bold text-lg">{service.first_time_price}</p>
                           </div>
                           <div className="text-right">
                             <p className="text-xs text-gray-500 mb-1">Duration</p>
@@ -571,7 +569,7 @@ const ViewProfile: React.FC<ViewProfileProps> = ({ profile }) => {
                         <div className="flex items-center justify-between p-3 bg-white rounded-lg">
                           <div>
                             <p className="text-xs text-gray-500 mb-1">Returning Patient</p>
-                            <p className="text-emerald-600 font-bold text-lg">{service.returning_price}</p>
+                            <p className="text-gray-900 font-bold text-lg">{service.returning_price}</p>
                           </div>
                           <div className="text-right">
                             <p className="text-xs text-gray-500 mb-1">Duration</p>
@@ -601,11 +599,11 @@ const ViewProfile: React.FC<ViewProfileProps> = ({ profile }) => {
                     <div className="flex items-center justify-between p-3 bg-white rounded-lg">
                       <div>
                         <p className="text-xs text-gray-500 mb-1">Sessions</p>
-                        <p className="text-gray-900 font-bold text-2xl">{pkg.no_of_sessions}</p>
+                        <p className="text-gray-900 font-bold text-lg">{pkg.no_of_sessions}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-xs text-gray-500 mb-1">Total</p>
-                        <p className="text-emerald-600 font-bold text-xl">{pkg.price}</p>
+                        <p className="text-gray-900 font-bold text-lg">{pkg.price}</p>
                       </div>
                     </div>
                   </div>
@@ -627,11 +625,11 @@ const ViewProfile: React.FC<ViewProfileProps> = ({ profile }) => {
             </div>
             <h3 className="text-lg font-bold text-gray-900">Introduction Video</h3>
           </div>
-          <div className="relative w-full md:w-96 aspect-video rounded-xl overflow-hidden bg-black shadow-lg">
+          <div className="flex justify-center items-center">
             <video
               src={video}
               controls
-              className="w-full h-full"
+              className="w-full max-w-md rounded-xl shadow-lg bg-black"
             >
               Your browser does not support the video tag.
             </video>

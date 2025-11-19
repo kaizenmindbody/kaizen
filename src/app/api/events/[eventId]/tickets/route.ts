@@ -55,6 +55,7 @@ export async function GET(
       requiresApproval: ticket.requires_approval,
       suggestedPricing: ticket.suggested_pricing,
       markedAsSoldOut: ticket.is_sold_out,
+      is_active: ticket.is_active !== false, // Default to true if not specified
     }));
 
     return NextResponse.json({

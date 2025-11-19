@@ -5,10 +5,82 @@ import { useEvents } from "@/hooks/useEvents";
 import Image from "next/image";
 import { Calendar, MapPin, DollarSign } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+
+interface TicketType {
+  id: string;
+  price: number;
+  is_active?: boolean;
+}
 
 const EventsPage = () => {
   const { events, loading, error } = useEvents();
   const router = useRouter();
+  const [ticketTypesMap, setTicketTypesMap] = useState<Record<number, TicketType[]>>({});
+  const [loadingTickets, setLoadingTickets] = useState<Record<number, boolean>>({});
+
+  // Fetch ticket types for all events
+  useEffect(() => {
+    if (events.length === 0) return;
+
+    const fetchTicketTypes = async () => {
+      const ticketPromises = events.map(async (event) => {
+        setLoadingTickets(prev => ({ ...prev, [event.id]: true }));
+        try {
+          const response = await fetch(`/api/events/${event.id}/tickets`);
+          const result = await response.json();
+          
+          if (result.success && result.tickets) {
+            return { eventId: event.id, tickets: result.tickets };
+          }
+          return { eventId: event.id, tickets: [] };
+        } catch (error) {
+          console.error(`Error fetching tickets for event ${event.id}:`, error);
+          return { eventId: event.id, tickets: [] };
+        } finally {
+          setLoadingTickets(prev => ({ ...prev, [event.id]: false }));
+        }
+      });
+
+      const results = await Promise.all(ticketPromises);
+      const newMap: Record<number, TicketType[]> = {};
+      
+      results.forEach(({ eventId, tickets }) => {
+        newMap[eventId] = tickets.map((ticket: any) => ({
+          id: ticket.id,
+          price: parseFloat(ticket.price) || 0,
+          is_active: ticket.is_active !== false && !ticket.markedAsSoldOut
+        }));
+      });
+
+      setTicketTypesMap(newMap);
+    };
+
+    fetchTicketTypes();
+  }, [events]);
+
+  // Get minimum price from ticket types for an event
+  const getEventPrice = (eventId: number): { price: number; hasMultiplePrices: boolean } => {
+    const tickets = ticketTypesMap[eventId] || [];
+    
+    if (tickets.length === 0) {
+      return { price: 0, hasMultiplePrices: false };
+    }
+
+    // Filter active tickets only
+    const activeTickets = tickets.filter(t => t.is_active !== false);
+    
+    if (activeTickets.length === 0) {
+      return { price: 0, hasMultiplePrices: false };
+    }
+
+    const prices = activeTickets.map(t => t.price);
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+    const hasMultiplePrices = minPrice !== maxPrice;
+
+    return { price: minPrice, hasMultiplePrices };
+  };
 
   // Format date helper
   const formatDate = (dateString: string) => {
@@ -111,7 +183,16 @@ const EventsPage = () => {
                       <div className="flex items-center text-lg font-semibold text-gray-900">
                         <DollarSign className="w-5 h-5 mr-1 text-secondary" />
                         <span>
-                          {event.price === 0 ? 'Free' : `$${event.price.toFixed(2)}`}
+                          {(() => {
+                            const { price, hasMultiplePrices } = getEventPrice(event.id);
+                            if (loadingTickets[event.id]) {
+                              return 'Loading...';
+                            }
+                            if (price === 0) {
+                              return 'Free';
+                            }
+                            return hasMultiplePrices ? `From $${price.toFixed(2)}` : `$${price.toFixed(2)}`;
+                          })()}
                         </span>
                       </div>
                     </div>

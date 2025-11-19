@@ -148,7 +148,17 @@ const eventsSlice = createSlice({
       })
       .addCase(fetchEvents.fulfilled, (state, action) => {
         state.loading = false;
-        state.events = action.payload;
+        // Transform database fields to match Event interface
+        state.events = (action.payload || []).map((event: any) => ({
+          ...event,
+          image: event.event_image || event.image || '',
+          title: event.event_name || event.title || '',
+          description: event.event_description || event.description || '',
+          location: event.address || event.location || '',
+          category: event.category || '',
+          price: event.price || 0,
+          author: event.author || '',
+        }));
         state.initialized = true;
       })
       .addCase(fetchEvents.rejected, (state, action) => {

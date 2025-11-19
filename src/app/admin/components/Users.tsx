@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2, Users, Activity, Mail, Calendar, UserCheck, Search, Download, X, AlertTriangle, User as UserIcon, Phone, MapPin, Clock, Globe, Star, Shield, BookOpen, Award, DollarSign, Languages, Heart, Eye, Building2, GraduationCap, Stethoscope, Send, UserPlus } from 'lucide-react';
+import { Trash2, Users, Activity, Mail, Calendar, UserCheck, Search, Download, X, AlertTriangle, User as UserIcon, Phone, MapPin, Clock, Globe, Star, Shield, BookOpen, Award, DollarSign, Languages, Heart, Eye, Building2, GraduationCap, Stethoscope, Send, UserPlus, Edit2, Save } from 'lucide-react';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { FilterMatchMode } from 'primereact/api';
@@ -15,6 +15,10 @@ const UsersComponent = ({ users, specialties, onRefreshData }: UsersProps) => {
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editForm, setEditForm] = useState<Partial<User>>({});
+  const [savingEdit, setSavingEdit] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [globalFilterValue, setGlobalFilterValue] = useState('');
   const [filters, setFilters] = useState({
@@ -86,6 +90,34 @@ const UsersComponent = ({ users, specialties, onRefreshData }: UsersProps) => {
     setSelectedUser(null);
   };
 
+  const openEditModal = (user: User) => {
+    setEditingUser(user);
+    // Split full_name into firstname and lastname for editing
+    const names = user.full_name ? user.full_name.split(' ') : ['', ''];
+    const firstname = names[0] || '';
+    const lastname = names.slice(1).join(' ') || '';
+
+    setEditForm({
+      firstname: firstname,
+      lastname: lastname,
+      email: user.email,
+      phone: user.phone || '',
+      address: user.address || '',
+      user_type: user.user_type,
+      clinic: user.clinic || '',
+      website: user.website || '',
+      degree: user.degree || '',
+      bio: user.bio || '',
+    });
+    setShowEditModal(true);
+  };
+
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    setEditingUser(null);
+    setEditForm({});
+  };
+
   const openInviteModal = () => {
     setShowInviteModal(true);
   };
@@ -102,6 +134,38 @@ const UsersComponent = ({ users, specialties, onRefreshData }: UsersProps) => {
 
   const handleInviteFormChange = (field: string, value: string) => {
     setInviteForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const saveUserEdit = async () => {
+    if (!editingUser) return;
+
+    setSavingEdit(true);
+
+    try {
+      const response = await fetch(`/api/users/${editingUser.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editForm),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        showError(result.error || 'Failed to update user');
+        return;
+      }
+
+      showSuccess('User updated successfully');
+      closeEditModal();
+      onRefreshData();
+    } catch (error: any) {
+      console.error('Error updating user:', error);
+      showError(error.message || 'Failed to update user. Please try again.');
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   const sendInvitation = async () => {
@@ -413,8 +477,16 @@ const UsersComponent = ({ users, specialties, onRefreshData }: UsersProps) => {
     return (
       <div className="flex items-center justify-start gap-2">
         <button
+          onClick={() => openEditModal(rowData)}
+          className="group flex items-center justify-center w-8 h-8 text-blue-600 hover:text-white hover:bg-blue-600 rounded-lg transition-all duration-200"
+          title="Edit user"
+        >
+          <Edit2 className="w-4 h-4" />
+        </button>
+        <button
           onClick={() => openDeleteModal(rowData)}
           className="group flex items-center justify-center w-8 h-8 text-red-600 hover:text-white hover:bg-red-600 rounded-lg transition-all duration-200"
+          title="Delete user"
         >
           <Trash2 className="w-4 h-4" />
         </button>
@@ -1128,6 +1200,224 @@ const UsersComponent = ({ users, specialties, onRefreshData }: UsersProps) => {
                   <span>Delete User</span>
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {showEditModal && editingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Background overlay */}
+          <div
+            className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+            onClick={closeEditModal}
+          ></div>
+
+          {/* Modal panel */}
+          <div className="relative w-full max-w-2xl p-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-3">
+                <div className="flex-shrink-0">
+                  <Edit2 className="w-6 h-6 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900">
+                  Edit User
+                </h3>
+              </div>
+              <button
+                onClick={closeEditModal}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Edit Form */}
+            <div className="space-y-6">
+              {/* User Info Banner */}
+              <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-4">
+                <div className="flex items-center space-x-3">
+                  <div className="flex-shrink-0 h-12 w-12">
+                    {editingUser.avatar ? (
+                      <Image
+                        src={editingUser.avatar}
+                        alt={editingUser.full_name || editingUser.email}
+                        width={300}
+                        height={300}
+                        className="h-12 w-12 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className={`h-12 w-12 rounded-full bg-gradient-to-br ${getUserTypeColor(editingUser.user_type)} flex items-center justify-center`}>
+                        <span className="text-sm font-bold text-white">
+                          {getInitials(editingUser.full_name, editingUser.email)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{editingUser.full_name || 'No name'}</p>
+                    <p className="text-xs text-gray-500">ID: {editingUser.id.slice(0, 8)}...</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Form Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    First Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.firstname || ''}
+                    onChange={(e) => setEditForm({ ...editForm, firstname: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    disabled={savingEdit}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.lastname || ''}
+                    onChange={(e) => setEditForm({ ...editForm, lastname: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    disabled={savingEdit}
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={editForm.email || ''}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    disabled={savingEdit}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Phone
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.phone || ''}
+                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    placeholder="Optional"
+                    disabled={savingEdit}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    User Type
+                  </label>
+                  <select
+                    value={editForm.user_type || ''}
+                    onChange={(e) => setEditForm({ ...editForm, user_type: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    disabled={savingEdit}
+                  >
+                    <option value="practitioner">Practitioner</option>
+                    <option value="patient">Patient</option>
+                    <option value="eventhost">Event Host</option>
+                  </select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Address
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.address || ''}
+                    onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    placeholder="Optional"
+                    disabled={savingEdit}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Clinic
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.clinic || ''}
+                    onChange={(e) => setEditForm({ ...editForm, clinic: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    placeholder="Optional"
+                    disabled={savingEdit}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Website
+                  </label>
+                  <input
+                    type="url"
+                    value={editForm.website || ''}
+                    onChange={(e) => setEditForm({ ...editForm, website: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    placeholder="Optional"
+                    disabled={savingEdit}
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Bio
+                  </label>
+                  <textarea
+                    value={editForm.bio || ''}
+                    onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+                    placeholder="Optional"
+                    disabled={savingEdit}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end space-x-3 pt-6 mt-6 border-t border-gray-200">
+              <button
+                onClick={closeEditModal}
+                disabled={savingEdit}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveUserEdit}
+                disabled={savingEdit}
+                className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+              >
+                {savingEdit ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    <span>Save Changes</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

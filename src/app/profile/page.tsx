@@ -234,7 +234,9 @@ const ProfilePage = () => {
           'view-clinic-profile': 'View Clinic Profile',
           'update-clinic-page': 'Update Clinic Page',
           'manage-practitioner-info': 'Manage Practitioner Info',
-          'events': 'Events',
+          'events': 'Manage Events',  // Changed to default to Manage Events
+          'create-event': 'Create Event',
+          'manage-events': 'Manage Events',
           'books': 'Books',
           'help': 'Help Center',
           'support': 'Support'
@@ -248,6 +250,8 @@ const ProfilePage = () => {
             setExpandedMenu('Profile');
           } else if (['View Clinic Profile', 'Update Clinic Page', 'Manage Practitioner Info'].includes(mappedTab)) {
             setExpandedMenu('Clinic');
+          } else if (['Create Event', 'Manage Events'].includes(mappedTab)) {
+            setExpandedMenu('Events');
           }
         }
       }
@@ -256,12 +260,14 @@ const ProfilePage = () => {
 
   // Update URL when tab changes
   const handleTabChange = (tab: string) => {
-    // Special handling: 'Profile' and 'Clinic' parent tabs should navigate to their first sub-item
+    // Special handling: 'Profile', 'Clinic', and 'Events' parent tabs should navigate to their first sub-item
     let actualTab = tab;
     if (tab === 'Profile') {
       actualTab = 'View Profile';
     } else if (tab === 'Clinic') {
       actualTab = 'View Clinic Profile';
+    } else if (tab === 'Events') {
+      actualTab = 'Manage Events';
     }
 
     setActiveTab(actualTab);
@@ -278,7 +284,9 @@ const ProfilePage = () => {
         'View Clinic Profile': 'view-clinic-profile',
         'Update Clinic Page': 'update-clinic-page',
         'Manage Practitioner Info': 'manage-practitioner-info',
-        'Events': 'events',
+        'Events': 'manage-events',  // Changed to default to manage-events
+        'Create Event': 'create-event',
+        'Manage Events': 'manage-events',
         'Books': 'books',
         'Help Center': 'help',
         'Support': 'support'
@@ -1388,6 +1396,89 @@ const ProfilePage = () => {
                         );
                       }
 
+                      if (tab === 'Events') {
+                        return (
+                          <div key={tab}>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                // If dropdown is closed, open it and show Manage Events
+                                if (expandedMenu !== 'Events') {
+                                  setExpandedMenu('Events');
+                                  handleTabChange('Manage Events');
+                                } else {
+                                  // If dropdown is already open, just close it
+                                  setExpandedMenu(null);
+                                }
+                              }}
+                              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg font-medium transition-all text-sm ${
+                                ['Create Event', 'Manage Events'].includes(activeTab)
+                                  ? 'bg-primary text-white shadow-sm'
+                                  : 'text-gray-700 hover:bg-gray-50'
+                              }`}
+                            >
+                              <div className="flex items-center space-x-3">
+                                {getIcon(tab)}
+                                <span>{tab}</span>
+                              </div>
+                              <svg
+                                className={`w-4 h-4 transition-transform ${expandedMenu === 'Events' ? 'rotate-180' : ''}`}
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </button>
+
+                            {expandedMenu === 'Events' && (
+                              <div className="mt-3 ml-8 space-y-2">
+                                {['Create Event', 'Manage Events'].map((subItem) => {
+                                  const getEventSubItemIcon = (subItemName: string) => {
+                                    switch(subItemName) {
+                                      case 'Create Event':
+                                        return (
+                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                          </svg>
+                                        );
+                                      case 'Manage Events':
+                                        return (
+                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                          </svg>
+                                        );
+                                      default:
+                                        return null;
+                                    }
+                                  };
+
+                                  return (
+                                    <button
+                                      key={subItem}
+                                      onClick={() => {
+                                        handleTabChange(subItem);
+                                        setIsMobileMenuOpen(false);
+                                      }}
+                                      className={`w-full flex items-center space-x-2 text-left px-3 py-2 rounded-lg font-medium transition-all text-sm ${
+                                        activeTab === subItem
+                                          ? 'bg-blue-50 text-primary'
+                                          : 'text-gray-700 hover:bg-gray-50'
+                                      }`}
+                                    >
+                                      {getEventSubItemIcon(subItem)}
+                                      <span>{subItem}</span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+
                       return (
                         <button
                           type="button"
@@ -1510,7 +1601,8 @@ const ProfilePage = () => {
                  activeTab === 'View Clinic Profile' ? 'View your clinic profile' :
                  activeTab === 'Update Clinic Page' ? 'Update your clinic information' :
                  activeTab === 'Manage Practitioner Info' ? 'Manage practitioner information' :
-                 activeTab === 'Events' ? 'Events and appointments' :
+                 activeTab === 'Create Event' ? 'Create a new event' :
+                 activeTab === 'Manage Events' ? 'View and manage your events' :
                  activeTab === 'Books' ? 'Your appointments' :
                  activeTab === 'Help Center' ? 'Get help' :
                  activeTab === 'Support' ? 'Contact support' : ''}
@@ -1560,8 +1652,8 @@ const ProfilePage = () => {
               <ManagePractitionerInfo profile={profile} />
             )}
 
-            {activeTab === 'Events' && (
-              <Events profile={profile} />
+            {(activeTab === 'Create Event' || activeTab === 'Manage Events') && (
+              <Events profile={profile} activeSubTab={activeTab} onNavigate={handleTabChange} />
             )}
 
             {activeTab === 'Help Center' && (

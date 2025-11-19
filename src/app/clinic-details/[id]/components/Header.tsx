@@ -24,19 +24,14 @@ export const Header = ({ clinic, user }: HeaderProps) => {
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [showAllMediaModal, setShowAllMediaModal] = useState(false);
 
-  const allMedia = [
-    ...(clinic.clinic_video ? [{ type: 'video', url: clinic.clinic_video }] : []),
-    ...(clinic.clinic_images || []).map((img: string) => ({ type: 'image', url: img }))
-  ];
-
   const handlePrevImage = () => {
-    if (selectedImageIndex === null) return;
-    setSelectedImageIndex(selectedImageIndex > 0 ? selectedImageIndex - 1 : allMedia.length - 1);
+    if (selectedImageIndex === null || !clinic.clinic_images) return;
+    setSelectedImageIndex(selectedImageIndex > 0 ? selectedImageIndex - 1 : clinic.clinic_images.length - 1);
   };
 
   const handleNextImage = () => {
-    if (selectedImageIndex === null) return;
-    setSelectedImageIndex(selectedImageIndex < allMedia.length - 1 ? selectedImageIndex + 1 : 0);
+    if (selectedImageIndex === null || !clinic.clinic_images) return;
+    setSelectedImageIndex(selectedImageIndex < clinic.clinic_images.length - 1 ? selectedImageIndex + 1 : 0);
   };
 
   return (
@@ -228,10 +223,7 @@ export const Header = ({ clinic, user }: HeaderProps) => {
                           return (
                             <div
                               className="h-48 md:h-64 overflow-hidden rounded-lg relative cursor-pointer hover:opacity-90 transition-opacity"
-                              onClick={() => {
-                                setSelectedImageIndex(clinic.clinic_video ? 1 : 0);
-                                setShowAllMediaModal(true);
-                              }}
+                              onClick={() => setSelectedImageIndex(0)}
                             >
                               <Image
                                 src={clinic.clinic_images[0]}
@@ -251,10 +243,7 @@ export const Header = ({ clinic, user }: HeaderProps) => {
                                 <div
                                   key={index}
                                   className="relative overflow-hidden rounded-lg h-full cursor-pointer hover:opacity-90 transition-opacity"
-                                  onClick={() => {
-                                    setSelectedImageIndex(clinic.clinic_video ? index + 1 : index);
-                                    setShowAllMediaModal(true);
-                                  }}
+                                  onClick={() => setSelectedImageIndex(index)}
                                 >
                                   <Image
                                     src={imageUrl}
@@ -276,10 +265,7 @@ export const Header = ({ clinic, user }: HeaderProps) => {
                                 <div
                                   key={index}
                                   className="relative overflow-hidden rounded-lg h-full cursor-pointer hover:opacity-90 transition-opacity"
-                                  onClick={() => {
-                                    setSelectedImageIndex(clinic.clinic_video ? index + 1 : index);
-                                    setShowAllMediaModal(true);
-                                  }}
+                                  onClick={() => setSelectedImageIndex(index)}
                                 >
                                   <Image
                                     src={imageUrl}
@@ -300,10 +286,7 @@ export const Header = ({ clinic, user }: HeaderProps) => {
                             <div className="block md:hidden space-y-3">
                               <div
                                 className="aspect-video overflow-hidden rounded-lg relative cursor-pointer hover:opacity-90 transition-opacity"
-                                onClick={() => {
-                                  setSelectedImageIndex(clinic.clinic_video ? 1 : 0);
-                                  setShowAllMediaModal(true);
-                                }}
+                                onClick={() => setSelectedImageIndex(0)}
                               >
                                 <Image
                                   src={clinic.clinic_images[0]}
@@ -317,10 +300,7 @@ export const Header = ({ clinic, user }: HeaderProps) => {
                                   <div
                                     key={index + 1}
                                     className="aspect-square relative overflow-hidden rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                                    onClick={() => {
-                                      setSelectedImageIndex(clinic.clinic_video ? index + 2 : index + 1);
-                                      setShowAllMediaModal(true);
-                                    }}
+                                    onClick={() => setSelectedImageIndex(index + 1)}
                                   >
                                     <Image
                                       src={imageUrl}
@@ -339,10 +319,7 @@ export const Header = ({ clinic, user }: HeaderProps) => {
                                 {/* Large Image - 2 columns */}
                                 <div
                                   className="col-span-2 h-full overflow-hidden rounded-lg relative cursor-pointer hover:opacity-90 transition-opacity"
-                                  onClick={() => {
-                                    setSelectedImageIndex(clinic.clinic_video ? 1 : 0);
-                                    setShowAllMediaModal(true);
-                                  }}
+                                  onClick={() => setSelectedImageIndex(0)}
                                 >
                                   <Image
                                     src={clinic.clinic_images[0]}
@@ -358,10 +335,7 @@ export const Header = ({ clinic, user }: HeaderProps) => {
                                     <div
                                       key={index + 1}
                                       className="w-full h-full relative overflow-hidden rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                                      onClick={() => {
-                                        setSelectedImageIndex(clinic.clinic_video ? index + 2 : index + 1);
-                                        setShowAllMediaModal(true);
-                                      }}
+                                      onClick={() => setSelectedImageIndex(index + 1)}
                                     >
                                       <Image
                                         src={imageUrl}
@@ -391,52 +365,52 @@ export const Header = ({ clinic, user }: HeaderProps) => {
       </div>
 
       {/* Image Modal */}
-      {selectedImageIndex !== null && showAllMediaModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4">
-          <button
-            onClick={() => {
-              setShowAllMediaModal(false);
-              setSelectedImageIndex(null);
-            }}
-            className="absolute top-4 right-4 text-white hover:text-gray-300 z-50"
-          >
-            <X className="w-8 h-8" />
-          </button>
-
-          <button
-            onClick={handlePrevImage}
-            className="absolute left-4 text-white hover:text-gray-300 z-50"
-          >
-            <ChevronLeft className="w-12 h-12" />
-          </button>
-
-          <button
-            onClick={handleNextImage}
-            className="absolute right-4 text-white hover:text-gray-300 z-50"
-          >
-            <ChevronRight className="w-12 h-12" />
-          </button>
-
-          <div className="max-w-6xl max-h-full w-full h-full flex items-center justify-center">
-            {allMedia[selectedImageIndex].type === 'video' ? (
-              <video
-                src={allMedia[selectedImageIndex].url}
-                controls
-                className="max-w-full max-h-full rounded-lg"
-              />
-            ) : (
-              <Image
-                src={allMedia[selectedImageIndex].url}
-                alt={`Clinic media ${selectedImageIndex + 1}`}
-                width={1200}
-                height={800}
-                className="max-w-full max-h-full object-contain rounded-lg"
-              />
+      {selectedImageIndex !== null && clinic.clinic_images && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+          onClick={() => setSelectedImageIndex(null)}
+        >
+          <div className="relative max-w-4xl max-h-full">
+            <Image
+              src={clinic.clinic_images[selectedImageIndex]}
+              alt={`${clinic.clinic_name} image ${selectedImageIndex + 1}`}
+              width={800}
+              height={600}
+              className="max-w-full max-h-full object-contain rounded-lg"
+            />
+            <button
+              onClick={() => setSelectedImageIndex(null)}
+              className="absolute top-4 right-4 bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-2 rounded-full transition-colors"
+            >
+              <X className="w-6 h-6 text-black" />
+            </button>
+            {/* Navigation arrows */}
+            {clinic.clinic_images.length > 1 && (
+              <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePrevImage();
+                  }}
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-2 rounded-full transition-colors"
+                >
+                  <ChevronLeft className="w-6 h-6 text-black" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleNextImage();
+                  }}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-2 rounded-full transition-colors"
+                >
+                  <ChevronRight className="w-6 h-6 text-black" />
+                </button>
+              </>
             )}
-          </div>
-
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white">
-            {selectedImageIndex + 1} / {allMedia.length}
+            {/* Image counter */}
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
+              {selectedImageIndex + 1} / {clinic.clinic_images.length}
+            </div>
           </div>
         </div>
       )}

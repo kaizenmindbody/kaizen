@@ -1,13 +1,18 @@
-import { CalendarIcon } from '@heroicons/react/24/outline';
 import { UserData } from '@/types/user';
 
 interface EventData {
   id: string;
-  title: string;
-  description: string;
-  start_date: string;
-  end_date: string;
-  location: string;
+  event_name: string;
+  event_summary: string;
+  event_description: string;
+  what_to_bring: string | null;
+  event_start_datetime: string;
+  event_end_datetime: string;
+  address: string;
+  event_image: string | null;
+  hide_address: boolean;
+  enable_ticketing: boolean;
+  non_refundable: boolean;
   status: string;
   created_at: string;
 }
@@ -15,97 +20,110 @@ interface EventData {
 interface DashboardProps {
   profile: UserData | null;
   events: EventData[];
+  setActiveTab?: (tab: string) => void;
 }
 
-export default function Dashboard({ profile, events }: DashboardProps) {
+export default function Dashboard({ profile, events, setActiveTab }: DashboardProps) {
+  // Get first name for greeting
+  const firstName = profile?.firstname || 'there';
+
+  // Define action cards for event hosts
+  const actionCards = [
+    {
+      title: 'View Host\nProfile',
+      bgColor: 'bg-[#FACB9B]',
+      action: 'View Host Profile',
+    },
+    {
+      title: 'Manage Host\nProfile',
+      bgColor: 'bg-[#C8E6C9]',
+      action: 'Manage Host Profile',
+    },
+    {
+      title: 'Create\nAn Event',
+      bgColor: 'bg-[#B8BDB5]',
+      action: 'Create an Event',
+    },
+    {
+      title: 'Manage\nEvents',
+      bgColor: 'bg-[#D7D7D7]',
+      action: 'Manage an Event',
+    },
+    {
+      title: 'Manage\nCoupons',
+      bgColor: 'bg-[#C5B3D4]',
+      action: 'Manage Coupons',
+    },
+  ];
+
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-1">Welcome back, {profile?.firstname}!</p>
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      {/* Greeting Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl text-gray-800 flex items-center">
+          <span className="mr-2">👋</span>
+          <span className="font-normal">Hello, {firstName}</span>
+        </h1>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className="p-3 rounded-full bg-blue-100 text-blue-600">
-              <CalendarIcon className="h-6 w-6" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Events</p>
-              <p className="text-2xl font-semibold text-gray-900">{events.length}</p>
-            </div>
-          </div>
+      {/* Action Cards - 3 columns layout */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+        {/* Column 1: View Host Profile (spans 2 rows) */}
+        <div className="lg:row-span-2">
+          <button
+            onClick={() => setActiveTab?.(actionCards[0].action)}
+            className={`${actionCards[0].bgColor} rounded-2xl p-6 text-center transition-all duration-200 hover:shadow-lg hover:scale-[1.02] flex items-center justify-center w-full h-full`}
+            style={{ minHeight: '340px' }}
+          >
+            <h3 className="text-lg font-semibold text-gray-800 whitespace-pre-line leading-relaxed">
+              {actionCards[0].title}
+            </h3>
+          </button>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className="p-3 rounded-full bg-green-100 text-green-600">
-              <CalendarIcon className="h-6 w-6" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Active Events</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {events.filter(e => e.status === 'active').length}
-              </p>
-            </div>
-          </div>
-        </div>
+        {/* Column 2 Row 1: Manage Host Profile */}
+        <button
+          onClick={() => setActiveTab?.(actionCards[1].action)}
+          className={`${actionCards[1].bgColor} rounded-2xl p-6 text-center transition-all duration-200 hover:shadow-lg hover:scale-[1.02] flex items-center justify-center`}
+          style={{ minHeight: '160px' }}
+        >
+          <h3 className="text-base font-semibold text-gray-800 whitespace-pre-line leading-relaxed">
+            {actionCards[1].title}
+          </h3>
+        </button>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className="p-3 rounded-full bg-purple-100 text-purple-600">
-              <CalendarIcon className="h-6 w-6" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Upcoming Events</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {events.filter(e => new Date(e.start_date) > new Date()).length}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+        {/* Column 3 Row 1: Manage Events */}
+        <button
+          onClick={() => setActiveTab?.(actionCards[3].action)}
+          className={`${actionCards[3].bgColor} rounded-2xl p-6 text-center transition-all duration-200 hover:shadow-lg hover:scale-[1.02] flex items-center justify-center`}
+          style={{ minHeight: '160px' }}
+        >
+          <h3 className="text-base font-semibold text-gray-800 whitespace-pre-line leading-relaxed">
+            {actionCards[3].title}
+          </h3>
+        </button>
 
-      {/* Recent Events */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Recent Events</h2>
-        </div>
-        <div className="p-6">
-          {events.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">
-              No events yet. Create your first event!
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {events.slice(0, 5).map((event) => (
-                <div
-                  key={event.id}
-                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
-                >
-                  <div>
-                    <h3 className="font-medium text-gray-900">{event.title}</h3>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {new Date(event.start_date).toLocaleDateString()}
-                      {event.location && ` • ${event.location}`}
-                    </p>
-                  </div>
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      event.status === 'active'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}
-                  >
-                    {event.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* Column 2 Row 2: Create An Event */}
+        <button
+          onClick={() => setActiveTab?.(actionCards[2].action)}
+          className={`${actionCards[2].bgColor} rounded-2xl p-6 text-center transition-all duration-200 hover:shadow-lg hover:scale-[1.02] flex items-center justify-center`}
+          style={{ minHeight: '160px' }}
+        >
+          <h3 className="text-base font-semibold text-gray-800 whitespace-pre-line leading-relaxed">
+            {actionCards[2].title}
+          </h3>
+        </button>
+
+        {/* Column 3 Row 2: Manage Coupons */}
+        <button
+          onClick={() => setActiveTab?.(actionCards[4].action)}
+          className={`${actionCards[4].bgColor} rounded-2xl p-6 text-center transition-all duration-200 hover:shadow-lg hover:scale-[1.02] flex items-center justify-center`}
+          style={{ minHeight: '160px' }}
+        >
+          <h3 className="text-base font-semibold text-gray-800 whitespace-pre-line leading-relaxed">
+            {actionCards[4].title}
+          </h3>
+        </button>
       </div>
     </div>
   );

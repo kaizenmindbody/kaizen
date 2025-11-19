@@ -2,7 +2,7 @@
 
 import React from 'react';
 import NextImage from 'next/image';
-import { Heart, MapPin, Building, ExternalLink } from 'lucide-react';
+import { MapPin, Building, ExternalLink } from 'lucide-react';
 import { UserData } from '@/types/user';
 import { getAvatarUrl, formatPractitionerType } from '@/lib/formatters';
 
@@ -34,7 +34,6 @@ export const UserCard: React.FC<UserCardProps> = ({
             height={250}
             className="w-full h-full rounded-lg object-cover"
           />
-          <Heart className="absolute top-4 right-4 w-6 h-6 text-yellow-400 fill-current z-10" />
         </div>
 
         {/* Content */}
@@ -130,7 +129,6 @@ export const UserCard: React.FC<UserCardProps> = ({
             height={300}
             className="w-full h-full rounded-lg object-cover"
           />
-          <Heart className="absolute top-4 right-4 w-5 h-5 text-yellow-400 fill-current z-10" />
         </div>
 
         {/* Content as single column - now matches image height */}
@@ -216,7 +214,6 @@ export const UserCard: React.FC<UserCardProps> = ({
             height={350}
             className="w-full h-full rounded-lg object-cover"
           />
-          <Heart className="absolute top-4 right-4 w-6 h-6 text-yellow-400 fill-current" />
         </div>
 
         {/* Main Info - now matches image height */}

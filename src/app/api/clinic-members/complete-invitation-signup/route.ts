@@ -1,6 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+// Define ClinicMember type
+interface ClinicMember {
+  id: string;
+  clinic_id: string;
+  email: string;
+  firstname: string;
+  lastname: string;
+  phone: string;
+  degree?: string;
+  website?: string;
+  avatar?: string;
+  invitation_token: string | null;
+  invitation_status: string;
+  invitation_expires_at: string | null;
+  user_id: string | null;
+}
+
 // Create Supabase admin client with service role key
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -38,7 +55,7 @@ export async function POST(request: NextRequest) {
       .from('ClinicMembers')
       .select('*')
       .eq('invitation_token', token)
-      .single();
+      .single() as { data: ClinicMember | null; error: any };
 
     if (fetchError || !member) {
       return NextResponse.json(
@@ -68,7 +85,7 @@ export async function POST(request: NextRequest) {
 
     // Check if email already has an account
     const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-    const emailExists = existingUsers?.users?.some(u => u.email === member.email);
+    const emailExists = existingUsers?.users?.some((u: any) => u.email === member.email);
 
     if (emailExists) {
       return NextResponse.json(

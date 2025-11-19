@@ -109,7 +109,12 @@ const PractitionerDetailsPage = () => {
   // Fetch specific practitioner data
   useEffect(() => {
     const fetchPractitioner = async () => {
-      if (!practitionerId) return;
+      if (!practitionerId) {
+        console.log('No practitioner ID provided');
+        return;
+      }
+
+      console.log('Fetching practitioner with ID:', practitionerId);
 
       try {
         setLoading(true);
@@ -117,24 +122,68 @@ const PractitionerDetailsPage = () => {
 
         // Fetch practitioner data from Users table
         const { supabase } = await import('@/lib/supabase');
+        console.log('Querying Users table for practitioner...');
+
         const { data: found, error: userError } = await supabase
           .from('Users')
-          .select('*')
+          .select(`
+            id,
+            firstname,
+            lastname,
+            email,
+            phone,
+            address,
+            avatar,
+            type,
+            ptype,
+            degree,
+            clinic,
+            website,
+            title,
+            clinicpage
+          `)
           .eq('id', practitionerId)
-          .eq('type', 'Practitioner')
-          .single();
+          .maybeSingle();
 
-        if (userError || !found) {
+        if (userError) {
+          console.error('Error fetching practitioner from Users table:', userError);
+          setError(`Error loading practitioner data: ${userError.message}`);
+          return;
+        }
+
+        if (!found) {
+          console.log('No practitioner found with ID:', practitionerId);
           setError('Practitioner not found');
           return;
         }
 
+        console.log('Practitioner data found:', {
+          id: found.id,
+          name: `${found.firstname} ${found.lastname}`,
+          type: found.type,
+          ptype: found.ptype
+        });
+
+        // Verify this is a practitioner
+        if (found.type?.toLowerCase() !== 'practitioner' && found.ptype?.toLowerCase() !== 'practitioner') {
+          console.log('User is not a practitioner. Type:', found.type, 'PType:', found.ptype);
+          setError('This user is not a practitioner');
+          return;
+        }
+
         // Fetch media from UserMedia table
-        const { data: mediaData } = await supabase
+        console.log('Fetching media from UserMedia table...');
+        const { data: mediaData, error: mediaError } = await supabase
           .from('UserMedia')
-          .select('*')
+          .select('id, user_id, file_url, file_type, display_order, created_at')
           .eq('user_id', practitionerId)
           .order('display_order', { ascending: true });
+
+        if (mediaError) {
+          console.log('Error fetching media (non-critical):', mediaError);
+        } else {
+          console.log('Media data fetched:', mediaData?.length || 0, 'items');
+        }
 
         // Separate images and video from UserMedia
         const userImages = mediaData
@@ -142,43 +191,58 @@ const PractitionerDetailsPage = () => {
           .map(item => item.file_url) || [];
         const userVideo = mediaData?.find(item => item.file_type === 'video')?.file_url || null;
 
+        console.log('Processed media - Images:', userImages.length, 'Video:', userVideo ? 'Yes' : 'No');
+
         // Process JSON fields from Users table
         const processedUser = {
           ...found,
           // Compute full_name from firstname and lastname
           full_name: found.firstname && found.lastname
             ? `${found.firstname} ${found.lastname}`.trim()
-            : found.firstname || found.lastname || found.full_name || '',
+            : found.firstname || found.lastname || '',
           firstname: found.firstname || '',
           lastname: found.lastname || '',
           title: found.title || '',
           degree: found.degree || '',
-          languages: found.languages ?
-            (typeof found.languages === 'string' ? JSON.parse(found.languages) : found.languages) : [],
-          specialty_rate: found.specialty_rate ?
-            (typeof found.specialty_rate === 'string' ? JSON.parse(found.specialty_rate) : found.specialty_rate) : {},
+          languages: [], // Languages will be fetched from Descriptions table
+          bio: '', // Bio not stored in Users table
+          aboutme: '', // About me not stored in Users table
         };
 
         // Fetch descriptions data from Descriptions table
+        console.log('Fetching descriptions from Descriptions table...');
+        let languagesFromDescriptions = [];
         try {
-          const { data: descriptionsResult } = await supabase
+          const { data: descriptionsResult, error: descError } = await supabase
             .from('Descriptions')
-            .select('*')
+            .select('id, user_id, background, education, treatment, firstVisit, insurance, cancellation, language, created_at')
             .eq('user_id', practitionerId)
-            .single();
+            .maybeSingle();
 
-          if (descriptionsResult) {
+          if (descError) {
+            console.log('Error fetching descriptions:', descError);
+          } else if (descriptionsResult) {
+            console.log('Descriptions data found');
             // Parse language field if it's a string
             if (descriptionsResult.language) {
               descriptionsResult.language = typeof descriptionsResult.language === 'string'
                 ? JSON.parse(descriptionsResult.language)
                 : descriptionsResult.language;
+              // Extract languages array
+              languagesFromDescriptions = Array.isArray(descriptionsResult.language)
+                ? descriptionsResult.language
+                : [descriptionsResult.language];
             }
             setDescriptionsData(descriptionsResult);
+          } else {
+            console.log('No descriptions data available for this practitioner');
           }
         } catch (descError) {
-          console.log('No descriptions data found:', descError);
+          console.log('Exception fetching descriptions:', descError);
         }
+
+        // Update processedUser with languages from Descriptions
+        processedUser.languages = languagesFromDescriptions.length > 0 ? languagesFromDescriptions : ['English'];
 
         // Transform the data for the detail page
         const transformedPractitioner = {
@@ -194,7 +258,7 @@ const PractitionerDetailsPage = () => {
           languages: Array.isArray(processedUser.languages) ? processedUser.languages : (processedUser.languages ? [processedUser.languages] : ['English']),
           clinic: processedUser.clinic || 'Private Practice',
           address: processedUser.address || 'Address not available',
-          specialty: processedUser.specialty || '',
+          specialty: processedUser.ptype || '',
           bio: processedUser.bio || '',
           aboutme: processedUser.aboutme || '',
           successRate: `${Math.floor(Math.random() * 20) + 80}%`,
@@ -203,74 +267,50 @@ const PractitionerDetailsPage = () => {
           verified: Math.random() > 0.3,
           // Extended fields for detail page - use actual specialties from database
           specialties: (() => {
-            if (!processedUser.specialty) return ['General Practice'];
+            if (!processedUser.ptype) return ['General Practice'];
 
-            // Handle if specialty is already an array
-            if (Array.isArray(processedUser.specialty)) {
-              return processedUser.specialty.filter(s => s && s.trim() !== '');
+            // Handle if ptype is already an array
+            if (Array.isArray(processedUser.ptype)) {
+              return processedUser.ptype.filter(s => s && s.trim() !== '');
             }
 
-            // Handle if specialty is a JSON string
-            if (typeof processedUser.specialty === 'string') {
+            // Handle if ptype is a JSON string
+            if (typeof processedUser.ptype === 'string') {
               try {
-                const parsed = JSON.parse(processedUser.specialty);
+                const parsed = JSON.parse(processedUser.ptype);
                 if (Array.isArray(parsed)) {
                   return parsed.filter(s => s && s.trim() !== '');
                 }
               } catch {
                 // If JSON parsing fails, treat as single specialty
-                return [processedUser.specialty.trim()];
+                return [processedUser.ptype.trim()];
               }
 
               // If it's just a regular string, return as single item array
-              return [processedUser.specialty.trim()];
+              return [processedUser.ptype.trim()];
             }
 
             return ['General Practice'];
           })(),
-          services: (() => {
-            // Use specialty_rate if available, otherwise use default values
-            if (processedUser.specialty_rate) {
-              try {
-                const rates = typeof processedUser.specialty_rate === 'string'
-                  ? JSON.parse(processedUser.specialty_rate)
-                  : processedUser.specialty_rate;
-                const firstRate = Object.values(rates)[0] as number || 100;
-                return [
-                  { name: 'Initial Consultation', duration: '60min', price: firstRate * 2 },
-                  { name: 'Follow-up Session', duration: '45min', price: firstRate },
-                  { name: 'Package Deal (3 sessions)', duration: '45min', price: firstRate * 2.5 },
-                  { name: 'Specialized Treatment', duration: '30min', price: firstRate * 1.5 }
-                ];
-              } catch {
-                return [
-                  { name: 'Initial Consultation', duration: '60min', price: 100 },
-                  { name: 'Follow-up Session', duration: '45min', price: 50 },
-                  { name: 'Package Deal (3 sessions)', duration: '45min', price: 125 },
-                  { name: 'Specialized Treatment', duration: '30min', price: 75 }
-                ];
-              }
-            }
-            return [
-              { name: 'Initial Consultation', duration: '60min', price: 100 },
-              { name: 'Follow-up Session', duration: '45min', price: 50 },
-              { name: 'Package Deal (3 sessions)', duration: '45min', price: 125 },
-              { name: 'Specialized Treatment', duration: '30min', price: 75 }
-            ];
-          })(),
+          services: [
+            { name: 'Initial Consultation', duration: '60min', price: 100 },
+            { name: 'Follow-up Session', duration: '45min', price: 50 },
+            { name: 'Package Deal (3 sessions)', duration: '45min', price: 125 },
+            { name: 'Specialized Treatment', duration: '30min', price: 75 }
+          ],
           about: processedUser.aboutme || (() => {
             // Extract real data from database
             const specialtyText = (() => {
-              if (!processedUser.specialty) return 'General Healthcare';
-              if (typeof processedUser.specialty === 'string') {
+              if (!processedUser.ptype) return 'General Healthcare';
+              if (typeof processedUser.ptype === 'string') {
                 try {
-                  const parsed = JSON.parse(processedUser.specialty);
-                  return Array.isArray(parsed) ? parsed.join(', ') : processedUser.specialty;
+                  const parsed = JSON.parse(processedUser.ptype);
+                  return Array.isArray(parsed) ? parsed.join(', ') : processedUser.ptype;
                 } catch {
-                  return processedUser.specialty;
+                  return processedUser.ptype;
                 }
               }
-              return Array.isArray(processedUser.specialty) ? processedUser.specialty.join(', ') : 'General Healthcare';
+              return Array.isArray(processedUser.ptype) ? processedUser.ptype.join(', ') : 'General Healthcare';
             })();
 
             const degreesText = processedUser.degree || 'Licensed Healthcare Professional';
@@ -312,13 +352,24 @@ const PractitionerDetailsPage = () => {
           })(),
         };
 
+        console.log('Setting practitioner data with:', {
+          name: transformedPractitioner.full_name,
+          hasAvatar: !!transformedPractitioner.avatar,
+          hasImages: transformedPractitioner.images?.length || 0,
+          hasVideo: !!transformedPractitioner.video,
+          hasSpecialties: transformedPractitioner.specialties?.length || 0
+        });
+
         setPractitioner(transformedPractitioner);
+        console.log('Practitioner data successfully loaded!');
       } catch (error) {
-        console.error('Error fetching practitioner:', error);
-        toast.error('Error fetching practitioner');
-        setError('Failed to fetch practitioner');
+        console.error('Exception in fetchPractitioner:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        toast.error(`Error loading practitioner: ${errorMessage}`);
+        setError(`Failed to fetch practitioner: ${errorMessage}`);
       } finally {
         setLoading(false);
+        console.log('Finished loading practitioner data');
       }
     };
 
@@ -399,7 +450,16 @@ const PractitionerDetailsPage = () => {
   if (error) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <div className="text-red-500">Error loading practitioner: {error}</div>
+        <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-lg">
+          <div className="text-red-600 text-xl font-semibold mb-2">Error Loading Practitioner</div>
+          <div className="text-gray-700 mb-4">{error}</div>
+          <button
+            onClick={() => router.back()}
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+          >
+            Go Back
+          </button>
+        </div>
       </div>
     );
   }
@@ -462,7 +522,7 @@ const PractitionerDetailsPage = () => {
               />
             )}
 
-            {activeTab === 'Events' && <Events />}
+            {activeTab === 'Events' && <Events practitionerId={practitionerId} />}
 
             {activeTab === 'Reviews' && <Reviews />}
             {activeTab === 'Services & Pricing' && (

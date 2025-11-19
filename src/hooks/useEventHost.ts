@@ -4,11 +4,17 @@ import { UserData, EventHost } from '@/types/user';
 
 interface EventData {
   id: string;
-  title: string;
-  description: string;
-  start_date: string;
-  end_date: string;
-  location: string;
+  event_name: string;
+  event_summary: string;
+  event_description: string;
+  what_to_bring: string | null;
+  event_start_datetime: string;
+  event_end_datetime: string;
+  address: string;
+  event_image: string | null;
+  hide_address: boolean;
+  enable_ticketing: boolean;
+  non_refundable: boolean;
   status: string;
   created_at: string;
 }
@@ -76,19 +82,29 @@ export function useEventHost(): UseEventHostReturn {
   const fetchEvents = useCallback(async (userId: string) => {
     try {
       setError(null);
-      const { data, error: eventsError } = await supabase
-        .from('Events')
-        .select('*')
-        .eq('host_id', userId)
-        .order('start_date', { ascending: false });
+      console.log('[useEventHost] Fetching events for userId:', userId);
 
-      if (eventsError) throw eventsError;
+      // Use API route instead of direct Supabase query to bypass RLS
+      const response = await fetch(`/api/events/host/${userId}`);
+      const result = await response.json();
 
-      if (data) {
-        setEvents(data);
+      console.log('[useEventHost] Events API result:', result);
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to fetch events');
+      }
+
+      if (result.events) {
+        console.log('[useEventHost] Setting events:', result.events.length, 'events found');
+        setEvents(result.events);
+      } else {
+        console.log('[useEventHost] No events data returned');
+        setEvents([]);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch events');
+      console.error('[useEventHost] Error fetching events:', err);
+      setEvents([]);
     }
   }, []);
 

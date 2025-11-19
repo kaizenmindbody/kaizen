@@ -11,22 +11,17 @@ interface GalleryProps {
 export const Gallery = ({ clinic }: GalleryProps) => {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
-  const allMedia = [
-    ...(clinic.clinic_video ? [{ type: 'video', url: clinic.clinic_video }] : []),
-    ...(clinic.clinic_images || []).map((img: string) => ({ type: 'image', url: img }))
-  ];
-
   const handlePrev = () => {
-    if (selectedIndex === null) return;
-    setSelectedIndex(selectedIndex > 0 ? selectedIndex - 1 : allMedia.length - 1);
+    if (selectedIndex === null || !clinic.clinic_images) return;
+    setSelectedIndex(selectedIndex > 0 ? selectedIndex - 1 : clinic.clinic_images.length - 1);
   };
 
   const handleNext = () => {
-    if (selectedIndex === null) return;
-    setSelectedIndex(selectedIndex < allMedia.length - 1 ? selectedIndex + 1 : 0);
+    if (selectedIndex === null || !clinic.clinic_images) return;
+    setSelectedIndex(selectedIndex < clinic.clinic_images.length - 1 ? selectedIndex + 1 : 0);
   };
 
-  if (allMedia.length === 0) {
+  if (!clinic.clinic_images || clinic.clinic_images.length === 0) {
     return (
       <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
         <ImageIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -75,15 +70,11 @@ export const Gallery = ({ clinic }: GalleryProps) => {
                 Clinic Photos ({clinic.clinic_images.length})
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {clinic.clinic_images.map((imageUrl: string, index: number) => {
-                  // Adjust index for video offset
-                  const mediaIndex = clinic.clinic_video ? index + 1 : index;
-
-                  return (
+                {clinic.clinic_images.map((imageUrl: string, index: number) => (
                     <div
                       key={index}
                       className="group relative aspect-square rounded-xl overflow-hidden border-2 border-gray-200 hover:border-primary/50 cursor-pointer transition-all hover:shadow-lg"
-                      onClick={() => setSelectedIndex(mediaIndex)}
+                      onClick={() => setSelectedIndex(index)}
                     >
                       <Image
                         src={imageUrl}
@@ -98,8 +89,7 @@ export const Gallery = ({ clinic }: GalleryProps) => {
                         </svg>
                       </div>
                     </div>
-                  );
-                })}
+                ))}
               </div>
             </div>
           )}
@@ -107,50 +97,52 @@ export const Gallery = ({ clinic }: GalleryProps) => {
       </div>
 
       {/* Lightbox Modal */}
-      {selectedIndex !== null && (
-        <div className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center p-4">
-          <button
-            onClick={() => setSelectedIndex(null)}
-            className="absolute top-4 right-4 text-white hover:text-gray-300 z-50 bg-black/50 rounded-full p-2"
-          >
-            <X className="w-8 h-8" />
-          </button>
-
-          <button
-            onClick={handlePrev}
-            className="absolute left-4 text-white hover:text-gray-300 z-50 bg-black/50 rounded-full p-2"
-          >
-            <ChevronLeft className="w-12 h-12" />
-          </button>
-
-          <button
-            onClick={handleNext}
-            className="absolute right-4 text-white hover:text-gray-300 z-50 bg-black/50 rounded-full p-2"
-          >
-            <ChevronRight className="w-12 h-12" />
-          </button>
-
-          <div className="max-w-6xl max-h-full w-full h-full flex items-center justify-center">
-            {allMedia[selectedIndex].type === 'video' ? (
-              <video
-                src={allMedia[selectedIndex].url}
-                controls
-                className="max-w-full max-h-full rounded-lg"
-                autoPlay
-              />
-            ) : (
-              <Image
-                src={allMedia[selectedIndex].url}
-                alt={`${clinic.clinic_name} - Gallery image ${selectedIndex + 1}`}
-                width={1200}
-                height={800}
-                className="max-w-full max-h-full object-contain rounded-lg"
-              />
+      {selectedIndex !== null && clinic.clinic_images && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+          onClick={() => setSelectedIndex(null)}
+        >
+          <div className="relative max-w-4xl max-h-full">
+            <Image
+              src={clinic.clinic_images[selectedIndex]}
+              alt={`${clinic.clinic_name} - Gallery image ${selectedIndex + 1}`}
+              width={800}
+              height={600}
+              className="max-w-full max-h-full object-contain rounded-lg"
+            />
+            <button
+              onClick={() => setSelectedIndex(null)}
+              className="absolute top-4 right-4 bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-2 rounded-full transition-colors"
+            >
+              <X className="w-6 h-6 text-black" />
+            </button>
+            {/* Navigation arrows */}
+            {clinic.clinic_images.length > 1 && (
+              <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePrev();
+                  }}
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-2 rounded-full transition-colors"
+                >
+                  <ChevronLeft className="w-6 h-6 text-black" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleNext();
+                  }}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-2 rounded-full transition-colors"
+                >
+                  <ChevronRight className="w-6 h-6 text-black" />
+                </button>
+              </>
             )}
-          </div>
-
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white bg-black/50 px-4 py-2 rounded-full">
-            {selectedIndex + 1} / {allMedia.length}
+            {/* Image counter */}
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
+              {selectedIndex + 1} / {clinic.clinic_images.length}
+            </div>
           </div>
         </div>
       )}

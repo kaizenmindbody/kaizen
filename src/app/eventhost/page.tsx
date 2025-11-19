@@ -25,6 +25,8 @@ import ManageEvents from './components/ManageEvents';
 import ManageCoupons from './components/ManageCoupons';
 import ViewHostProfile from './components/ViewHostProfile';
 import ManageHostProfile from './components/ManageHostProfile';
+import HelpCenter from './components/HelpCenter';
+import Support from './components/Support';
 
 // Loading Skeleton Component
 const EventHostPageSkeleton = () => {
@@ -93,6 +95,23 @@ const EventHostPageSkeleton = () => {
   );
 };
 
+interface EventData {
+  id: string;
+  event_name: string;
+  event_summary: string;
+  event_description: string;
+  what_to_bring: string | null;
+  event_start_datetime: string;
+  event_end_datetime: string;
+  address: string;
+  event_image: string | null;
+  hide_address: boolean;
+  enable_ticketing: boolean;
+  non_refundable: boolean;
+  status: string;
+  created_at: string;
+}
+
 export default function EventHostPage() {
   const router = useRouter();
   const { user, signOut, loading: authLoading } = useAuth();
@@ -100,6 +119,7 @@ export default function EventHostPage() {
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
+  const [editingEvent, setEditingEvent] = useState<EventData | null>(null);
 
   // Sync activeTab with URL on mount
   useEffect(() => {
@@ -115,6 +135,8 @@ export default function EventHostPage() {
           'manage-coupons': 'Manage Coupons',
           'view-host-profile': 'View Host Profile',
           'manage-host-profile': 'Manage Host Profile',
+          'help-center': 'Help Center',
+          'support': 'Support',
         };
         const mappedTab = tabMap[tab] || 'Dashboard';
         setActiveTab(mappedTab);
@@ -125,6 +147,12 @@ export default function EventHostPage() {
   // Update URL when tab changes
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
+
+    // Clear editing event when navigating away from Create an Event tab
+    if (tab !== 'Create an Event' && editingEvent) {
+      setEditingEvent(null);
+    }
+
     if (typeof window !== 'undefined') {
       // Map display name to URL tab
       const urlTabMap: { [key: string]: string } = {
@@ -134,6 +162,8 @@ export default function EventHostPage() {
         'Manage Coupons': 'manage-coupons',
         'View Host Profile': 'view-host-profile',
         'Manage Host Profile': 'manage-host-profile',
+        'Help Center': 'help-center',
+        'Support': 'support',
       };
       const urlTab = urlTabMap[tab] || 'dashboard';
 
@@ -166,6 +196,24 @@ export default function EventHostPage() {
 
   const handleLogout = async () => {
     await signOut();
+  };
+
+  const handleEditEvent = (event: EventData) => {
+    setEditingEvent(event);
+    handleTabChange('Create an Event');
+  };
+
+  const handleEventUpdated = async () => {
+    if (user?.id) {
+      await refreshData(user.id);
+      setEditingEvent(null);
+    }
+  };
+
+  const handleEventDeleted = async () => {
+    if (user?.id) {
+      await refreshData(user.id);
+    }
   };
 
   const tabs = ['Dashboard', 'Events', 'Host'];
@@ -414,6 +462,50 @@ export default function EventHostPage() {
 
                 return null;
               })}
+              {/* Settings Section */}
+              <div className="mt-6">
+                <h3 className="px-3 mb-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  Settings
+                </h3>
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleTabChange('Help Center');
+                      setSidebarOpen(false);
+                    }}
+                    className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg font-medium transition-all text-sm ${
+                      activeTab === 'Help Center'
+                        ? 'bg-primary text-white shadow-sm'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Help Center</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleTabChange('Support');
+                      setSidebarOpen(false);
+                    }}
+                    className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg font-medium transition-all text-sm ${
+                      activeTab === 'Support'
+                        ? 'bg-primary text-white shadow-sm'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    <span>Support</span>
+                  </button>
+                </div>
+              </div>
             </nav>
 
             {/* Action Buttons at bottom */}
@@ -431,7 +523,7 @@ export default function EventHostPage() {
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg font-medium transition-all text-sm text-white bg-red-600 hover:bg-red-700"
+                  className="w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg font-medium transition-all text-sm text-white bg-[#8ED083] hover:bg-[#7FC071]"
                 >
                   <ArrowRightOnRectangleIcon className="w-4 h-4" />
                   <span>Sign Out</span>
@@ -460,22 +552,32 @@ export default function EventHostPage() {
           <div className="p-6 lg:p-8">
             {/* Dashboard */}
             {activeTab === 'Dashboard' && (
-              <Dashboard profile={profile} events={events} />
+              <Dashboard profile={profile} events={events} setActiveTab={handleTabChange} />
             )}
 
             {/* Create an Event */}
             {activeTab === 'Create an Event' && (
-              <CreateEvent setActiveTab={handleTabChange} />
+              <CreateEvent
+                setActiveTab={handleTabChange}
+                editingEvent={editingEvent}
+                onEventUpdated={handleEventUpdated}
+              />
             )}
 
             {/* Manage an Event */}
-            {activeTab === 'Manage an Event' && (
-              <ManageEvents events={events} setActiveTab={handleTabChange} />
+            {activeTab === 'Manage an Event' && user?.id && (
+              <ManageEvents
+                events={events}
+                setActiveTab={handleTabChange}
+                onEditEvent={handleEditEvent}
+                onEventDeleted={handleEventDeleted}
+                hostId={user.id}
+              />
             )}
 
             {/* Manage Coupons */}
-            {activeTab === 'Manage Coupons' && (
-              <ManageCoupons />
+            {activeTab === 'Manage Coupons' && user?.id && (
+              <ManageCoupons hostId={user.id} />
             )}
 
             {/* View Host Profile */}
@@ -491,6 +593,16 @@ export default function EventHostPage() {
                 updateHostProfile={updateHostProfile}
                 setActiveTab={handleTabChange}
               />
+            )}
+
+            {/* Help Center */}
+            {activeTab === 'Help Center' && (
+              <HelpCenter />
+            )}
+
+            {/* Support */}
+            {activeTab === 'Support' && (
+              <Support />
             )}
           </div>
         </main>

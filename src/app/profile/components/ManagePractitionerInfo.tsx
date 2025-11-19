@@ -1107,7 +1107,7 @@ email,name,type{'\n'}doctor1@example.com,John Doe,MD{'\n'}doctor2@example.com,Ja
           <ul className="list-disc list-inside space-y-1 text-blue-800">
             <li>Upload a CSV file with practitioner information (email is required)</li>
             <li>New practitioners will be added to your clinic and receive an invitation email</li>
-            <li>They'll click the invitation link and complete their signup with a password</li>
+            <li>They&apos;ll click the invitation link and complete their signup with a password</li>
             <li>After signing up, they can log in and access the platform as clinic members</li>
             <li>Invitation links expire after 7 days</li>
             <li>You can remove members at any time</li>

@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 import { supabase } from '@/lib/supabase';
 import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 
-const InvitationSignup = () => {
+const InvitationSignupContent = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get('token');
@@ -275,7 +275,7 @@ const InvitationSignup = () => {
             Join {invitationData?.clinicName || 'the Clinic'}
           </h1>
           <p className="text-[#465D7C] mb-4">
-            You've been invited to join as a practitioner. Complete your profile to get started.
+            You&apos;ve been invited to join as a practitioner. Complete your profile to get started.
           </p>
           {invitationData?.email && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
@@ -479,4 +479,20 @@ const InvitationSignup = () => {
   );
 };
 
-export default InvitationSignup;
+// Wrap in Suspense for useSearchParams
+export default function InvitationSignup() {
+  return (
+    <Suspense
+      fallback={
+        <div className="font-sans min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
+          <div className="text-center">
+            <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
+            <p className="text-gray-600">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <InvitationSignupContent />
+    </Suspense>
+  );
+}

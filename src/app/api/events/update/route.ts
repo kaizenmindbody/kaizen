@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase';
 
-export async function POST(request: NextRequest) {
+export async function PUT(request: NextRequest) {
   try {
-    console.log('[Event Create API] Starting event creation...');
+    console.log('[Event Update API] Starting event update...');
     const formData = await request.formData();
 
     // Extract event data
+    const eventId = formData.get('event_id') as string;
     const hostId = formData.get('host_id') as string;
     const title = formData.get('title') as string;
     const summary = formData.get('summary') as string;
@@ -20,18 +21,19 @@ export async function POST(request: NextRequest) {
     const nonRefundable = formData.get('non_refundable') === 'true';
     const status = formData.get('status') as string || 'draft';
     const eventImageFile = formData.get('event_image') as File | null;
+    const existingImageUrl = formData.get('existing_image_url') as string | null;
     const ticketTypesJson = formData.get('ticket_types') as string;
 
-    console.log('[Event Create API] Received data:', {
+    console.log('[Event Update API] Received data:', {
+      eventId,
       hostId,
       title,
-      hasImage: !!eventImageFile,
-      imageSize: eventImageFile?.size,
-      imageName: eventImageFile?.name
+      hasNewImage: !!eventImageFile,
+      existingImageUrl
     });
 
     // Validate required fields
-    if (!hostId || !title || !summary || !description ||
+    if (!eventId || !hostId || !title || !summary || !description ||
         !startDate || !endDate || !location) {
       return NextResponse.json(
         { error: 'Missing required event fields' },
@@ -50,15 +52,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Upload event image if provided
-    let eventImageUrl = null;
+    // Upload new event image if provided, otherwise keep existing
+    let eventImageUrl = existingImageUrl;
     if (eventImageFile && eventImageFile.size > 0) {
       try {
         const fileExt = eventImageFile.name.split('.').pop();
         const fileName = `${hostId}_event_${Date.now()}.${fileExt}`;
         const filePath = `events/${fileName}`;
 
-        console.log('Uploading event image:', {
+        console.log('Uploading new event image:', {
           fileName,
           filePath,
           fileSize: eventImageFile.size,
@@ -92,6 +94,17 @@ export async function POST(request: NextRequest) {
 
         eventImageUrl = publicUrl;
         console.log('Event image uploaded successfully:', publicUrl);
+
+        // Delete old image if it exists
+        if (existingImageUrl) {
+          try {
+            const oldFilePath = existingImageUrl.split('/').slice(-2).join('/');
+            await supabase.storage.from('kaizen').remove([oldFilePath]);
+          } catch (deleteError) {
+            console.error('Error deleting old image:', deleteError);
+            // Continue anyway - this is not critical
+          }
+        }
       } catch (uploadErr: any) {
         console.error('Event image upload exception:', uploadErr);
         return NextResponse.json(
@@ -101,11 +114,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create event with correct column names
+    // Update event with correct column names
     const { data: eventData, error: eventError } = await supabase
       .from('Events')
-      .insert({
-        host_id: hostId,
+      .update({
         event_name: title,
         event_summary: summary,
         event_description: description,
@@ -118,78 +130,79 @@ export async function POST(request: NextRequest) {
         enable_ticketing: enableTicketing,
         non_refundable: nonRefundable,
         status: status,
+        updated_at: new Date().toISOString(),
       })
+      .eq('id', eventId)
+      .eq('host_id', hostId) // Ensure user can only update their own events
       .select()
       .single();
 
     if (eventError) {
-      console.error('Event creation error:', eventError);
-
-      // Clean up uploaded image if event creation failed
-      if (eventImageUrl) {
-        const filePath = eventImageUrl.split('/').slice(-2).join('/');
-        await supabase.storage.from('kaizen').remove([filePath]);
-      }
-
+      console.error('Event update error:', eventError);
       return NextResponse.json(
-        { error: `Failed to create event: ${eventError.message}` },
+        { error: `Failed to update event: ${eventError.message}` },
         { status: 500 }
       );
     }
 
-    // Create ticket types if provided
-    let ticketTypes = [];
+    // Delete existing ticket types and create new ones
     if (ticketTypesJson) {
       try {
-        ticketTypes = JSON.parse(ticketTypesJson);
+        // First, delete existing ticket types
+        await supabase
+          .from('TicketTypes')
+          .delete()
+          .eq('event_id', eventId);
+
+        // Parse and insert new ticket types
+        const ticketTypes = JSON.parse(ticketTypesJson);
+
+        if (ticketTypes.length > 0) {
+          const ticketTypeInserts = ticketTypes.map((ticket: any, index: number) => ({
+            event_id: eventId,
+            ticket_name: ticket.name,
+            description: ticket.description || null,
+            max_quantity: parseInt(ticket.quantity),
+            sales_start_datetime: ticket.salesStartDate,
+            sales_end_datetime: ticket.salesEndDate,
+            price: parseFloat(ticket.price),
+            requires_approval: ticket.requiresApproval || false,
+            suggested_pricing: ticket.suggestedPricing || false,
+            is_sold_out: ticket.markedAsSoldOut || false,
+            display_order: index,
+          }));
+
+          const { error: ticketError } = await supabase
+            .from('TicketTypes')
+            .insert(ticketTypeInserts);
+
+          if (ticketError) {
+            console.error('Ticket types update error:', ticketError);
+            return NextResponse.json(
+              {
+                success: true,
+                message: 'Event updated but some ticket types failed to save',
+                eventId: eventData.id,
+                warning: ticketError.message,
+              },
+              { status: 200 }
+            );
+          }
+        }
       } catch (parseError) {
         console.error('Error parsing ticket types:', parseError);
       }
     }
 
-    if (ticketTypes.length > 0) {
-      const ticketTypeInserts = ticketTypes.map((ticket: any, index: number) => ({
-        event_id: eventData.id,
-        ticket_name: ticket.name,
-        description: ticket.description || null,
-        max_quantity: parseInt(ticket.quantity),
-        sales_start_datetime: ticket.salesStartDate,
-        sales_end_datetime: ticket.salesEndDate,
-        price: parseFloat(ticket.price),
-        requires_approval: ticket.requiresApproval || false,
-        suggested_pricing: ticket.suggestedPricing || false,
-        is_sold_out: ticket.markedAsSoldOut || false,
-        display_order: index,
-      }));
-
-      const { error: ticketError } = await supabase
-        .from('TicketTypes')
-        .insert(ticketTypeInserts);
-
-      if (ticketError) {
-        console.error('Ticket types creation error:', ticketError);
-        // Event was created, so we should still return success but note the ticket error
-        return NextResponse.json(
-          {
-            success: true,
-            message: 'Event created but some ticket types failed to save',
-            eventId: eventData.id,
-            warning: ticketError.message,
-          },
-          { status: 201 }
-        );
-      }
-    }
-
     return NextResponse.json({
       success: true,
-      message: 'Event created successfully',
+      message: 'Event updated successfully',
       eventId: eventData.id,
       event: eventData,
-    }, { status: 201 });
+    }, { status: 200 });
 
   } catch (error: any) {
-    console.error('Unexpected error in POST /api/events/create:', error);
+    console.error('Unexpected error in PUT /api/events/update:', error);
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }

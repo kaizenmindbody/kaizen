@@ -52,10 +52,18 @@ export function useSignIn(): UseSignInReturn {
         };
       }
 
+      // Check if user is admin by email first
+      if (authData.user.email === 'admin@admin.com') {
+        return {
+          success: true,
+          redirectPath: '/admin',
+        };
+      }
+
       // Fetch user profile to determine user type
       const { data: profile, error: profileError } = await supabase
         .from('Users')
-        .select('type, isadmin')
+        .select('type')
         .eq('id', authData.user.id)
         .single();
 
@@ -76,12 +84,10 @@ export function useSignIn(): UseSignInReturn {
         };
       }
 
-      // Determine redirect path based on user type and admin status
+      // Determine redirect path based on user type
       let redirectPath = '/profile'; // default
 
-      if (profile?.isadmin === true) {
-        redirectPath = '/admin';
-      } else if (profile?.type?.toLowerCase() === 'eventhost') {
+      if (profile?.type?.toLowerCase() === 'eventhost') {
         redirectPath = '/eventhost';
       } else if (profile?.type?.toLowerCase() === 'practitioner') {
         redirectPath = '/profile';

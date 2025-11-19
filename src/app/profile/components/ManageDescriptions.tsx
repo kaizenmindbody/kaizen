@@ -346,9 +346,16 @@ const ManageDescriptions: React.FC<ManageDescriptionsProps> = ({ profile }) => {
             <button
               type="submit"
               disabled={isUpdating || !hasChanges}
-              className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
             >
-              {isUpdating ? 'Saving...' : 'Save Changes'}
+              {isUpdating ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Saving...</span>
+                </>
+              ) : (
+                'Save Changes'
+              )}
             </button>
           </div>
         </form>

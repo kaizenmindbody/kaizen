@@ -1110,19 +1110,31 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
               type="submit"
               disabled={isSubmitting}
               onClick={(e) => handleSubmit(e, false)}
-              className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
             >
-              {isSubmitting
-                ? (editingEvent ? 'Updating Event...' : 'Publishing Event...')
-                : (editingEvent ? 'Update & Publish Event' : 'Publish Event')}
+              {isSubmitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>{editingEvent ? 'Updating Event...' : 'Publishing Event...'}</span>
+                </>
+              ) : (
+                editingEvent ? 'Update & Publish Event' : 'Publish Event'
+              )}
             </button>
             <button
               type="button"
               disabled={isSubmitting}
               onClick={(e) => handleSubmit(e as any, true)}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
             >
-              Save as Draft
+              {isSubmitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-gray-500 border-t-transparent rounded-full animate-spin"></div>
+                  <span>Saving...</span>
+                </>
+              ) : (
+                'Save as Draft'
+              )}
             </button>
             <button
               type="button"

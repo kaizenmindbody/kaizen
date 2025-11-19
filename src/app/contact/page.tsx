@@ -130,9 +130,16 @@ const ContactPage = () => {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full rounded-md bg-secondary py-4 px-9 text-base font-medium text-white transition duration-300 hover:bg-secondary/90 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full rounded-md bg-secondary py-4 px-9 text-base font-medium text-white transition duration-300 hover:bg-secondary/90 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                     >
-                      {isSubmitting ? 'Sending...' : 'Send Message'}
+                      {isSubmitting ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <span>Sending...</span>
+                        </>
+                      ) : (
+                        'Send Message'
+                      )}
                     </button>
                   </div>
                 </form>

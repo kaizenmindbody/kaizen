@@ -50,6 +50,7 @@ const PractitionerBooking = () => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [isRescheduleMode, setIsRescheduleMode] = useState(false);
   const [localStorageLoaded, setLocalStorageLoaded] = useState(false);
+  const [isSubmittingBooking, setIsSubmittingBooking] = useState(false);
 
   // Authentication and authorization checks
   useEffect(() => {
@@ -609,13 +610,18 @@ const PractitionerBooking = () => {
 
     if (currentStep === 4) {
       // This is the final step - submit the booking
-      const bookingSuccess = await submitBooking();
-      if (bookingSuccess) {
-        // Clear localStorage after successful booking
-        clearLocalStorage();
-        router.push(`/book/${practitionerId}?step=5`);
+      setIsSubmittingBooking(true);
+      try {
+        const bookingSuccess = await submitBooking();
+        if (bookingSuccess) {
+          // Clear localStorage after successful booking
+          clearLocalStorage();
+          router.push(`/book/${practitionerId}?step=5`);
+        }
+        // If booking fails, stay on current step
+      } finally {
+        setIsSubmittingBooking(false);
       }
-      // If booking fails, stay on current step
     } else if (currentStep < 5) {
       router.push(`/book/${practitionerId}?step=${currentStep + 1}`);
     }
@@ -1183,11 +1189,13 @@ const PractitionerBooking = () => {
             <button
               onClick={handleNextStep}
               disabled={
+                isSubmittingBooking ||
                 (currentStep === 1 && !isStep1Valid()) ||
                 (currentStep === 3 && selectedBookings.length === 0) ||
                 (currentStep === 4 && !isFormValid())
               }
-              className={`px-6 py-2 rounded-full transition-colors font-medium ${
+              className={`px-6 py-2 rounded-full transition-colors font-medium flex items-center justify-center space-x-2 ${
+                isSubmittingBooking ||
                 (currentStep === 1 && !isStep1Valid()) ||
                 (currentStep === 3 && selectedBookings.length === 0) ||
                 (currentStep === 4 && !isFormValid())
@@ -1195,10 +1203,19 @@ const PractitionerBooking = () => {
                   : 'bg-primary text-white hover:bg-primary/90'
               }`}
             >
-              {currentStep === 1 ? 'Select Appointment Type →' : 
-               currentStep === 2 ? 'Select Date and Time →' :
-               currentStep === 3 ? 'Add Basic Information →' :
-               'Confirm Booking →'}
+              {isSubmittingBooking ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Submitting Booking...</span>
+                </>
+              ) : (
+                <>
+                  {currentStep === 1 ? 'Select Appointment Type →' : 
+                   currentStep === 2 ? 'Select Date and Time →' :
+                   currentStep === 3 ? 'Add Basic Information →' :
+                   'Confirm Booking →'}
+                </>
+              )}
             </button>
           </div>
         )}

@@ -875,9 +875,16 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
             <button
               type="submit"
               disabled={saving}
-              className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
             >
-              {saving ? 'Updating...' : 'Update Changes'}
+              {saving ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Updating...</span>
+                </>
+              ) : (
+                'Update Changes'
+              )}
             </button>
           </div>
         </form>

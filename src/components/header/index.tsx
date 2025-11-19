@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import menuData from "./menu-data";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,6 +17,10 @@ const Header = () => {
 
   // Profile dropdown
   const [profileOpen, setProfileOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isNavigatingToSignIn, setIsNavigatingToSignIn] = useState(false);
+  const [isNavigatingToSignUp, setIsNavigatingToSignUp] = useState(false);
+  const router = useRouter();
 
   // Sticky Navbar
   const [sticky, setSticky] = useState(false);
@@ -242,20 +246,34 @@ const Header = () => {
                         <div className="border-t border-gray-100 dark:border-gray-700 pt-1">
                           <button
                             onClick={async () => {
+                              if (isSigningOut) return;
+                              setIsSigningOut(true);
                               try {
                                 await signOut();
                                 setProfileOpen(false);
                               } catch (error) {
                                 console.error('Error signing out:', error);
                                 // Keep dropdown open if sign out fails
+                              } finally {
+                                setIsSigningOut(false);
                               }
                             }}
-                            className="flex items-center w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors duration-200"
+                            disabled={isSigningOut}
+                            className="flex items-center w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                            </svg>
-                            Sign Out
+                            {isSigningOut ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin mr-3"></div>
+                                <span>Signing Out...</span>
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                </svg>
+                                Sign Out
+                              </>
+                            )}
                           </button>
                         </div>
                       </div>
@@ -263,18 +281,46 @@ const Header = () => {
                   </div>
                 ) : (
                   <>
-                    <Link
-                      href="/auth/signup"
-                      className="ease-in-up shadow-btn hover:shadow-btn-hover bg-primary hover:bg-primary/90 rounded-[10px] px-4 py-2 text-base font-medium text-white transition duration-300 md:px-9 lg:px-6 xl:px-9"
+                    <button
+                      onClick={() => {
+                        if (isNavigatingToSignUp) return;
+                        setIsNavigatingToSignUp(true);
+                        router.push('/auth/signup');
+                        // Reset after a short delay to allow navigation
+                        setTimeout(() => setIsNavigatingToSignUp(false), 1000);
+                      }}
+                      disabled={isNavigatingToSignUp || isNavigatingToSignIn}
+                      className="ease-in-up shadow-btn hover:shadow-btn-hover bg-primary hover:bg-primary/90 rounded-[10px] px-4 py-2 text-base font-medium text-white transition duration-300 md:px-9 lg:px-6 xl:px-9 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                     >
-                      Sign Up
-                    </Link>
-                    <Link
-                      href="/auth/signin"
-                      className="ease-in-up shadow-btn hover:shadow-btn-hover hover:bg-primary/90 border border-primary rounded-[10px] px-4 py-2 font-medium text-primary hover:text-white transition duration-300 md:px-9 lg:px-6 xl:px-9"
+                      {isNavigatingToSignUp ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <span>Loading...</span>
+                        </>
+                      ) : (
+                        'Sign Up'
+                      )}
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (isNavigatingToSignIn) return;
+                        setIsNavigatingToSignIn(true);
+                        router.push('/auth/signin');
+                        // Reset after a short delay to allow navigation
+                        setTimeout(() => setIsNavigatingToSignIn(false), 1000);
+                      }}
+                      disabled={isNavigatingToSignIn || isNavigatingToSignUp}
+                      className="ease-in-up shadow-btn hover:shadow-btn-hover hover:bg-primary/90 border border-primary rounded-[10px] px-4 py-2 font-medium text-primary hover:text-white transition duration-300 md:px-9 lg:px-6 xl:px-9 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                     >
-                      Log In
-                    </Link>
+                      {isNavigatingToSignIn ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                          <span>Loading...</span>
+                        </>
+                      ) : (
+                        'Log In'
+                      )}
+                    </button>
                   </>
                 )}
                 {/* <div>

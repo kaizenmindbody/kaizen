@@ -290,9 +290,16 @@ export default function ManageHostProfile({ profile, hostProfile, updateHostProf
             <button
               type="submit"
               disabled={isSubmitting || isUploadingAvatar}
-              className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
             >
-              {isUploadingAvatar ? 'Uploading Photo...' : isSubmitting ? 'Saving...' : 'Save Changes'}
+              {(isUploadingAvatar || isSubmitting) ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>{isUploadingAvatar ? 'Uploading Photo...' : 'Saving...'}</span>
+                </>
+              ) : (
+                'Save Changes'
+              )}
             </button>
             <button
               type="button"

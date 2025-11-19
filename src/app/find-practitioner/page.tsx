@@ -468,7 +468,7 @@ const UserDirectoryContent = () => {
     handlePageChange(1);
   };
 
-  // Debounced search effect
+  // Debounced search effect for search input
   const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
   
   useEffect(() => {
@@ -589,7 +589,20 @@ const UserDirectoryContent = () => {
               <div className="w-full">
                 <Select
                   value={selectedState}
-                  onChange={(option) => setSelectedState(option)}
+                  onChange={(option) => {
+                    setSelectedState(option);
+                    // Trigger search immediately when state changes
+                    fetchPractitioners({
+                      page: 1,
+                      limit: 3,
+                      search: searchQuery,
+                      location: option?.value || '',
+                      specialty: selectedSpecialty?.value === 'All Specialties' ? undefined : selectedSpecialty?.value,
+                      sortBy: sortBy?.value,
+                      order: sortBy?.value === 'full_name' ? 'asc' : 'desc'
+                    });
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
                   options={stateOptions}
                   styles={customSelectStyles}
                   placeholder="Select State..."
@@ -620,7 +633,20 @@ const UserDirectoryContent = () => {
               <div className="w-64">
                 <Select
                   value={selectedState}
-                  onChange={(option) => setSelectedState(option)}
+                  onChange={(option) => {
+                    setSelectedState(option);
+                    // Trigger search immediately when state changes
+                    fetchPractitioners({
+                      page: 1,
+                      limit: 3,
+                      search: searchQuery,
+                      location: option?.value || '',
+                      specialty: selectedSpecialty?.value === 'All Specialties' ? undefined : selectedSpecialty?.value,
+                      sortBy: sortBy?.value,
+                      order: sortBy?.value === 'full_name' ? 'asc' : 'desc'
+                    });
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
                   options={stateOptions}
                   styles={customSelectStyles}
                   placeholder="Select State..."

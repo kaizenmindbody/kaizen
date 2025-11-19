@@ -69,7 +69,7 @@ export function useFindPractitioners(): UseFindPractitionersReturn {
       // Apply search filter
       if (search) {
         const searchTerm = search.toLowerCase();
-        query = query.or(`firstname.ilike.%${searchTerm}%,lastname.ilike.%${searchTerm}%,ptype.ilike.%${searchTerm}%`);
+        query = query.or(`firstname.ilike.%${searchTerm}%,lastname.ilike.%${searchTerm}%,ptype.ilike.%${searchTerm}%,clinic.ilike.%${searchTerm}%`);
       }
 
       // Apply specialty filter (using ptype)

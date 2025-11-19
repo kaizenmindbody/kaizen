@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useEffect, Suspense } from 'react';
+import React, { useState, useMemo, useEffect, useRef, Suspense } from 'react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, MapPin, X, Filter, Building, Phone} from 'lucide-react';
@@ -468,6 +468,39 @@ const UserDirectoryContent = () => {
     handlePageChange(1);
   };
 
+  // Debounced search effect
+  const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  
+  useEffect(() => {
+    // Clear previous timeout
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+    }
+
+    // Set new timeout for debounced search
+    searchDebounceRef.current = setTimeout(() => {
+      // Trigger search with current search query and filters
+      fetchPractitioners({
+        page: 1,
+        limit: 3,
+        search: searchQuery,
+        location: selectedState?.value || '',
+        specialty: selectedSpecialty?.value === 'All Specialties' ? undefined : selectedSpecialty?.value,
+        sortBy: sortBy?.value,
+        order: sortBy?.value === 'full_name' ? 'asc' : 'desc'
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 500); // 500ms debounce delay
+
+    // Cleanup function
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery]); // Trigger when searchQuery changes
+
   // Handle pagination with API calls
   const handlePageChange = (page: number) => {
     const fetchParams = {
@@ -537,35 +570,7 @@ const UserDirectoryContent = () => {
     <>
       <Breadcrumb pageName="Find A Practitioner" />
       <div className="min-h-screen bg-white">
-        {/* Loading State */}
-        {loading && (
-          <div className="container mx-auto px-4 py-8">
-            <div className="space-y-4">
-              {Array.from({ length: 3 }, (_, index) => (
-                <UserCardSkeleton key={`skeleton-${index}`} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Error State */}
-        {error && (
-          <div className="container mx-auto px-4 py-8">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-              <p className="text-red-700 mb-4">Error loading practitioners: {error}</p>
-              <button 
-                onClick={() => window.location.reload()}
-                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-              >
-                Try Again
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Main Content - Only show when not loading and no error */}
-        {!loading && !error && (
-        <>
+        {/* Header Search Section - Always visible */}
         {/* Header Search Section */}
         <div className="font-sans">
           <div className="container mx-auto px-4 py-4 lg:py-6">
@@ -919,28 +924,62 @@ const UserDirectoryContent = () => {
               </div>
 
               {/* User Cards - Using the reusable component */}
-              <div className="space-y-4">
-                {currentUsers.map((practitioner) => (
-                  <div
-                    key={practitioner.id}
-                    className="cursor-pointer"
-                    onClick={(e) => {
-                      // Show practitioner on map when clicking card
-                      showOnMap(practitioner, e);
+              {loading ? (
+                <div className="space-y-4">
+                  {Array.from({ length: 3 }, (_, index) => (
+                    <UserCardSkeleton key={`skeleton-${index}`} />
+                  ))}
+                </div>
+              ) : error ? (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                  <p className="text-red-700 mb-4">Error loading practitioners: {error}</p>
+                  <button 
+                    onClick={() => {
+                      fetchPractitioners({
+                        page: 1,
+                        limit: 3,
+                        search: searchQuery,
+                        location: selectedState?.value || '',
+                        specialty: selectedSpecialty?.value === 'All Specialties' ? undefined : selectedSpecialty?.value,
+                        sortBy: sortBy?.value,
+                        order: sortBy?.value === 'full_name' ? 'asc' : 'desc'
+                      });
                     }}
+                    className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
                   >
-                    <UserCard
-                      practitioner={practitioner}
-                      onNavigate={navigateToPractitioner}
-                      onBooking={navigateToBooking}
-                      isOwnProfile={user?.id === practitioner.id}
-                    />
-                  </div>
-                ))}
-              </div>
+                    Try Again
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {currentUsers.length > 0 ? (
+                    currentUsers.map((practitioner) => (
+                      <div
+                        key={practitioner.id}
+                        className="cursor-pointer"
+                        onClick={(e) => {
+                          // Show practitioner on map when clicking card
+                          showOnMap(practitioner, e);
+                        }}
+                      >
+                        <UserCard
+                          practitioner={practitioner}
+                          onNavigate={navigateToPractitioner}
+                          onBooking={navigateToBooking}
+                          isOwnProfile={user?.id === practitioner.id}
+                        />
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-12">
+                      <p className="text-gray-500 text-lg">No practitioners found matching your search criteria.</p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Pagination */}
-              {pagination && pagination.totalPages > 1 && (
+              {!loading && !error && pagination && pagination.totalPages > 1 && (
                 <div className="flex items-center justify-center space-x-2 mt-8">
                   <button 
                     onClick={() => handlePageChange(pagination.currentPage - 1)}
@@ -1268,8 +1307,6 @@ const UserDirectoryContent = () => {
             );
           })()}
         </div>
-        </>
-        )}
       </div>
     </>
   );

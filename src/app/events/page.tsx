@@ -18,6 +18,7 @@ const EventsPage = () => {
   const router = useRouter();
   const [ticketTypesMap, setTicketTypesMap] = useState<Record<number, TicketType[]>>({});
   const [loadingTickets, setLoadingTickets] = useState<Record<number, boolean>>({});
+  const [navigatingEventId, setNavigatingEventId] = useState<number | null>(null);
 
   // Fetch ticket types for all events
   useEffect(() => {
@@ -125,9 +126,26 @@ const EventsPage = () => {
                 events.map((event) => (
                   <article
                     key={event.id}
-                    onClick={() => router.push(`/events/${event.id}`)}
-                    className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 cursor-pointer"
+                    onClick={() => {
+                      if (navigatingEventId) return; // Prevent multiple clicks
+                      
+                      setNavigatingEventId(event.id);
+                      router.push(`/events/${event.id}`);
+                      // State will reset automatically when component unmounts on navigation
+                    }}
+                    className={`bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 cursor-pointer relative ${
+                      navigatingEventId === event.id ? 'opacity-75 pointer-events-none' : ''
+                    }`}
                   >
+                    {/* Loading Overlay */}
+                    {navigatingEventId === event.id && (
+                      <div className="absolute inset-0 bg-white/80 dark:bg-gray-800/80 z-10 flex items-center justify-center rounded-2xl">
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                          <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">Loading...</span>
+                        </div>
+                      </div>
+                    )}
                     {/* Event Image */}
                     <div className="relative w-full h-56 bg-gray-200">
                       {event.image ? (

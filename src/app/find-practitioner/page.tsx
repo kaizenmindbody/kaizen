@@ -588,6 +588,7 @@ const UserDirectoryContent = () => {
               </div>
               <div className="w-full">
                 <Select
+                  instanceId="mobile-state-select"
                   value={selectedState}
                   onChange={(option) => {
                     setSelectedState(option);
@@ -632,6 +633,7 @@ const UserDirectoryContent = () => {
               </div>
               <div className="w-64">
                 <Select
+                  instanceId="desktop-state-select"
                   value={selectedState}
                   onChange={(option) => {
                     setSelectedState(option);
@@ -693,6 +695,7 @@ const UserDirectoryContent = () => {
                 <span className="text-sm text-gray-600">Sort By:</span>
                 <div className="w-48">
                   <Select
+                    instanceId="sort-by-select"
                     value={sortBy}
                     onChange={(option) => {
                       setSortBy(option);
@@ -726,6 +729,7 @@ const UserDirectoryContent = () => {
                 <div className="grid grid-cols-10 gap-4 mb-4">
                   <div className="col-span-3">
                     <Select
+                      instanceId="desktop-specialty-select"
                       value={selectedSpecialty}
                       onChange={(option) => {
                         setSelectedSpecialty(option);
@@ -748,6 +752,7 @@ const UserDirectoryContent = () => {
                   </div>
                   <div className="col-span-3">
                     <Select
+                      instanceId="desktop-review-select"
                       value={selectedReview}
                       onChange={(option) => {
                         setSelectedReview(option);
@@ -770,6 +775,7 @@ const UserDirectoryContent = () => {
                   </div>
                   <div className="col-span-3">
                     <Select
+                      instanceId="desktop-check-select"
                       value={selectedCheck}
                       onChange={(option) => {
                         setSelectedCheck(option);
@@ -844,6 +850,7 @@ const UserDirectoryContent = () => {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Specialties</label>
                       <Select
+                        instanceId="mobile-specialty-select"
                         value={selectedSpecialty}
                         onChange={(option) => {
                           setSelectedSpecialty(option);
@@ -867,6 +874,7 @@ const UserDirectoryContent = () => {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Reviews</label>
                       <Select
+                        instanceId="mobile-review-select"
                         value={selectedReview}
                         onChange={(option) => {
                           setSelectedReview(option);
@@ -890,6 +898,7 @@ const UserDirectoryContent = () => {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Checks</label>
                       <Select
+                        instanceId="mobile-check-select"
                         value={selectedCheck}
                         onChange={(option) => {
                           setSelectedCheck(option);

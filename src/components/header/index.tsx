@@ -5,9 +5,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import menuData from "./menu-data";
 import { useAuth } from "@/contexts/AuthContext";
+import { getAvatarUrl } from "@/lib/formatters";
+import { supabase } from "@/lib/supabase";
 
 const Header = () => {
-  const { user, userProfile, loading, signOut, isAdmin } = useAuth();
+  const { user, userProfile, loading, signOut, isAdmin, refreshProfile } = useAuth();
+  const pathname = usePathname();
+  const [eventHostAvatar, setEventHostAvatar] = useState<string | null>(null);
 
   // Navbar toggle
   const [navbarOpen, setNavbarOpen] = useState(false);
@@ -20,6 +24,7 @@ const Header = () => {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isNavigatingToSignIn, setIsNavigatingToSignIn] = useState(false);
   const [isNavigatingToSignUp, setIsNavigatingToSignUp] = useState(false);
+  const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
   const router = useRouter();
 
   // Sticky Navbar
@@ -65,7 +70,46 @@ const Header = () => {
     }
   };
 
-  const usePathName = usePathname();
+  // Fetch event host avatar if user is an event host
+  useEffect(() => {
+    const fetchEventHostAvatar = async () => {
+      if (user?.id && userProfile?.user_type === 'eventhost') {
+        try {
+          const { data, error } = await supabase
+            .from('EventHosts')
+            .select('avatar')
+            .eq('id', user.id)
+            .single();
+
+          if (!error && data?.avatar) {
+            setEventHostAvatar(data.avatar);
+          } else {
+            setEventHostAvatar(null);
+          }
+        } catch (error) {
+          console.error('Error fetching event host avatar:', error);
+          setEventHostAvatar(null);
+        }
+      } else {
+        setEventHostAvatar(null);
+      }
+    };
+
+    fetchEventHostAvatar();
+  }, [user?.id, userProfile?.user_type, pathname]);
+
+  // Refresh profile periodically and when pathname changes to get updated avatar
+  useEffect(() => {
+    if (user) {
+      // Refresh profile on mount and when navigating
+      refreshProfile();
+    }
+  }, [user, pathname, refreshProfile]);
+
+  // Reset navigation state when pathname changes (navigation completes)
+  useEffect(() => {
+    setNavigatingTo(null);
+  }, [pathname]);
 
   return (
     <>
@@ -132,16 +176,27 @@ const Header = () => {
                     {menuData.map((menuItem, index) => (
                       <li key={index} className="group relative">
                         {menuItem.path ? (
-                          <Link
-                            href={menuItem.path}
-                            className={`flex py-2 text-base lg:mr-0 lg:inline-flex lg:px-0 lg:py-6 ${
-                              usePathName === menuItem.path
+                          <button
+                            onClick={() => {
+                              setNavigatingTo(menuItem.path);
+                              router.push(menuItem.path);
+                            }}
+                            disabled={navigatingTo === menuItem.path}
+                            className={`flex items-center gap-2 py-2 text-base lg:mr-0 lg:inline-flex lg:px-0 lg:py-6 disabled:opacity-70 disabled:cursor-wait ${
+                              pathname === menuItem.path
                                 ? "text-primary dark:text-white"
                                 : "text-dark hover:text-primary dark:text-white/70 dark:hover:text-white"
                             }`}
                           >
-                            {menuItem.title}
-                          </Link>
+                            {navigatingTo === menuItem.path ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                                <span>{menuItem.title}</span>
+                              </>
+                            ) : (
+                              menuItem.title
+                            )}
+                          </button>
                         ) : (
                           <>
                             <p
@@ -202,21 +257,40 @@ const Header = () => {
                       onClick={() => setProfileOpen(!profileOpen)}
                       className="flex items-center space-x-2 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
                     >
-                      {userProfile?.avatar ? (
-                        <Image
-                          src={userProfile.avatar}
-                          width={200}
-                          height={200}
-                          alt="Profile"
-                          className="cursor-pointer w-10 h-10 rounded-full object-cover ring-2 ring-white dark:ring-gray-800 shadow-lg"
-                        />
-                      ) : (
-                        <div className="cursor-pointer w-10 h-10 bg-gradient-to-r from-primary to-secondary rounded-full flex items-center justify-center ring-2 ring-white dark:ring-gray-800 shadow-lg">
+                      <div className="relative w-10 h-10">
+                        {(() => {
+                          // Get avatar from EventHosts table if user is event host, otherwise from Users table
+                          const avatarUrl = userProfile?.user_type === 'eventhost' 
+                            ? (eventHostAvatar || userProfile?.avatar)
+                            : userProfile?.avatar;
+                          
+                          return avatarUrl && typeof avatarUrl === 'string' && avatarUrl.trim().length > 0 ? (
+                            <img
+                              src={avatarUrl}
+                              alt="Profile"
+                              className="cursor-pointer w-10 h-10 rounded-full object-cover ring-2 ring-white dark:ring-gray-800 shadow-lg"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const fallback = target.parentElement?.querySelector('.avatar-fallback') as HTMLElement;
+                                if (fallback) {
+                                  fallback.style.display = 'flex';
+                                }
+                              }}
+                            />
+                          ) : null;
+                        })()}
+                        <div className={`avatar-fallback cursor-pointer w-10 h-10 bg-gradient-to-r from-primary to-secondary rounded-full items-center justify-center ring-2 ring-white dark:ring-gray-800 shadow-lg ${(() => {
+                          const avatarUrl = userProfile?.user_type === 'eventhost' 
+                            ? (eventHostAvatar || userProfile?.avatar)
+                            : userProfile?.avatar;
+                          return avatarUrl && typeof avatarUrl === 'string' && avatarUrl.trim().length > 0 ? 'hidden' : 'flex';
+                        })()} absolute inset-0`}>
                           <span className="text-white text-sm font-semibold">
                             {userProfile?.full_name ? userProfile.full_name.charAt(0).toUpperCase() : user.email?.charAt(0).toUpperCase()}
                           </span>
                         </div>
-                      )}
+                      </div>
                     </button>
 
                     {/* Dropdown Menu */}

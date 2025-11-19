@@ -84,6 +84,7 @@ const ClinicsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedState, setSelectedState] = useState("All States");
   const [currentPage, setCurrentPage] = useState(1);
+  const [navigatingClinicId, setNavigatingClinicId] = useState<number | null>(null);
   const clinicsPerPage = 9;
 
   // Filter clinics based on search and state
@@ -157,7 +158,11 @@ const ClinicsPage = () => {
   };
 
   const handleClinicClick = (clinicId: number) => {
+    if (navigatingClinicId) return; // Prevent multiple clicks
+    
+    setNavigatingClinicId(clinicId);
     router.push(`/clinic-details/${clinicId}`);
+    // State will reset automatically when component unmounts on navigation
   };
 
   const getServiceStyle = (service: string, index: number) => {
@@ -273,8 +278,19 @@ const ClinicsPage = () => {
                 <div
                   key={clinic.id}
                   onClick={() => handleClinicClick(clinic.id)}
-                  className="group bg-white dark:bg-gray-dark rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-xl hover:border-primary/50 transition-all duration-300 cursor-pointer transform hover:-translate-y-1"
+                  className={`group bg-white dark:bg-gray-dark rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-xl hover:border-primary/50 transition-all duration-300 cursor-pointer transform hover:-translate-y-1 relative ${
+                    navigatingClinicId === clinic.id ? 'opacity-75 pointer-events-none' : ''
+                  }`}
                 >
+                  {/* Loading Overlay */}
+                  {navigatingClinicId === clinic.id && (
+                    <div className="absolute inset-0 bg-white/80 dark:bg-gray-800/80 z-10 flex items-center justify-center rounded-2xl">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                        <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">Loading...</span>
+                      </div>
+                    </div>
+                  )}
                   {/* Clinic Image/Icon Header */}
                   <div className={`relative h-48 ${style.bg} flex items-center justify-center overflow-hidden`}>
                     {clinic.image && clinic.image.startsWith('http') ? (

@@ -135,6 +135,7 @@ const BlogGridPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [navigatingBlogId, setNavigatingBlogId] = useState<number | null>(null);
   const blogsPerPage = 6;
   const router = useRouter();
 
@@ -197,7 +198,11 @@ const BlogGridPage = () => {
   };
 
   const handleBlogClick = (blogId: number) => {
+    if (navigatingBlogId) return; // Prevent multiple clicks
+    
+    setNavigatingBlogId(blogId);
     router.push(`/blog-details/${blogId}`);
+    // State will reset automatically when component unmounts on navigation
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -269,9 +274,20 @@ const BlogGridPage = () => {
                 {blogPosts.map((post) => (
                   <div
                     key={post.id}
-                    className="group cursor-pointer"
+                    className={`group cursor-pointer relative ${
+                      navigatingBlogId === post.id ? 'opacity-75 pointer-events-none' : ''
+                    }`}
                     onClick={() => handleBlogClick(post.id)}
                   >
+                    {/* Loading Overlay */}
+                    {navigatingBlogId === post.id && (
+                      <div className="absolute inset-0 bg-white/80 dark:bg-gray-800/80 z-10 flex items-center justify-center rounded-lg">
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                          <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">Loading...</span>
+                        </div>
+                      </div>
+                    )}
                     {/* Image */}
                     <div className="relative mb-4 overflow-hidden rounded-lg">
                       <div className="relative aspect-[16/10] w-full bg-gray-200">
@@ -459,9 +475,20 @@ const BlogGridPage = () => {
                   {latestNews.map((news, index) => (
                     <div
                       key={index}
-                      className="flex gap-3 cursor-pointer group"
+                      className={`flex gap-3 cursor-pointer group relative ${
+                        navigatingBlogId === news.id ? 'opacity-75 pointer-events-none' : ''
+                      }`}
                       onClick={() => handleBlogClick(news.id)}
                     >
+                      {/* Loading Overlay for sidebar items */}
+                      {navigatingBlogId === news.id && (
+                        <div className="absolute inset-0 bg-white/80 dark:bg-gray-800/80 z-10 flex items-center justify-center rounded">
+                          <div className="flex flex-col items-center gap-1">
+                            <div className="w-6 h-6 border-3 border-primary border-t-transparent rounded-full animate-spin"></div>
+                            <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">Loading...</span>
+                          </div>
+                        </div>
+                      )}
                       <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded bg-gray-200">
                         {news.image ? (
                           <Image

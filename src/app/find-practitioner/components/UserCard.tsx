@@ -4,7 +4,7 @@ import React from 'react';
 import NextImage from 'next/image';
 import { MapPin, Building, ExternalLink } from 'lucide-react';
 import { UserData } from '@/types/user';
-import { getAvatarUrl, formatPractitionerType } from '@/lib/formatters';
+import { getAvatarUrl, formatPractitionerType, formatPractitionerName } from '@/lib/formatters';
 
 interface UserCardProps {
   practitioner: UserData;
@@ -19,7 +19,12 @@ export const UserCard: React.FC<UserCardProps> = ({
   onBooking,
   isOwnProfile = false
 }) => {
-  const fullName = `${practitioner.firstname || ''} ${practitioner.lastname || ''}`.trim() || 'Practitioner';
+  const fullName = formatPractitionerName(
+    practitioner.firstname,
+    practitioner.lastname,
+    practitioner.title,
+    practitioner.degree
+  );
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6 hover:shadow-md transition-shadow w-full">

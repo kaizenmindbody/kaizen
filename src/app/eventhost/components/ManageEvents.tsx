@@ -105,10 +105,10 @@ export default function ManageEvents({ events, setActiveTab, onEditEvent, onEven
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {events.map((event) => (
-            <div key={event.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+            <div key={event.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full">
               {/* Event Image */}
               {event.event_image && (
-                <div className="relative h-48 w-full bg-gray-200">
+                <div className="relative h-48 w-full bg-gray-200 flex-shrink-0">
                   <Image
                     src={event.event_image}
                     alt={event.event_name}
@@ -118,7 +118,7 @@ export default function ManageEvents({ events, setActiveTab, onEditEvent, onEven
                 </div>
               )}
 
-              <div className="p-6">
+              <div className="p-6 flex flex-col flex-1">
                 {/* Header with Status */}
                 <div className="flex justify-between items-start mb-4">
                   <h3 className="text-xl font-bold text-gray-900 flex-1">{event.event_name}</h3>
@@ -143,8 +143,48 @@ export default function ManageEvents({ events, setActiveTab, onEditEvent, onEven
                 {/* Event Description */}
                 <p className="text-gray-600 text-sm mb-4 line-clamp-3">{event.event_description}</p>
 
-                {/* Date & Time */}
-                <div className="space-y-3 mb-4">
+                {/* Location */}
+                <div className="flex items-start mb-3">
+                  <MapPinIcon className="h-5 w-5 text-gray-400 mr-3 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm">
+                    <div className="text-gray-900">{event.address || 'No address specified'}</div>
+                    {event.hide_address && (
+                      <div className="flex items-center text-gray-500 mt-1">
+                        <EyeSlashIcon className="h-4 w-4 mr-1" />
+                        <span>Address hidden from public</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* What to Bring */}
+                {event.what_to_bring && (
+                  <div className="bg-blue-50 p-3 rounded-lg mb-3">
+                    <div className="text-xs font-semibold text-blue-900 mb-1">What to Bring:</div>
+                    <div className="text-sm text-blue-800">{event.what_to_bring}</div>
+                  </div>
+                )}
+
+                {/* Ticketing Info */}
+                <div className="flex items-center gap-3 flex-wrap mb-4">
+                  {event.enable_ticketing && (
+                    <div className="flex items-center text-sm text-gray-600">
+                      <TicketIcon className="h-4 w-4 mr-1.5 text-primary" />
+                      <span>Ticketing Enabled</span>
+                    </div>
+                  )}
+                  {event.non_refundable && (
+                    <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full font-medium">
+                      Non-Refundable
+                    </span>
+                  )}
+                </div>
+
+                {/* Spacer to push content to bottom */}
+                <div className="flex-1"></div>
+
+                {/* Date & Time - Moved to bottom */}
+                <div className="mb-4 pb-4 border-b border-gray-200">
                   <div className="flex items-start">
                     <ClockIcon className="h-5 w-5 text-gray-400 mr-3 mt-0.5 flex-shrink-0" />
                     <div className="text-sm">
@@ -156,55 +196,17 @@ export default function ManageEvents({ events, setActiveTab, onEditEvent, onEven
                       </div>
                     </div>
                   </div>
-
-                  {/* Location */}
-                  <div className="flex items-start">
-                    <MapPinIcon className="h-5 w-5 text-gray-400 mr-3 mt-0.5 flex-shrink-0" />
-                    <div className="text-sm">
-                      <div className="text-gray-900">{event.address || 'No address specified'}</div>
-                      {event.hide_address && (
-                        <div className="flex items-center text-gray-500 mt-1">
-                          <EyeSlashIcon className="h-4 w-4 mr-1" />
-                          <span>Address hidden from public</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* What to Bring */}
-                  {event.what_to_bring && (
-                    <div className="bg-blue-50 p-3 rounded-lg">
-                      <div className="text-xs font-semibold text-blue-900 mb-1">What to Bring:</div>
-                      <div className="text-sm text-blue-800">{event.what_to_bring}</div>
-                    </div>
-                  )}
-
-                  {/* Ticketing Info */}
-                  <div className="flex items-center gap-3 flex-wrap">
-                    {event.enable_ticketing && (
-                      <div className="flex items-center text-sm text-gray-600">
-                        <TicketIcon className="h-4 w-4 mr-1.5 text-primary" />
-                        <span>Ticketing Enabled</span>
-                      </div>
-                    )}
-                    {event.non_refundable && (
-                      <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full font-medium">
-                        Non-Refundable
-                      </span>
-                    )}
+                  {/* Created Date */}
+                  <div className="text-xs text-gray-500 mt-2">
+                    Created on {new Date(event.created_at).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
                   </div>
                 </div>
 
-                {/* Created Date */}
-                <div className="text-xs text-gray-500 mb-4 pb-4 border-b">
-                  Created on {new Date(event.created_at).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </div>
-
-                {/* Actions */}
+                {/* Actions - Moved to bottom */}
                 <div className="flex gap-3">
                   <button
                     onClick={() => onEditEvent(event)}

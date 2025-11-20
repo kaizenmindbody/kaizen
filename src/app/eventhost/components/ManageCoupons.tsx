@@ -135,9 +135,10 @@ export default function ManageCoupons({ hostId }: ManageCouponsProps) {
         if (response.ok && result.success) {
           await fetchCoupons(); // Refresh the list
           toast.success('Coupon updated successfully');
+          setShowCouponModal(false);
         } else {
           toast.error(result.error || 'Failed to update coupon');
-          return;
+          throw new Error(result.error || 'Failed to update coupon');
         }
       } else {
         // Create new coupon
@@ -152,15 +153,15 @@ export default function ManageCoupons({ hostId }: ManageCouponsProps) {
         if (response.ok && result.success) {
           await fetchCoupons(); // Refresh the list
           toast.success('Coupon created successfully');
+          setShowCouponModal(false);
         } else {
           toast.error(result.error || 'Failed to create coupon');
-          return;
+          throw new Error(result.error || 'Failed to create coupon');
         }
       }
-
-      setShowCouponModal(false);
     } catch (error) {
       toast.error('Failed to save coupon');
+      throw error; // Re-throw so modal can handle it
     }
   };
 
@@ -367,8 +368,69 @@ function CouponModal({ coupon, onSave, onClose }: CouponModalProps) {
     isActive: coupon?.isActive ?? true,
     description: coupon?.description || '',
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Format dates for datetime-local input when editing
+  useEffect(() => {
+    if (coupon) {
+      // Convert datetime to format required by datetime-local input (YYYY-MM-DDTHH:mm)
+      // Handle timezone correctly - datetime-local expects local time, not UTC
+      const formatDateTimeForInput = (dateString: string) => {
+        if (!dateString || typeof dateString !== 'string' || dateString.trim() === '') {
+          return '';
+        }
+        
+        try {
+          // First, try to parse if it's already in YYYY-MM-DDTHH:mm format (with or without seconds)
+          const simpleFormatMatch = dateString.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})/);
+          if (simpleFormatMatch) {
+            // If it's already in the right format (or close), use it directly
+            return simpleFormatMatch[1];
+          }
+          
+          // Otherwise, parse the date string - JavaScript Date automatically handles timezone conversion
+          // Backend returns dates as ISO 8601 strings (e.g., "2025-11-27T05:20:00+00:00")
+          const date = new Date(dateString);
+          
+          // Check if date is valid
+          if (isNaN(date.getTime())) {
+            return '';
+          }
+          
+          // Get local date/time components (not UTC)
+          // This ensures the datetime-local input shows the correct local time
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          const hours = String(date.getHours()).padStart(2, '0');
+          const minutes = String(date.getMinutes()).padStart(2, '0');
+          
+          const formatted = `${year}-${month}-${day}T${hours}:${minutes}`;
+          return formatted;
+        } catch (error) {
+          return '';
+        }
+      };
+
+      // Format dates for datetime-local input
+      const validFromFormatted = formatDateTimeForInput(coupon.validFrom);
+      const validUntilFormatted = formatDateTimeForInput(coupon.validUntil);
+
+      setFormData(prev => ({
+        ...prev,
+        code: coupon.code,
+        discountType: coupon.discountType,
+        discountValue: coupon.discountValue.toString(),
+        maxUses: coupon.maxUses.toString(),
+        validFrom: validFromFormatted,
+        validUntil: validUntilFormatted,
+        isActive: coupon.isActive,
+        description: coupon.description || '',
+      }));
+    }
+  }, [coupon]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validate required fields
@@ -398,16 +460,21 @@ function CouponModal({ coupon, onSave, onClose }: CouponModalProps) {
       return;
     }
 
-    onSave({
-      code: formData.code.toUpperCase(),
-      discountType: formData.discountType,
-      discountValue: discountValue,
-      maxUses: parseInt(formData.maxUses),
-      validFrom: formData.validFrom,
-      validUntil: formData.validUntil,
-      isActive: formData.isActive,
-      description: formData.description,
-    });
+    setIsSubmitting(true);
+    try {
+      await onSave({
+        code: formData.code.toUpperCase(),
+        discountType: formData.discountType,
+        discountValue: discountValue,
+        maxUses: parseInt(formData.maxUses),
+        validFrom: formData.validFrom,
+        validUntil: formData.validUntil,
+        isActive: formData.isActive,
+        description: formData.description,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -571,14 +638,23 @@ function CouponModal({ coupon, onSave, onClose }: CouponModalProps) {
             <div className="flex gap-3 pt-4 border-t">
               <button
                 type="submit"
-                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition"
+                disabled={isSubmitting}
+                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
-                {coupon ? 'Update Coupon' : 'Create Coupon'}
+                {isSubmitting ? (
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>{coupon ? 'Updating...' : 'Creating...'}</span>
+                  </div>
+                ) : (
+                  coupon ? 'Update Coupon' : 'Create Coupon'
+                )}
               </button>
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                disabled={isSubmitting}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>

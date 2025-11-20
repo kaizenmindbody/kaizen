@@ -45,7 +45,7 @@ export default function RootLayout({
       <head />
 
       <body className={`bg-[#FCFCFC] dark:bg-black ${merriweather.className}`}>
-        {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? (
+        {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY && (
           <Script
             src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places,marker&loading=async`}
             strategy="afterInteractive"
@@ -54,9 +54,6 @@ export default function RootLayout({
             onError={(e) => {
             }}
           />
-        ) : (
-          <script dangerouslySetInnerHTML={{
-          }} />
         )}
         <Providers>
           <LayoutContent>

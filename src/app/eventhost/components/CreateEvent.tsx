@@ -331,18 +331,72 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
         setWhatToBring(editingEvent.what_to_bring || '');
 
         // Convert datetime to format required by datetime-local input (YYYY-MM-DDTHH:mm)
+        // Handle timezone correctly - datetime-local expects local time, not UTC
         const formatDateTimeForInput = (dateString: string) => {
-          const date = new Date(dateString);
-          const year = date.getFullYear();
-          const month = String(date.getMonth() + 1).padStart(2, '0');
-          const day = String(date.getDate()).padStart(2, '0');
-          const hours = String(date.getHours()).padStart(2, '0');
-          const minutes = String(date.getMinutes()).padStart(2, '0');
-          return `${year}-${month}-${day}T${hours}:${minutes}`;
+          if (!dateString || typeof dateString !== 'string' || dateString.trim() === '') {
+            return '';
+          }
+          
+          try {
+            // First, try to parse if it's already in YYYY-MM-DDTHH:mm format (with or without seconds)
+            // This handles cases where the date might already be close to the right format
+            const simpleFormatMatch = dateString.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})/);
+            if (simpleFormatMatch) {
+              // If it's already in the right format (or close), use it directly
+              return simpleFormatMatch[1];
+            }
+            
+            // Otherwise, parse the date string - JavaScript Date automatically handles timezone conversion
+            // Supabase returns dates as ISO 8601 strings (e.g., "2024-01-15T10:30:00+00:00" or "2024-01-15T10:30:00Z")
+            const date = new Date(dateString);
+            
+            // Check if date is valid
+            if (isNaN(date.getTime())) {
+              return '';
+            }
+            
+            // Get local date/time components (not UTC)
+            // This ensures the datetime-local input shows the correct local time
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            
+            const formatted = `${year}-${month}-${day}T${hours}:${minutes}`;
+            return formatted;
+          } catch (error) {
+            return '';
+          }
         };
 
-        setEventStartDate(formatDateTimeForInput(editingEvent.event_start_datetime));
-        setEventEndDate(formatDateTimeForInput(editingEvent.event_end_datetime));
+        // Format dates for datetime-local input
+        // Ensure we have valid date strings before formatting
+        const startDateStr = editingEvent.event_start_datetime;
+        const endDateStr = editingEvent.event_end_datetime;
+        
+        if (startDateStr) {
+          const startDateFormatted = formatDateTimeForInput(startDateStr);
+          if (startDateFormatted) {
+            setEventStartDate(startDateFormatted);
+          } else {
+            // If formatting failed, try to set empty to show the field is empty
+            setEventStartDate('');
+          }
+        } else {
+          setEventStartDate('');
+        }
+        
+        if (endDateStr) {
+          const endDateFormatted = formatDateTimeForInput(endDateStr);
+          if (endDateFormatted) {
+            setEventEndDate(endDateFormatted);
+          } else {
+            setEventEndDate('');
+          }
+        } else {
+          setEventEndDate('');
+        }
 
         // Parse address
         const addressParts = editingEvent.address.split(', ');

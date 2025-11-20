@@ -334,13 +334,14 @@ export default function EventHostPage() {
                 // Events - expandable menu
                 if (tab === 'Events') {
                   const isSubItemActive = eventsSubItems.includes(activeTab);
+                  const isExpanded = expandedMenu === 'Events';
                   return (
                     <div key={tab}>
                       <button
                         type="button"
                         onClick={(e) => {
                           e.preventDefault();
-                          setExpandedMenu(expandedMenu === 'Events' ? null : 'Events');
+                          setExpandedMenu(isExpanded ? null : 'Events');
                         }}
                         className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg font-medium transition-all text-sm ${
                           activeTab === 'Events' || isSubItemActive
@@ -353,13 +354,17 @@ export default function EventHostPage() {
                           Events
                         </div>
                         <ChevronDownIcon
-                          className={`h-4 w-4 transition-transform ${
-                            expandedMenu === 'Events' ? 'rotate-180' : ''
+                          className={`h-4 w-4 transition-transform duration-300 ease-in-out ${
+                            isExpanded ? 'rotate-180' : 'rotate-0'
                           }`}
                         />
                       </button>
 
-                      {expandedMenu === 'Events' && (
+                      <div
+                        className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                          isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                        }`}
+                      >
                         <div className="mt-3 ml-8 space-y-2">
                           {eventsSubItems.map((subItem) => {
                             const getIcon = (item: string) => {
@@ -391,7 +396,7 @@ export default function EventHostPage() {
                             );
                           })}
                         </div>
-                      )}
+                      </div>
                     </div>
                   );
                 }
@@ -399,13 +404,14 @@ export default function EventHostPage() {
                 // Host - expandable menu
                 if (tab === 'Host') {
                   const isSubItemActive = hostSubItems.includes(activeTab);
+                  const isExpanded = expandedMenu === 'Host';
                   return (
                     <div key={tab}>
                       <button
                         type="button"
                         onClick={(e) => {
                           e.preventDefault();
-                          setExpandedMenu(expandedMenu === 'Host' ? null : 'Host');
+                          setExpandedMenu(isExpanded ? null : 'Host');
                         }}
                         className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg font-medium transition-all text-sm ${
                           activeTab === 'Host' || isSubItemActive
@@ -418,13 +424,17 @@ export default function EventHostPage() {
                           Host
                         </div>
                         <ChevronDownIcon
-                          className={`h-4 w-4 transition-transform ${
-                            expandedMenu === 'Host' ? 'rotate-180' : ''
+                          className={`h-4 w-4 transition-transform duration-300 ease-in-out ${
+                            isExpanded ? 'rotate-180' : 'rotate-0'
                           }`}
                         />
                       </button>
 
-                      {expandedMenu === 'Host' && (
+                      <div
+                        className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                          isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                        }`}
+                      >
                         <div className="mt-3 ml-8 space-y-2">
                           {hostSubItems.map((subItem) => {
                             const getIcon = (item: string) => {
@@ -455,7 +465,7 @@ export default function EventHostPage() {
                             );
                           })}
                         </div>
-                      )}
+                      </div>
                     </div>
                   );
                 }
@@ -558,6 +568,7 @@ export default function EventHostPage() {
             {/* Create an Event */}
             {activeTab === 'Create an Event' && (
               <CreateEvent
+                key={editingEvent?.id || 'new'}
                 setActiveTab={handleTabChange}
                 editingEvent={editingEvent}
                 onEventUpdated={handleEventUpdated}

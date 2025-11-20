@@ -35,7 +35,6 @@ const Settings = ({ users, specialties, stats, onRefreshData }: SettingsProps) =
         toast.error('Failed to start Google Calendar connection');
       }
     } catch (error) {
-      console.error('Error connecting to Google Calendar:', error);
       toast.error('Failed to connect to Google Calendar');
     } finally {
       setConnectingCalendar(false);

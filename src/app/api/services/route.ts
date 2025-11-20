@@ -11,7 +11,6 @@ export async function GET(request: NextRequest) {
       .order('title', { ascending: true });
 
     if (error) {
-      console.error('Database error:', error);
       return NextResponse.json(
         { error: 'Failed to fetch services', details: error.message },
         { status: 500 }
@@ -29,7 +28,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ services });
   } catch (error) {
-    console.error('API error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -60,7 +58,6 @@ export async function POST(request: NextRequest) {
       .select();
 
     if (error) {
-      console.error('Database error:', error);
       return NextResponse.json(
         { error: 'Failed to create service', details: error.message },
         { status: 500 }
@@ -69,7 +66,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ service: data?.[0] }, { status: 201 });
   } catch (error) {
-    console.error('API error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -101,7 +97,6 @@ export async function PATCH(request: NextRequest) {
       .select();
 
     if (error) {
-      console.error('Database error:', error);
       return NextResponse.json(
         { error: 'Failed to update service', details: error.message },
         { status: 500 }
@@ -110,7 +105,6 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ service: data?.[0] });
   } catch (error) {
-    console.error('API error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -154,7 +148,6 @@ export async function DELETE(request: NextRequest) {
       .select();
 
     if (error) {
-      console.error('Database error:', error);
       return NextResponse.json(
         { error: 'Failed to delete service', details: error.message },
         { status: 500 }
@@ -163,7 +156,6 @@ export async function DELETE(request: NextRequest) {
 
     // Check if deletion was successful
     if (!data || data.length === 0) {
-      console.error('Delete returned success but no rows were deleted. Possible RLS policy issue.');
       return NextResponse.json(
         { error: 'Delete failed. This might be a permissions issue. Please check RLS policies.' },
         { status: 403 }
@@ -172,7 +164,6 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true, deleted: data[0] });
   } catch (error) {
-    console.error('API error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

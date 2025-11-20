@@ -35,7 +35,6 @@ export function useProfile(): UseProfileReturn {
 
       return { success: true };
     } catch (error) {
-      console.error('Error updating profile:', error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Failed to update profile' 

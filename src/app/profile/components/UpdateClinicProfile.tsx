@@ -135,13 +135,11 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
   // Filter services
   const realServices = useMemo(() => {
     const filtered = availableServices.filter(service => service.type === 'real');
-    console.log('Real services:', filtered);
     return filtered;
   }, [availableServices]);
 
   const virtualServices = useMemo(() => {
     const filtered = availableServices.filter(service => service.type === 'virtual');
-    console.log('Virtual services:', filtered);
     return filtered;
   }, [availableServices]);
 
@@ -195,11 +193,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
 
       // Check authenticated user
       const { data: { user: authUser } } = await supabase.auth.getUser();
-      console.log('[Clinic Info] Auth user ID:', authUser?.id);
-      console.log('[Clinic Info] Profile ID:', profile.id);
-      console.log('[Clinic Info] IDs match:', authUser?.id === profile.id);
 
-      console.log('[Clinic Info] Fetching clinic data for practitioner_id:', profile.id);
 
       const { data, error } = await supabase
         .from('Clinics')
@@ -207,10 +201,8 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
         .eq('practitioner_id', profile.id)
         .maybeSingle(); // Use maybeSingle() instead of single() to handle missing records
 
-      console.log('[Clinic Info] Fetch result:', { data, error });
 
       if (error) {
-        console.error('[Clinic Info] Error fetching clinic data:', error);
         toast.error('Failed to load clinic information');
         return;
       }
@@ -252,7 +244,6 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
           }
         }
       } else {
-        console.log('[Clinic Info] No clinic record found, will create on save');
       }
     };
 
@@ -291,13 +282,6 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
             country: item.country || 'US',
           });
 
-          console.log('Address selected:', {
-            address1: item.name,
-            city: item.city,
-            state: item.administrative,
-            zip: zipCode,
-          });
-
           // Close the dropdown by blurring the input
           setTimeout(() => {
             if (addressInputRef.current) {
@@ -308,7 +292,6 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
 
         placekitInstance.current = pk;
       } catch (error) {
-        console.error('Error initializing PlaceKit:', error);
       }
     };
 
@@ -431,7 +414,6 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
 
       return publicUrl;
     } catch (error) {
-      console.error('Error uploading logo:', error);
       toast.error('Failed to upload logo');
       return null;
     } finally {
@@ -546,7 +528,6 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
 
       return publicUrl;
     } catch (error) {
-      console.error('Error uploading video:', error);
       toast.error('Failed to upload video');
       return null;
     }
@@ -582,7 +563,6 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
 
         uploadedUrls.push(publicUrl);
       } catch (error) {
-        console.error('Error uploading image:', error);
         toast.error('Failed to upload some images');
       }
     }
@@ -623,15 +603,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
 
     if (field === 'service_name') {
       const selectedService = serviceList.find(s => s.title.trim() === value.trim());
-      console.log('Service selected:', {
-        category,
-        value,
-        trimmedValue: value.trim(),
-        selectedService,
-        service_id: selectedService?.id,
-        serviceListCount: serviceList.length,
-        availableServiceTitles: serviceList.map(s => s.title)
-      });
+
       updated[index] = {
         ...updated[index],
         [field]: value,
@@ -641,7 +613,6 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
       updated[index] = { ...updated[index], [field]: value };
     }
 
-    console.log('Updated service pricing:', updated[index]);
     setPricingList(updated);
   };
 
@@ -680,14 +651,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
 
     if (field === 'service_name') {
       const selectedService = realServices.find(s => s.title.trim() === value.trim());
-      console.log('Package service selected:', {
-        value,
-        trimmedValue: value.trim(),
-        selectedService,
-        service_id: selectedService?.id,
-        realServicesCount: realServices.length,
-        availableServiceTitles: realServices.map(s => s.title)
-      });
+
       updated[index] = {
         ...updated[index],
         [field]: value,
@@ -697,7 +661,6 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
       updated[index] = { ...updated[index], [field]: value };
     }
 
-    console.log('Updated package pricing:', updated[index]);
     setPackagePricings(updated);
   };
 
@@ -755,9 +718,6 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
 
     // Check authenticated user vs profile ID
     const { data: { user: authUser } } = await supabase.auth.getUser();
-    console.log('[Clinic Save] Auth user ID:', authUser?.id);
-    console.log('[Clinic Save] Profile ID:', profile.id);
-    console.log('[Clinic Save] IDs match:', authUser?.id === profile.id);
 
     if (authUser?.id !== profile.id) {
       toast.error('Authentication mismatch: Your session user ID does not match the profile ID. Please sign out and sign in again.');
@@ -765,8 +725,6 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
       return;
     }
 
-    console.log('[Clinic Save] Starting save process for profile:', profile.id);
-    console.log('[Clinic Save] Clinic info:', clinicInfo);
 
     setIsSaving(true);
 
@@ -811,7 +769,6 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
 
       // Upsert clinic information in Clinics table
       // First try to update existing record
-      console.log('[Clinic Save] Checking for existing clinic record for practitioner_id:', profile.id);
 
       const { data: existingClinic, error: selectError } = await supabase
         .from('Clinics')
@@ -819,10 +776,8 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
         .eq('practitioner_id', profile.id)
         .maybeSingle(); // Use maybeSingle() to handle missing records
 
-      console.log('[Clinic Save] Existing clinic check:', { existingClinic, selectError });
 
       if (selectError) {
-        console.error('[Clinic Save] Error checking for existing clinic:', selectError);
         throw new Error(`Failed to check existing clinic: ${selectError.message}`);
       }
 
@@ -830,7 +785,6 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
 
       if (existingClinic) {
         // Update existing record
-        console.log('[Clinic Save] Updating existing clinic record');
         const { data: updatedData, error } = await supabase
           .from('Clinics')
           .update({
@@ -846,11 +800,9 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
           .eq('practitioner_id', profile.id)
           .select();
 
-        console.log('[Clinic Save] Update result:', { updatedData, error });
         clinicError = error;
       } else {
         // Insert new record
-        console.log('[Clinic Save] Creating new clinic record');
         const { data: insertedData, error } = await supabase
           .from('Clinics')
           .insert({
@@ -866,12 +818,10 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
           })
           .select();
 
-        console.log('[Clinic Save] Insert result:', { insertedData, error });
         clinicError = error;
       }
 
       if (clinicError) {
-        console.error('[Clinic Save] Error saving clinic:', clinicError);
         throw clinicError;
       }
 
@@ -881,14 +831,6 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
                          packagePricings.some(pkg => pkg.service_name);
 
       if (hasServices) {
-        console.log('[Clinic Save] Saving service pricing:', {
-          practitionerId: profile.id,
-          servicePricings,
-          virtualPricings,
-          packagePricings,
-          combined: [...servicePricings, ...virtualPricings]
-        });
-
         try {
           await saveServicePricing(
             profile.id,
@@ -896,13 +838,10 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
             packagePricings,
             true // true = clinic-specific pricing
           );
-          console.log('[Clinic Save] Service pricing saved successfully');
         } catch (pricingError: any) {
-          console.error('[Clinic Save] Service pricing error:', pricingError);
           throw new Error(`Failed to save service pricing: ${pricingError.message || JSON.stringify(pricingError)}`);
         }
       } else {
-        console.log('[Clinic Save] No services to save, skipping service pricing');
       }
 
       // Clear logo file state

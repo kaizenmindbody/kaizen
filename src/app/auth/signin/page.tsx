@@ -111,17 +111,29 @@ const SigninPage = () => {
 
   if (loading) {
     return (
-      <div className="font-sans min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+      <div className="font-sans min-h-screen bg-gray-50 flex flex-col">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading...</p>
+          </div>
         </div>
       </div>
     );
   }
 
-  if (user) {
-    return null; // Will redirect to dashboard
+  // Show loading spinner when signing in OR when user exists (redirecting)
+  if (isLoading || user) {
+    return (
+      <div className="font-sans min-h-screen bg-gray-50 flex flex-col">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">{user ? 'Redirecting...' : 'Signing in...'}</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

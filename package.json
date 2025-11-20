@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@fluentui/react-components": "^9.72.7",
     "@google-cloud/local-auth": "^3.0.1",
     "@heroicons/react": "^2.2.0",
     "@placekit/autocomplete-js": "^2.2.1",

@@ -69,7 +69,6 @@ export default function ManageHostProfile({ profile, hostProfile, updateHostProf
 
       return result.avatarUrl;
     } catch (error) {
-      console.error('Avatar upload error:', error);
       throw error;
     } finally {
       setIsUploadingAvatar(false);

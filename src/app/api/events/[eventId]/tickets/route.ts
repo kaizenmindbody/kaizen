@@ -24,8 +24,6 @@ export async function GET(
       );
     }
 
-    console.log('[Tickets API] Fetching tickets for event:', eventId);
-
     // Fetch ticket types for the event
     const { data: ticketTypes, error } = await supabase
       .from('TicketTypes')
@@ -34,14 +32,11 @@ export async function GET(
       .order('display_order', { ascending: true });
 
     if (error) {
-      console.error('[Tickets API] Error fetching ticket types:', error);
       return NextResponse.json(
         { error: `Failed to fetch ticket types: ${error.message}`, details: error },
         { status: 500 }
       );
     }
-
-    console.log('[Tickets API] Found tickets:', ticketTypes?.length || 0);
 
     // Transform to match the frontend TicketType interface
     const formattedTickets = (ticketTypes || []).map((ticket: any) => ({
@@ -63,7 +58,6 @@ export async function GET(
       tickets: formattedTickets,
     });
   } catch (error: any) {
-    console.error('Error in GET /api/events/[eventId]/tickets:', error);
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }

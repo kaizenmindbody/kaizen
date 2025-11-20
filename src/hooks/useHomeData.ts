@@ -69,7 +69,6 @@ export function useHomeData(): UseHomeDataReturn {
 
       setData(result.data || []);
     } catch (err) {
-      console.error(`Error fetching ${dataName}:`, err);
       setError(err instanceof Error ? err.message : `Failed to fetch ${dataName}`);
     } finally {
       setLoading(false);

@@ -82,28 +82,22 @@ export function useEventHost(): UseEventHostReturn {
   const fetchEvents = useCallback(async (userId: string) => {
     try {
       setError(null);
-      console.log('[useEventHost] Fetching events for userId:', userId);
 
       // Use API route instead of direct Supabase query to bypass RLS
       const response = await fetch(`/api/events/host/${userId}`);
       const result = await response.json();
-
-      console.log('[useEventHost] Events API result:', result);
 
       if (!response.ok) {
         throw new Error(result.error || 'Failed to fetch events');
       }
 
       if (result.events) {
-        console.log('[useEventHost] Setting events:', result.events.length, 'events found');
         setEvents(result.events);
       } else {
-        console.log('[useEventHost] No events data returned');
         setEvents([]);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch events');
-      console.error('[useEventHost] Error fetching events:', err);
       setEvents([]);
     }
   }, []);

@@ -63,7 +63,6 @@ export async function GET(request: NextRequest) {
     const { data: availabilityRecords } = availabilityResult;
 
     if (error) {
-      console.error('Error fetching bookings for availability:', error);
       return NextResponse.json(
         { error: 'Failed to fetch availability' },
         { status: 500 }
@@ -183,7 +182,6 @@ export async function GET(request: NextRequest) {
       defaultTimeSlots
     });
   } catch (error) {
-    console.error('Error in availability GET:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -26,7 +26,6 @@ export function useAboutUs(): UseAboutUsReturn {
         
         setAboutUsItems(result.data || []);
       } catch (err) {
-        console.error('Error fetching about us data:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch about us data');
       } finally {
         setLoading(false);

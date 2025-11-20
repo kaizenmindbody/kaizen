@@ -10,7 +10,6 @@ export async function GET() {
       .order('title', { ascending: true });
 
     if (error) {
-      console.error('Error fetching degrees:', error);
       return NextResponse.json(
         { error: 'Failed to fetch degrees' },
         { status: 500 }
@@ -19,7 +18,6 @@ export async function GET() {
 
     return NextResponse.json({ data: data || [] });
   } catch (err: any) {
-    console.error('Unexpected error:', err);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -46,7 +44,6 @@ export async function POST(request: NextRequest) {
       .select();
 
     if (error) {
-      console.error('Error adding degree:', error);
       return NextResponse.json(
         { error: 'Failed to add degree' },
         { status: 500 }
@@ -55,7 +52,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ data: data[0] });
   } catch (err: any) {
-    console.error('Unexpected error:', err);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -90,7 +86,6 @@ export async function PUT(request: NextRequest) {
       .select();
 
     if (error) {
-      console.error('Error updating degree:', error);
       return NextResponse.json(
         { error: 'Failed to update degree' },
         { status: 500 }
@@ -106,7 +101,6 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ data: data[0] });
   } catch (err: any) {
-    console.error('Unexpected error:', err);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -132,7 +126,6 @@ export async function DELETE(request: NextRequest) {
       .eq('id', id);
 
     if (error) {
-      console.error('Error deleting degree:', error);
       return NextResponse.json(
         { error: 'Failed to delete degree' },
         { status: 500 }
@@ -141,7 +134,6 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (err: any) {
-    console.error('Unexpected error:', err);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

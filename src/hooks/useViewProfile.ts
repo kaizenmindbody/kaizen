@@ -73,7 +73,6 @@ export function useViewProfile(): UseViewProfileReturn {
         setPackagePricings(packages);
       }
     } catch (error) {
-      console.error('Error fetching service pricing:', error);
       setError('Failed to fetch service pricing');
     }
   }, []);
@@ -87,7 +86,6 @@ export function useViewProfile(): UseViewProfileReturn {
         .single();
 
       if (descError) {
-        console.log('No descriptions data found:', descError);
         return;
       }
 
@@ -101,7 +99,7 @@ export function useViewProfile(): UseViewProfileReturn {
         setDescriptionsData(descriptionsResult);
       }
     } catch (error) {
-      console.log('Error fetching descriptions:', error);
+      // Error fetching descriptions
     }
   }, []);
 
@@ -115,7 +113,6 @@ export function useViewProfile(): UseViewProfileReturn {
         .order('display_order', { ascending: true });
 
       if (mediaError) {
-        console.error('Error fetching media:', mediaError);
         return;
       }
 
@@ -133,7 +130,6 @@ export function useViewProfile(): UseViewProfileReturn {
         }
       }
     } catch (error) {
-      console.error('Error fetching media:', error);
       setError('Failed to fetch media');
     }
   }, []);
@@ -149,7 +145,6 @@ export function useViewProfile(): UseViewProfileReturn {
         fetchMedia(practitionerId),
       ]);
     } catch (error) {
-      console.error('Error fetching profile data:', error);
       setError('Failed to fetch profile data');
     } finally {
       setLoading(false);

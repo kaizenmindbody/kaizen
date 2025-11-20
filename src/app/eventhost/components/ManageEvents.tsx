@@ -72,7 +72,6 @@ export default function ManageEvents({ events, setActiveTab, onEditEvent, onEven
       setEventToDelete(null);
       onEventDeleted();
     } catch (error: any) {
-      console.error('Error deleting event:', error);
       toast.error(error.message || 'Failed to delete event');
     } finally {
       setDeletingEventId(null);

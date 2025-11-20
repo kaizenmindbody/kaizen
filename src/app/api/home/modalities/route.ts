@@ -7,7 +7,6 @@ export async function GET() {
       .from('Modalities')
       .select('*');
     if (error) {
-      console.error('Error fetching modalities:', error);
       return NextResponse.json(
         { error: 'Failed to fetch modalities' },
         { status: 500 }
@@ -16,7 +15,6 @@ export async function GET() {
 
     return NextResponse.json({ data });
   } catch (err: any) {
-    console.error('Unexpected error:', err);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

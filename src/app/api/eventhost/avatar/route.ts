@@ -24,7 +24,6 @@ export async function POST(request: NextRequest) {
         const oldAvatarPath = oldAvatarUrl.split('/').slice(-2).join('/');
         await supabase.storage.from('kaizen').remove([oldAvatarPath]);
       } catch (error) {
-        console.error('Error deleting old avatar:', error);
         // Continue even if deletion fails
       }
     }
@@ -39,7 +38,6 @@ export async function POST(request: NextRequest) {
       .upload(filePath, avatarFile);
 
     if (uploadError) {
-      console.error('Upload error:', uploadError);
       return NextResponse.json(
         { error: `Failed to upload avatar: ${uploadError.message}` },
         { status: 500 }
@@ -58,7 +56,6 @@ export async function POST(request: NextRequest) {
       .eq('id', userId);
 
     if (dbError) {
-      console.error('Database error:', dbError);
       // Try to clean up uploaded file
       await supabase.storage.from('kaizen').remove([filePath]);
       return NextResponse.json(
@@ -73,7 +70,6 @@ export async function POST(request: NextRequest) {
       avatarUrl: publicUrl,
     });
   } catch (error: any) {
-    console.error('Unexpected error in POST /api/eventhost/avatar:', error);
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }
@@ -103,7 +99,6 @@ export async function DELETE(request: NextRequest) {
       .remove([avatarPath]);
 
     if (storageError) {
-      console.error('Storage delete error:', storageError);
       // Continue even if storage delete fails
     }
 
@@ -114,7 +109,6 @@ export async function DELETE(request: NextRequest) {
       .eq('id', userId);
 
     if (dbError) {
-      console.error('Database error:', dbError);
       return NextResponse.json(
         { error: `Failed to remove avatar from database: ${dbError.message}` },
         { status: 500 }
@@ -126,7 +120,6 @@ export async function DELETE(request: NextRequest) {
       message: 'Avatar removed successfully',
     });
   } catch (error: any) {
-    console.error('Unexpected error in DELETE /api/eventhost/avatar:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -128,7 +128,6 @@ const Blogs = ({ onRefreshData }: { onRefreshData: () => void }) => {
 
       return publicUrl;
     } catch (error) {
-      console.error('Error uploading image:', error);
       showError('Failed to upload image');
       return null;
     } finally {
@@ -175,7 +174,6 @@ const Blogs = ({ onRefreshData }: { onRefreshData: () => void }) => {
         showError('Error adding blog');
       }
     } catch (error) {
-      console.error('Error in addBlog:', error);
       showError('Error adding blog');
     }
   };
@@ -238,7 +236,6 @@ const Blogs = ({ onRefreshData }: { onRefreshData: () => void }) => {
         showError('Error updating blog');
       }
     } catch (error) {
-      console.error('Error in editBlog:', error);
       showError('Error updating blog');
     }
   };

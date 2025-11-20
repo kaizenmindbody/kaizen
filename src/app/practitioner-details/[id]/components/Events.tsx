@@ -73,7 +73,6 @@ export const Events = ({ practitionerId }: EventsProps) => {
           }
         });
       } catch (err: any) {
-        console.error('Error fetching events:', err);
         setError(err.message || 'Failed to load events');
       } finally {
         setLoading(false);
@@ -101,7 +100,6 @@ export const Events = ({ practitionerId }: EventsProps) => {
         );
       }
     } catch (error) {
-      console.error('Error fetching ticket types:', error);
     } finally {
       setLoadingTickets(prev => ({ ...prev, [eventId]: false }));
     }

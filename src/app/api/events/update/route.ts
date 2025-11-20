@@ -3,7 +3,6 @@ import { createServerSupabaseClient } from '@/lib/supabase';
 
 export async function PUT(request: NextRequest) {
   try {
-    console.log('[Event Update API] Starting event update...');
     const formData = await request.formData();
 
     // Extract event data
@@ -24,13 +23,6 @@ export async function PUT(request: NextRequest) {
     const existingImageUrl = formData.get('existing_image_url') as string | null;
     const ticketTypesJson = formData.get('ticket_types') as string;
 
-    console.log('[Event Update API] Received data:', {
-      eventId,
-      hostId,
-      title,
-      hasNewImage: !!eventImageFile,
-      existingImageUrl
-    });
 
     // Validate required fields
     if (!eventId || !hostId || !title || !summary || !description ||
@@ -45,7 +37,6 @@ export async function PUT(request: NextRequest) {
 
     // Validate Supabase client
     if (!supabase) {
-      console.error('Failed to create Supabase client');
       return NextResponse.json(
         { error: 'Server configuration error' },
         { status: 500 }
@@ -60,12 +51,6 @@ export async function PUT(request: NextRequest) {
         const fileName = `${hostId}_event_${Date.now()}.${fileExt}`;
         const filePath = `events/${fileName}`;
 
-        console.log('Uploading new event image:', {
-          fileName,
-          filePath,
-          fileSize: eventImageFile.size,
-          fileType: eventImageFile.type
-        });
 
         // Convert File to ArrayBuffer then to Buffer for upload
         const arrayBuffer = await eventImageFile.arrayBuffer();
@@ -80,7 +65,6 @@ export async function PUT(request: NextRequest) {
           });
 
         if (uploadError) {
-          console.error('Image upload error:', uploadError);
           return NextResponse.json(
             { error: `Failed to upload event image: ${uploadError.message}` },
             { status: 500 }
@@ -93,7 +77,6 @@ export async function PUT(request: NextRequest) {
           .getPublicUrl(filePath);
 
         eventImageUrl = publicUrl;
-        console.log('Event image uploaded successfully:', publicUrl);
 
         // Delete old image if it exists
         if (existingImageUrl) {
@@ -101,12 +84,10 @@ export async function PUT(request: NextRequest) {
             const oldFilePath = existingImageUrl.split('/').slice(-2).join('/');
             await supabase.storage.from('kaizen').remove([oldFilePath]);
           } catch (deleteError) {
-            console.error('Error deleting old image:', deleteError);
             // Continue anyway - this is not critical
           }
         }
       } catch (uploadErr: any) {
-        console.error('Event image upload exception:', uploadErr);
         return NextResponse.json(
           { error: `Failed to upload event image: ${uploadErr.message || 'Unknown error'}` },
           { status: 500 }
@@ -138,7 +119,6 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (eventError) {
-      console.error('Event update error:', eventError);
       return NextResponse.json(
         { error: `Failed to update event: ${eventError.message}` },
         { status: 500 }
@@ -177,7 +157,6 @@ export async function PUT(request: NextRequest) {
             .insert(ticketTypeInserts);
 
           if (ticketError) {
-            console.error('Ticket types update error:', ticketError);
             return NextResponse.json(
               {
                 success: true,
@@ -190,7 +169,6 @@ export async function PUT(request: NextRequest) {
           }
         }
       } catch (parseError) {
-        console.error('Error parsing ticket types:', parseError);
       }
     }
 
@@ -202,7 +180,6 @@ export async function PUT(request: NextRequest) {
     }, { status: 200 });
 
   } catch (error: any) {
-    console.error('Unexpected error in PUT /api/events/update:', error);
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }

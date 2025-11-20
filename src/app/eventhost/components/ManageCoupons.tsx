@@ -51,7 +51,6 @@ export default function ManageCoupons({ hostId }: ManageCouponsProps) {
         setCoupons(transformedCoupons);
       }
     } catch (error) {
-      console.error('Error fetching coupons:', error);
       toast.error('Failed to load coupons');
     } finally {
       setLoading(false);
@@ -98,7 +97,6 @@ export default function ManageCoupons({ hostId }: ManageCouponsProps) {
         toast.error(result.error || 'Failed to delete coupon');
       }
     } catch (error) {
-      console.error('Error deleting coupon:', error);
       toast.error('Failed to delete coupon');
     } finally {
       setDeletingCouponId(null);
@@ -162,7 +160,6 @@ export default function ManageCoupons({ hostId }: ManageCouponsProps) {
 
       setShowCouponModal(false);
     } catch (error) {
-      console.error('Error saving coupon:', error);
       toast.error('Failed to save coupon');
     }
   };
@@ -200,7 +197,6 @@ export default function ManageCoupons({ hostId }: ManageCouponsProps) {
         toast.error(result.error || 'Failed to update coupon status');
       }
     } catch (error) {
-      console.error('Error toggling coupon status:', error);
       toast.error('Failed to update coupon status');
     }
   };

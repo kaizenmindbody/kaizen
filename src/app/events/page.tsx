@@ -36,7 +36,6 @@ const EventsPage = () => {
           }
           return { eventId: event.id, tickets: [] };
         } catch (error) {
-          console.error(`Error fetching tickets for event ${event.id}:`, error);
           return { eventId: event.id, tickets: [] };
         } finally {
           setLoadingTickets(prev => ({ ...prev, [event.id]: false }));

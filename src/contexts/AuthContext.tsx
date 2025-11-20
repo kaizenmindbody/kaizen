@@ -41,7 +41,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     supabase.auth.getSession()
       .then(({ data: { session }, error }) => {
         if (error) {
-          console.warn('Error getting initial session:', error.message);
           // Even with error, continue initialization
           setSession(null);
           setUser(null);
@@ -51,7 +50,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return;
         }
 
-        console.log('AuthContext - Initial session:', session?.user?.email || 'No user');
         setSession(session);
         setUser(session?.user ?? null);
 
@@ -66,7 +64,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       })
       .catch((err) => {
-        console.error('Unexpected error in getSession:', err);
         setSession(null);
         setUser(null);
         setIsAdmin(false);
@@ -78,7 +75,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         try {
-          console.log('AuthContext - Auth state change:', event, session?.user?.email || 'No user');
           setSession(session);
           setUser(session?.user ?? null);
 
@@ -92,7 +88,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setLoading(false);
           }
         } catch (err) {
-          console.error('Error in onAuthStateChange:', err);
           setSession(null);
           setUser(null);
           setIsAdmin(false);
@@ -129,7 +124,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (error) {
         // Handle "no rows returned" error gracefully - user doesn't exist in Users table yet
         if (error.code === 'PGRST116') {
-          console.warn('User not found in Users table, creating basic profile:', userId);
           setUserProfile({
             id: userId,
             email: userEmail,
@@ -146,7 +140,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       if (!data) {
-        console.warn('No user data returned for userId:', userId);
         // Create a basic profile if no data exists
         setUserProfile({
           id: userId,
@@ -168,7 +161,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
       setLoading(false);
     } catch (error) {
-      console.error('Error in fetchUserProfile:', error instanceof Error ? error.message : String(error));
       setLoading(false);
     }
   };
@@ -181,8 +173,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     try {
-      console.log('Attempting to sign out...');
-
       // Clear local state first
       setUserProfile(null);
       setUser(null);
@@ -214,19 +204,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (error.message === 'Auth session missing!' ||
             error.message.includes('session') ||
             error.code === 'session_not_found') {
-          console.log('Session already cleared or missing, proceeding with cleanup');
         } else {
-          console.error('Sign out error (non-critical):', error);
           // Don't throw - still proceed with cleanup
         }
-      } else {
-        console.log('Successfully signed out from Supabase');
       }
 
       // Always redirect regardless of Supabase result
       window.location.href = '/';
     } catch (error) {
-      console.error('Sign out process error:', error);
       // Ensure cleanup always happens
       setUserProfile(null);
       setUser(null);

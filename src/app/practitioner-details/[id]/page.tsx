@@ -110,11 +110,9 @@ const PractitionerDetailsPage = () => {
   useEffect(() => {
     const fetchPractitioner = async () => {
       if (!practitionerId) {
-        console.log('No practitioner ID provided');
         return;
       }
 
-      console.log('Fetching practitioner with ID:', practitionerId);
 
       try {
         setLoading(true);
@@ -122,7 +120,6 @@ const PractitionerDetailsPage = () => {
 
         // Fetch practitioner data from Users table
         const { supabase } = await import('@/lib/supabase');
-        console.log('Querying Users table for practitioner...');
 
         const { data: found, error: userError } = await supabase
           .from('Users')
@@ -146,33 +143,22 @@ const PractitionerDetailsPage = () => {
           .maybeSingle();
 
         if (userError) {
-          console.error('Error fetching practitioner from Users table:', userError);
           setError(`Error loading practitioner data: ${userError.message}`);
           return;
         }
 
         if (!found) {
-          console.log('No practitioner found with ID:', practitionerId);
           setError('Practitioner not found');
           return;
         }
 
-        console.log('Practitioner data found:', {
-          id: found.id,
-          name: `${found.firstname} ${found.lastname}`,
-          type: found.type,
-          ptype: found.ptype
-        });
-
         // Verify this is a practitioner
         if (found.type?.toLowerCase() !== 'practitioner' && found.ptype?.toLowerCase() !== 'practitioner') {
-          console.log('User is not a practitioner. Type:', found.type, 'PType:', found.ptype);
           setError('This user is not a practitioner');
           return;
         }
 
         // Fetch media from UserMedia table
-        console.log('Fetching media from UserMedia table...');
         const { data: mediaData, error: mediaError } = await supabase
           .from('UserMedia')
           .select('id, user_id, file_url, file_type, display_order, created_at')
@@ -180,9 +166,7 @@ const PractitionerDetailsPage = () => {
           .order('display_order', { ascending: true });
 
         if (mediaError) {
-          console.log('Error fetching media (non-critical):', mediaError);
         } else {
-          console.log('Media data fetched:', mediaData?.length || 0, 'items');
         }
 
         // Separate images and video from UserMedia
@@ -191,7 +175,6 @@ const PractitionerDetailsPage = () => {
           .map(item => item.file_url) || [];
         const userVideo = mediaData?.find(item => item.file_type === 'video')?.file_url || null;
 
-        console.log('Processed media - Images:', userImages.length, 'Video:', userVideo ? 'Yes' : 'No');
 
         // Process JSON fields from Users table
         const processedUser = {
@@ -210,7 +193,6 @@ const PractitionerDetailsPage = () => {
         };
 
         // Fetch descriptions data from Descriptions table
-        console.log('Fetching descriptions from Descriptions table...');
         let languagesFromDescriptions = [];
         try {
           const { data: descriptionsResult, error: descError } = await supabase
@@ -220,9 +202,7 @@ const PractitionerDetailsPage = () => {
             .maybeSingle();
 
           if (descError) {
-            console.log('Error fetching descriptions:', descError);
           } else if (descriptionsResult) {
-            console.log('Descriptions data found');
             // Parse language field if it's a string
             if (descriptionsResult.language) {
               descriptionsResult.language = typeof descriptionsResult.language === 'string'
@@ -235,10 +215,8 @@ const PractitionerDetailsPage = () => {
             }
             setDescriptionsData(descriptionsResult);
           } else {
-            console.log('No descriptions data available for this practitioner');
           }
         } catch (descError) {
-          console.log('Exception fetching descriptions:', descError);
         }
 
         // Update processedUser with languages from Descriptions
@@ -352,24 +330,13 @@ const PractitionerDetailsPage = () => {
           })(),
         };
 
-        console.log('Setting practitioner data with:', {
-          name: transformedPractitioner.full_name,
-          hasAvatar: !!transformedPractitioner.avatar,
-          hasImages: transformedPractitioner.images?.length || 0,
-          hasVideo: !!transformedPractitioner.video,
-          hasSpecialties: transformedPractitioner.specialties?.length || 0
-        });
-
         setPractitioner(transformedPractitioner);
-        console.log('Practitioner data successfully loaded!');
       } catch (error) {
-        console.error('Exception in fetchPractitioner:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
         toast.error(`Error loading practitioner: ${errorMessage}`);
         setError(`Failed to fetch practitioner: ${errorMessage}`);
       } finally {
         setLoading(false);
-        console.log('Finished loading practitioner data');
       }
     };
 
@@ -394,13 +361,11 @@ const PractitionerDetailsPage = () => {
               lng: location.lng()
             });
           } else {
-            console.warn(`Geocoding failed for address: ${address}, status: ${status}`);
             resolve(null);
           }
         });
       });
     } catch (error) {
-      console.error('Error geocoding address:', error);
       toast.error('Error geocoding address');
       return null;
     }

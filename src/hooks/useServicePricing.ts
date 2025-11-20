@@ -81,7 +81,6 @@ export function useServicePricing(practitionerId?: string, isClinicSpecific: boo
         }
         return false;
       } catch (error) {
-        console.error('Error in saveServicePricing:', error);
         return false;
       }
     },

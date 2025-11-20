@@ -302,7 +302,6 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
 
         const apiKey = process.env.NEXT_PUBLIC_PLACEKIT_API_KEY;
         if (!apiKey) {
-          console.error('PlaceKit API key is not configured');
           return;
         }
 
@@ -333,13 +332,6 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
             country: item.country || 'US',
           });
 
-          console.log('Address selected:', {
-            address1: item.name,
-            city: item.city,
-            state: item.administrative,
-            zip: zipCode,
-          });
-
           // Close the dropdown by blurring the input
           setTimeout(() => {
             if (addressInputRef.current) {
@@ -349,7 +341,6 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
         });
 
       } catch (error) {
-        console.error('Error initializing PlaceKit:', error);
       }
     };
 
@@ -460,8 +451,6 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
   useEffect(() => {
     if (profile) {
       const parsedPtype = parsePractitionerType(profile.ptype);
-      console.log('Profile ptype from DB:', profile.ptype);
-      console.log('Parsed type_of_practitioner:', parsedPtype);
 
       setFormData({
         first_name: profile.firstname || '',

@@ -41,10 +41,8 @@ const ContactPage = () => {
         setTimeout(() => setShowSuccess(false), 5000);
       } else {
         // Handle error
-        console.error('Failed to send message');
       }
     } catch (error) {
-      console.error('Error sending message:', error);
     } finally {
       setIsSubmitting(false);
     }

@@ -17,7 +17,6 @@ export async function GET(request: NextRequest) {
       const { data, error } = await supabase.auth.exchangeCodeForSession(code)
       
       if (error) {
-        console.error('Error exchanging code for session:', error)
         return NextResponse.redirect(`${requestUrl.origin}/auth/error?message=${encodeURIComponent('Authentication failed')}`)
       }
 
@@ -37,7 +36,6 @@ export async function GET(request: NextRequest) {
       return response
       
     } catch (error) {
-      console.error('Unexpected error during auth callback:', error)
       return NextResponse.redirect(`${requestUrl.origin}/auth/error?message=${encodeURIComponent('Unexpected error occurred')}`)
     }
   }

@@ -130,7 +130,6 @@ This appointment was created through the Kaizen medical platform.
         eventId: response.data.id,
       };
     } catch (error: any) {
-      console.error('Error creating Google Calendar event:', error);
       return {
         success: false,
         error: error.message || 'Failed to create calendar event',
@@ -191,7 +190,6 @@ This appointment was updated through the Kaizen medical platform.
 
       return { success: true };
     } catch (error: any) {
-      console.error('Error updating Google Calendar event:', error);
       return {
         success: false,
         error: error.message || 'Failed to update calendar event',
@@ -209,7 +207,6 @@ This appointment was updated through the Kaizen medical platform.
 
       return { success: true };
     } catch (error: any) {
-      console.error('Error deleting Google Calendar event:', error);
       return {
         success: false,
         error: error.message || 'Failed to delete calendar event',

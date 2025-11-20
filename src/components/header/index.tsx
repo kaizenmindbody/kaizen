@@ -87,7 +87,6 @@ const Header = () => {
             setEventHostAvatar(null);
           }
         } catch (error) {
-          console.error('Error fetching event host avatar:', error);
           setEventHostAvatar(null);
         }
       } else {
@@ -329,7 +328,6 @@ const Header = () => {
                                 await signOut();
                                 setProfileOpen(false);
                               } catch (error) {
-                                console.error('Error signing out:', error);
                                 // Keep dropdown open if sign out fails
                               } finally {
                                 setIsSigningOut(false);

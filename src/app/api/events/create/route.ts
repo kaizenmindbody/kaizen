@@ -3,7 +3,6 @@ import { createServerSupabaseClient } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('[Event Create API] Starting event creation...');
     const formData = await request.formData();
 
     // Extract event data
@@ -22,14 +21,6 @@ export async function POST(request: NextRequest) {
     const eventImageFile = formData.get('event_image') as File | null;
     const ticketTypesJson = formData.get('ticket_types') as string;
 
-    console.log('[Event Create API] Received data:', {
-      hostId,
-      title,
-      hasImage: !!eventImageFile,
-      imageSize: eventImageFile?.size,
-      imageName: eventImageFile?.name
-    });
-
     // Validate required fields
     if (!hostId || !title || !summary || !description ||
         !startDate || !endDate || !location) {
@@ -43,7 +34,6 @@ export async function POST(request: NextRequest) {
 
     // Validate Supabase client
     if (!supabase) {
-      console.error('Failed to create Supabase client');
       return NextResponse.json(
         { error: 'Server configuration error' },
         { status: 500 }
@@ -58,13 +48,6 @@ export async function POST(request: NextRequest) {
         const fileName = `${hostId}_event_${Date.now()}.${fileExt}`;
         const filePath = `events/${fileName}`;
 
-        console.log('Uploading event image:', {
-          fileName,
-          filePath,
-          fileSize: eventImageFile.size,
-          fileType: eventImageFile.type
-        });
-
         // Convert File to ArrayBuffer then to Buffer for upload
         const arrayBuffer = await eventImageFile.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
@@ -78,7 +61,6 @@ export async function POST(request: NextRequest) {
           });
 
         if (uploadError) {
-          console.error('Image upload error:', uploadError);
           return NextResponse.json(
             { error: `Failed to upload event image: ${uploadError.message}` },
             { status: 500 }
@@ -91,9 +73,7 @@ export async function POST(request: NextRequest) {
           .getPublicUrl(filePath);
 
         eventImageUrl = publicUrl;
-        console.log('Event image uploaded successfully:', publicUrl);
       } catch (uploadErr: any) {
-        console.error('Event image upload exception:', uploadErr);
         return NextResponse.json(
           { error: `Failed to upload event image: ${uploadErr.message || 'Unknown error'}` },
           { status: 500 }
@@ -123,7 +103,6 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (eventError) {
-      console.error('Event creation error:', eventError);
 
       // Clean up uploaded image if event creation failed
       if (eventImageUrl) {
@@ -143,7 +122,6 @@ export async function POST(request: NextRequest) {
       try {
         ticketTypes = JSON.parse(ticketTypesJson);
       } catch (parseError) {
-        console.error('Error parsing ticket types:', parseError);
       }
     }
 
@@ -167,7 +145,6 @@ export async function POST(request: NextRequest) {
         .insert(ticketTypeInserts);
 
       if (ticketError) {
-        console.error('Ticket types creation error:', ticketError);
         // Event was created, so we should still return success but note the ticket error
         return NextResponse.json(
           {
@@ -189,7 +166,6 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
 
   } catch (error: any) {
-    console.error('Unexpected error in POST /api/events/create:', error);
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }

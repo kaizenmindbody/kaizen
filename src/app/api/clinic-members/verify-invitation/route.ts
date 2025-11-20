@@ -71,6 +71,18 @@ export async function POST(request: NextRequest) {
         );
     }
 
+    // Update invitation status from 'pending' to 'accepted' when user visits the link
+    if (member.invitation_status === 'pending') {
+      const { error: updateError } = await supabaseAdmin
+        .from('ClinicMembers')
+        .update({ invitation_status: 'accepted' })
+        .eq('id', member.id);
+
+      if (updateError) {
+        // Don't fail the request, just log the error
+      }
+    }
+
     // Fetch clinic details
     const { data: clinic, error: clinicError } = await supabaseAdmin
       .from('Clinics')
@@ -96,7 +108,6 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
   } catch (error: any) {
-    console.error('Unexpected error:', error);
     return NextResponse.json(
       { error: error.message || 'An unexpected error occurred' },
       { status: 500 }

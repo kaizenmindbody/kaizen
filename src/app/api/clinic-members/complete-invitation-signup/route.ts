@@ -110,7 +110,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (authError) {
-      console.error('Auth creation error:', authError);
       return NextResponse.json(
         { error: `Failed to create account: ${authError.message}` },
         { status: 500 }
@@ -140,7 +139,6 @@ export async function POST(request: NextRequest) {
       });
 
     if (insertError) {
-      console.error('User table insert error:', insertError);
       // Note: Auth user was created, but Users table insert failed
       // We should handle this better in production
     }
@@ -160,7 +158,6 @@ export async function POST(request: NextRequest) {
       .eq('id', member.id);
 
     if (updateError) {
-      console.error('ClinicMembers update error:', updateError);
     }
 
     return NextResponse.json(
@@ -175,7 +172,6 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error: any) {
-    console.error('Unexpected error:', error);
     return NextResponse.json(
       { error: error.message || 'An unexpected error occurred' },
       { status: 500 }

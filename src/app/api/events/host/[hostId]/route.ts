@@ -16,19 +16,16 @@ export async function GET(
       );
     }
 
-    console.log('[API Events Host] Fetching events for hostId:', hostId);
 
     const supabase = createServerSupabaseClient();
 
     if (!supabase) {
-      console.error('[API Events Host] Failed to create Supabase client');
       return NextResponse.json(
         { error: 'Server configuration error' },
         { status: 500 }
       );
     }
 
-    console.log('[API Events Host] Querying Events table...');
 
     const { data, error } = await supabase
       .from('Events')
@@ -53,10 +50,8 @@ export async function GET(
       );
     }
 
-    console.log('[API Events Host] Query successful. Found events:', data?.length || 0);
 
     if (data && data.length > 0) {
-      console.log('[API Events Host] Sample event:', data[0]);
     }
 
     return NextResponse.json({

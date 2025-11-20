@@ -45,11 +45,9 @@ function GoogleCallbackContent() {
         setTokens(data);
         setStatus('success');
       } else {
-        console.error('Error:', data.error);
         setStatus('error');
       }
     } catch (error) {
-      console.error('Error handling callback:', error);
       setStatus('error');
     }
   };

@@ -27,7 +27,6 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (bookingError || !booking) {
-      console.error('Error fetching booking:', bookingError);
       return NextResponse.json(
         { error: 'Booking not found' },
         { status: 404 }
@@ -67,7 +66,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (!result.success) {
-      console.error('Failed to create calendar event:', result.error);
       return NextResponse.json(
         { error: 'Failed to create calendar event', details: result.error },
         { status: 500 }
@@ -81,7 +79,6 @@ export async function POST(request: NextRequest) {
       .eq('id', booking_id);
 
     if (updateError) {
-      console.error('Error updating booking with calendar event ID:', updateError);
       // Don't fail the request, just log the error
     }
 
@@ -91,7 +88,6 @@ export async function POST(request: NextRequest) {
       booking_id
     });
   } catch (error) {
-    console.error('Error in calendar POST:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -180,7 +176,6 @@ export async function PUT(request: NextRequest) {
       booking_id
     });
   } catch (error) {
-    console.error('Error in calendar PUT:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -226,7 +221,6 @@ export async function DELETE(request: NextRequest) {
     const result = await calendarService.deleteBookingEvent(booking.calendar_event_id);
 
     if (!result.success) {
-      console.error('Failed to delete calendar event:', result.error);
       // Don't fail the request, just log the error
     }
 
@@ -237,7 +231,6 @@ export async function DELETE(request: NextRequest) {
       .eq('id', booking_id);
 
     if (updateError) {
-      console.error('Error clearing calendar event ID:', updateError);
     }
 
     return NextResponse.json({
@@ -245,7 +238,6 @@ export async function DELETE(request: NextRequest) {
       booking_id
     });
   } catch (error) {
-    console.error('Error in calendar DELETE:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

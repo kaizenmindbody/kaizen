@@ -21,7 +21,6 @@ export async function DELETE(request: NextRequest) {
       .eq('id', id);
 
     if (error) {
-      console.error('Error deleting user:', error);
       return NextResponse.json(
         { error: 'Failed to delete user', details: error.message },
         { status: 500 }
@@ -30,7 +29,6 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (err: any) {
-    console.error('Unexpected error:', err);
     return NextResponse.json(
       { error: 'Internal server error', details: err.message },
       { status: 500 }

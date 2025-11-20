@@ -84,7 +84,6 @@ const PractitionerBooking = () => {
         const saved = localStorage.getItem(getStorageKey());
         return saved ? JSON.parse(saved) : null;
       } catch (error) {
-        console.error('Error loading from localStorage:', error);
         return null;
       }
     }
@@ -189,7 +188,6 @@ const PractitionerBooking = () => {
             });
           }
         } catch (error) {
-          console.warn('Error checking patient conflicts:', error);
         }
       }
 
@@ -203,7 +201,6 @@ const PractitionerBooking = () => {
       return result;
 
     } catch (error) {
-      console.error('Error loading availability:', error);
       return { morning: [], afternoon: [], conflicts: {}, practitionerBookings: {} };
     } finally {
       setLoadingAvailability(false);
@@ -439,7 +436,6 @@ const PractitionerBooking = () => {
           const response = await fetch(`/api/bookings?patient_id=${user.id}&practitioner_id=${practitionerId}`);
 
           if (!response.ok) {
-            console.error('Failed to fetch bookings');
             return;
           }
 
@@ -498,7 +494,6 @@ const PractitionerBooking = () => {
             }
           }
         } catch (error) {
-          console.error('Error fetching book number:', error);
         }
       }
     };
@@ -759,7 +754,6 @@ const PractitionerBooking = () => {
       // Navigate to find-practitioner page
       router.push('/find-practitioner');
     } catch (error) {
-      console.error('Error cancelling booking:', error);
       toast.error('Failed to cancel booking. Please try again.');
     }
   };
@@ -860,7 +854,6 @@ const PractitionerBooking = () => {
         return true;
       }
     } catch (error) {
-      console.error('Error creating bookings:', error);
       toast.error(`Failed to create booking: ${error.message}`);
       return false;
     }

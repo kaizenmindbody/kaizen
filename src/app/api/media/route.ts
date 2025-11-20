@@ -24,7 +24,6 @@ export async function GET(request: NextRequest) {
       .order('display_order', { ascending: true });
 
     if (error) {
-      console.error('Error fetching media:', error);
       return NextResponse.json(
         { error: 'Failed to fetch media' },
         { status: 500 }
@@ -36,7 +35,6 @@ export async function GET(request: NextRequest) {
       media: mediaData || [],
     });
   } catch (error: any) {
-    console.error('Unexpected error in GET /api/media:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -101,7 +99,6 @@ export async function POST(request: NextRequest) {
         .upload(filePath, file);
 
       if (uploadError) {
-        console.error('Upload error:', uploadError);
         throw new Error(`Failed to upload ${file.name}: ${uploadError.message}`);
       }
 
@@ -128,7 +125,6 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (dbError) {
-        console.error('Database insert error:', dbError);
         throw new Error(`Failed to save ${file.name} to database: ${dbError.message}`);
       }
 
@@ -164,7 +160,6 @@ export async function POST(request: NextRequest) {
         .upload(filePath, file);
 
       if (uploadError) {
-        console.error('Video upload error:', uploadError);
         throw new Error(`Failed to upload ${file.name}: ${uploadError.message}`);
       }
 
@@ -189,7 +184,6 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (dbError) {
-        console.error('Video database insert error:', dbError);
         throw new Error(`Failed to save ${file.name} to database: ${dbError.message}`);
       }
 
@@ -202,7 +196,6 @@ export async function POST(request: NextRequest) {
       media: uploadedMedia,
     });
   } catch (error: any) {
-    console.error('Unexpected error in POST /api/media:', error);
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }
@@ -239,7 +232,6 @@ export async function DELETE(request: NextRequest) {
       .remove([filePath]);
 
     if (storageError) {
-      console.error('Storage delete error:', storageError);
       // Continue even if storage delete fails - the file might already be deleted
     }
 
@@ -251,7 +243,6 @@ export async function DELETE(request: NextRequest) {
       .eq('file_url', fileUrl);
 
     if (dbError) {
-      console.error('Database delete error:', dbError);
       return NextResponse.json(
         { error: `Failed to delete ${fileType} from database: ${dbError.message}` },
         { status: 500 }
@@ -263,7 +254,6 @@ export async function DELETE(request: NextRequest) {
       message: `${fileType.charAt(0).toUpperCase() + fileType.slice(1)} deleted successfully`,
     });
   } catch (error: any) {
-    console.error('Unexpected error in DELETE /api/media:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

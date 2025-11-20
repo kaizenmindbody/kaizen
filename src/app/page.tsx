@@ -61,7 +61,6 @@ export default function Home() {
             setProfileData(data);
           }
         } catch (error) {
-          console.error('Error fetching profile data:', error);
         }
       }
     };

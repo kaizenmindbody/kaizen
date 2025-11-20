@@ -245,7 +245,6 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
             }
           }
         } catch (error) {
-          console.error('Error loading saved form data:', error);
         }
       }
     }
@@ -373,12 +372,10 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
           if (response.ok && result.success) {
             setTicketTypes(result.tickets || []);
           } else {
-            console.warn('Could not fetch ticket types:', result.error);
             // If fetching fails, just start with empty tickets
             setTicketTypes([]);
           }
         } catch (error) {
-          console.error('Error fetching ticket types:', error);
           // If there's an error, just start with empty tickets
           setTicketTypes([]);
         }
@@ -552,7 +549,6 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
       }, 1500);
 
     } catch (error: any) {
-      console.error(`Error ${editingEvent ? 'updating' : 'creating'} event:`, error);
       toast.error(error.message || `Failed to ${editingEvent ? 'update' : 'create'} event. Please try again.`);
     } finally {
       setIsSubmitting(false);

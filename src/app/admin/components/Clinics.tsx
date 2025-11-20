@@ -183,7 +183,6 @@ const Clinics = ({ onRefreshData }: ClinicsProps) => {
 
       return publicUrl;
     } catch (error) {
-      console.error('Error uploading image:', error);
       showError('Failed to upload image');
       return null;
     } finally {

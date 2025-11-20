@@ -114,9 +114,7 @@ const Faqs = ({ onRefreshData }: { onRefreshData: () => void }) => {
       return;
     }
 
-    console.log('Updating FAQ:', { id: editingFaq.id, data: editFaqData });
     const success = await updateFaqHook(editingFaq.id, editFaqData);
-    console.log('Update result:', success);
     if (success) {
       closeEditDialog();
       showSuccess('FAQ updated successfully');

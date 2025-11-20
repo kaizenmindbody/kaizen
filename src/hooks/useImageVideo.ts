@@ -76,7 +76,6 @@ export function useImageVideo(userId?: string): UseImageVideoReturn {
         }
         return false;
       } catch (error) {
-        console.error('Error in uploadImages:', error);
         return false;
       }
     },
@@ -117,7 +116,6 @@ export function useImageVideo(userId?: string): UseImageVideoReturn {
         }
         return false;
       } catch (error) {
-        console.error('Error in uploadVideos:', error);
         return false;
       }
     },
@@ -163,7 +161,6 @@ export function useImageVideo(userId?: string): UseImageVideoReturn {
         }
         return false;
       } catch (error) {
-        console.error('Error in uploadMedia:', error);
         return false;
       }
     },
@@ -195,7 +192,6 @@ export function useImageVideo(userId?: string): UseImageVideoReturn {
         }
         return false;
       } catch (error) {
-        console.error('Error in deleteImage:', error);
         return false;
       }
     },
@@ -227,7 +223,6 @@ export function useImageVideo(userId?: string): UseImageVideoReturn {
         }
         return false;
       } catch (error) {
-        console.error('Error in deleteVideo:', error);
         return false;
       }
     },

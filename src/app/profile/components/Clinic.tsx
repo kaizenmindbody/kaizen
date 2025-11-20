@@ -67,7 +67,6 @@ const Clinic: React.FC<ClinicProps> = ({ profile }) => {
           .single();
 
         if (error) {
-          console.error('Error fetching clinic data:', error);
           setClinicData(null);
         } else {
           // Parse clinic_images if it's a JSON string
@@ -88,7 +87,6 @@ const Clinic: React.FC<ClinicProps> = ({ profile }) => {
           }
         }
       } catch (err) {
-        console.error('Unexpected error:', err);
         setClinicData(null);
       } finally {
         setLoading(false);

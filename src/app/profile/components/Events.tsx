@@ -46,7 +46,6 @@ const Events: React.FC<EventsProps> = ({ profile, activeSubTab, onNavigate }) =>
         setEvents(result.events || []);
       }
     } catch (error) {
-      console.error('Error fetching events:', error);
     } finally {
       setLoading(false);
     }

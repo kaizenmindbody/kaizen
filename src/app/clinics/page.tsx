@@ -184,7 +184,6 @@ const ClinicsPage = () => {
 
   // Handle error state
   if (error) {
-    console.error('Clinics page error:', error);
     return (
       <>
         <Breadcrumb pageName="Clinics" />

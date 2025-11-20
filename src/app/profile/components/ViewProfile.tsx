@@ -629,7 +629,7 @@ const ViewProfile: React.FC<ViewProfileProps> = ({ profile }) => {
             <video
               src={video}
               controls
-              className="w-full max-w-md rounded-xl shadow-lg bg-black"
+              className="w-full max-w-3xl rounded-xl shadow-lg bg-black"
             >
               Your browser does not support the video tag.
             </video>

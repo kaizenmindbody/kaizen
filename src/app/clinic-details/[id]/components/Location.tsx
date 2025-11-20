@@ -63,7 +63,6 @@ export const Location = ({ clinic, mapCenter, showInfoWindow, setShowInfoWindow 
         timeoutCount++;
         setTimeout(checkGoogleMaps, 100);
       } else {
-        console.error('Google Maps failed to load. Please check your API key configuration.');
         // Set loaded to false to show error message
         setIsGoogleMapsLoaded(false);
       }

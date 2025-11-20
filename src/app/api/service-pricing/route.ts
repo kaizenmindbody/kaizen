@@ -25,7 +25,6 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Database error:', error);
       return NextResponse.json(
         { error: 'Failed to fetch service pricing', details: error.message },
         { status: 500 }
@@ -34,7 +33,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ servicePricing: data || [] });
   } catch (error) {
-    console.error('API error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -81,10 +79,6 @@ export async function POST(request: NextRequest) {
 
     // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    console.log('Authenticated user:', user?.id);
-    console.log('Practitioner ID from request:', practitionerId);
-    console.log('Is clinic specific:', isClinicSpecific);
-    console.log('Auth error:', authError);
 
     if (!user) {
       return NextResponse.json(
@@ -102,7 +96,6 @@ export async function POST(request: NextRequest) {
       .eq('is_clinic_specific', isClinicSpecific);
 
     if (deleteError) {
-      console.error('Error deleting existing service pricing:', deleteError);
       return NextResponse.json(
         { error: 'Failed to update service pricing', details: deleteError.message },
         { status: 500 }
@@ -136,7 +129,6 @@ export async function POST(request: NextRequest) {
           };
         });
 
-      console.log('Service pricings to insert:', JSON.stringify(pricingsToInsert, null, 2));
       allPricingsToInsert.push(...pricingsToInsert);
     }
 
@@ -161,11 +153,9 @@ export async function POST(request: NextRequest) {
           };
         });
 
-      console.log('Packages to insert:', JSON.stringify(packagesToInsert, null, 2));
       allPricingsToInsert.push(...packagesToInsert);
     }
 
-    console.log('All pricings to insert:', JSON.stringify(allPricingsToInsert, null, 2));
 
     if (allPricingsToInsert.length === 0) {
       return NextResponse.json({ servicePricing: [] }, { status: 200 });
@@ -177,15 +167,6 @@ export async function POST(request: NextRequest) {
       .select();
 
     if (error) {
-      console.error('=== SERVICE PRICING INSERT ERROR ===');
-      console.error('Supabase insert error:', error);
-      console.error('Error code:', error.code);
-      console.error('Error message:', error.message);
-      console.error('Error details:', error.details);
-      console.error('Error hint:', error.hint);
-      console.error('Full error object:', JSON.stringify(error, null, 2));
-      console.error('Data attempted to insert:', JSON.stringify(allPricingsToInsert, null, 2));
-      console.error('===================================');
 
       return NextResponse.json(
         {
@@ -205,7 +186,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ servicePricing: data }, { status: 201 });
   } catch (error) {
-    console.error('API error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -233,7 +213,6 @@ export async function DELETE(request: NextRequest) {
       .eq('id', id);
 
     if (error) {
-      console.error('Database error:', error);
       return NextResponse.json(
         { error: 'Failed to delete service pricing', details: error.message },
         { status: 500 }
@@ -242,7 +221,6 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('API error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

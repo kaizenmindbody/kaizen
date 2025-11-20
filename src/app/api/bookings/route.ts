@@ -246,7 +246,6 @@ export async function POST(request: NextRequest) {
           body: JSON.stringify({ booking_id: data.id })
         });
       } catch (calendarError) {
-        console.error('Error creating calendar event:', calendarError);
         // Don't fail the booking creation if calendar fails
       }
     }
@@ -256,7 +255,6 @@ export async function POST(request: NextRequest) {
       booking: data
     });
   } catch (error) {
-    console.error('Error in bookings POST:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -280,7 +278,6 @@ export async function PUT(request: NextRequest) {
         .eq('book_number', book_number);
 
       if (deleteError) {
-        console.error('Error deleting old bookings:', deleteError);
         return NextResponse.json(
           { error: 'Failed to delete old bookings', details: deleteError.message },
           { status: 500 }
@@ -294,7 +291,6 @@ export async function PUT(request: NextRequest) {
         .select('*');
 
       if (error) {
-        console.error('Error creating rescheduled bookings:', error);
         return NextResponse.json(
           { error: 'Failed to create rescheduled bookings', details: error.message },
           { status: 500 }
@@ -312,7 +308,6 @@ export async function PUT(request: NextRequest) {
                 body: JSON.stringify({ booking_id: booking.id })
               });
             } catch (calendarError) {
-              console.error('Error creating calendar event for rescheduled booking:', calendarError);
             }
           }
         }
@@ -350,7 +345,6 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error updating booking:', error);
       return NextResponse.json(
         { error: 'Failed to update booking' },
         { status: 500 }
@@ -366,7 +360,6 @@ export async function PUT(request: NextRequest) {
           body: JSON.stringify({ booking_id: id })
         });
       } catch (calendarError) {
-        console.error('Error updating calendar event:', calendarError);
       }
     }
 
@@ -375,7 +368,6 @@ export async function PUT(request: NextRequest) {
       booking: data
     });
   } catch (error) {
-    console.error('Error in bookings PUT:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -442,7 +434,6 @@ export async function DELETE(request: NextRequest) {
               method: 'DELETE'
             });
           } catch (calendarError) {
-            console.error('Error deleting calendar event:', calendarError);
           }
         }
       }
@@ -455,7 +446,6 @@ export async function DELETE(request: NextRequest) {
       cancelledBookings: data
     });
   } catch (error) {
-    console.error('Error in bookings DELETE:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -161,7 +161,6 @@ const UsersComponent = ({ users, specialties, onRefreshData }: UsersProps) => {
       closeEditModal();
       onRefreshData();
     } catch (error: any) {
-      console.error('Error updating user:', error);
       showError(error.message || 'Failed to update user. Please try again.');
     } finally {
       setSavingEdit(false);
@@ -218,7 +217,6 @@ const UsersComponent = ({ users, specialties, onRefreshData }: UsersProps) => {
       // Optionally refresh the users list
       onRefreshData();
     } catch (error: any) {
-      console.error('Error sending invitation:', error);
       showError(error.message || 'Failed to send invitation. Please try again.');
     } finally {
       setSendingInvite(false);

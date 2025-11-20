@@ -30,7 +30,6 @@ export async function PATCH(
       .eq('id', userId);
 
     if (error) {
-      console.error('Error updating user:', error);
       return NextResponse.json(
         { success: false, error: error.message },
         { status: 500 }
@@ -45,7 +44,6 @@ export async function PATCH(
       .maybeSingle();
 
     if (fetchError) {
-      console.error('Error fetching updated user:', fetchError);
       // Still return success since the update worked
       return NextResponse.json({
         success: true,
@@ -58,7 +56,6 @@ export async function PATCH(
       user: updatedUser,
     });
   } catch (error: any) {
-    console.error('Unexpected error updating user:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'Failed to update user' },
       { status: 500 }

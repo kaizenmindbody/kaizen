@@ -11,7 +11,6 @@ export async function GET(request: NextRequest) {
 
     const apiKey = process.env.NEXT_PUBLIC_PLACEKIT_API_KEY;
     if (!apiKey) {
-      console.error('PlaceKit API key is not configured');
       return NextResponse.json(
         { error: 'API key not configured' },
         { status: 500 }
@@ -51,7 +50,6 @@ export async function GET(request: NextRequest) {
       results: data.results || [],
     });
   } catch (error) {
-    console.error('Address autocomplete API error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch address suggestions' },
       { status: 500 }

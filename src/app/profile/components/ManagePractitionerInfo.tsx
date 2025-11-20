@@ -133,8 +133,6 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
     const fetchPractitioners = async () => {
       setLoadingPractitioners(true);
       try {
-        console.log('Fetching all practitioners...');
-
         const { data, error } = await supabase
           .from('Users')
           .select('id, email, avatar, ptype, degree')
@@ -142,22 +140,16 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
           .neq('id', profile?.id || ''); // Exclude current user
 
         if (error) {
-          console.error('Error fetching practitioners:', error);
           toast.error(`Failed to load practitioners: ${error.message}`);
           setPractitioners([]);
           return;
         }
 
-        console.log('Fetched practitioners:', data);
-        console.log('Total practitioners found:', data?.length || 0);
-
         if (!data || data.length === 0) {
-          console.warn('No practitioners found in database');
         }
 
         setPractitioners(data || []);
       } catch (error: any) {
-        console.error('Unexpected error fetching practitioners:', error);
         toast.error('Failed to load practitioners list');
         setPractitioners([]);
       } finally {
@@ -178,8 +170,6 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
       }
 
       try {
-        console.log('Fetching members for clinic:', clinicId);
-
         const { data: membersData, error: membersError } = await supabase
           .from('ClinicMembers')
           .select(`
@@ -200,7 +190,6 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
           .eq('clinic_id', profile?.id);
 
         if (membersError) {
-          console.error('Error fetching members:', membersError);
         } else {
           const formattedMembers = (membersData || []).map((member: any) => ({
             id: member.id,
@@ -223,11 +212,9 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
             address: member.address || '',
             avatar: member.avatar || null,
           }));
-          console.log('Clinic members:', formattedMembers);
           setClinicMembers(formattedMembers);
         }
       } catch (error) {
-        console.error('Error fetching members:', error);
       } finally {
         setLoading(false);
       }
@@ -385,17 +372,6 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
           row['address'] = addressParts.filter(Boolean).join(', ');
         }
 
-        // Log the extracted fields for debugging
-        console.log(`Parsed row for ${row.email}:`, {
-          firstname: row.firstname,
-          lastname: row.lastname,
-          phone: row.phone,
-          degree: row.degree,
-          website: row.website,
-          address: row.address,
-          avatar: row.avatar,
-        });
-
         csvRows.push(row);
       }
 
@@ -405,10 +381,80 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
         return;
       }
 
-      setCSVPreview(csvRows);
-      toast.success(`Found ${csvRows.length} practitioners to invite`);
+      // Validate against existing clinic members (only check if already in THIS clinic)
+      toast.loading('Checking for existing clinic members...', { id: 'validating-users' });
+      
+      try {
+        if (!profile?.id) {
+          throw new Error('Profile ID not found');
+        }
+
+        // Check if users are already members of THIS clinic
+        const { data: existingClinicMembers, error: membersError } = await supabase
+          .from('ClinicMembers')
+          .select('email')
+          .eq('clinic_id', profile.id)
+          .in('email', csvRows.map(row => row.email));
+
+        if (membersError) {
+        }
+
+        // Create set of existing clinic member emails
+        const existingClinicMemberEmails = new Set(
+          (existingClinicMembers || []).map((m: any) => m.email?.toLowerCase()).filter(Boolean)
+        );
+
+        // Update CSV rows with validation status
+        // Only mark as 'exists' if they're already members of THIS clinic
+        const validatedRows = csvRows.map(row => {
+          const emailLower = row.email.toLowerCase();
+          const isAlreadyMember = existingClinicMemberEmails.has(emailLower);
+
+          if (isAlreadyMember) {
+            return {
+              ...row,
+              status: 'exists' as const,
+              message: 'Already a member of this clinic'
+            };
+          }
+
+          // If not a clinic member, they can be added (even if they exist in Auth/Users)
+          return {
+            ...row,
+            status: 'valid' as const,
+            message: 'Ready to add as clinic member'
+          };
+        });
+
+        const validCount = validatedRows.filter(r => r.status === 'valid').length;
+        const existsCount = validatedRows.filter(r => r.status === 'exists').length;
+
+        setCSVPreview(validatedRows);
+        toast.dismiss('validating-users');
+
+        if (validCount > 0 && existsCount > 0) {
+          toast.success(
+            `Found ${validCount} user(s) to add. ${existsCount} user(s) are already members of this clinic.`,
+            { duration: 5000 }
+          );
+        } else if (validCount > 0) {
+          toast.success(`Found ${validCount} user(s) ready to add as clinic members`);
+        } else if (existsCount > 0) {
+          toast(`All ${existsCount} user(s) are already members of this clinic.`, {
+            icon: '⚠️',
+            duration: 5000
+          });
+        }
+      } catch (error: any) {
+        toast.dismiss('validating-users');
+        // Still show preview even if validation fails
+        setCSVPreview(csvRows);
+        toast('Could not validate existing users, but CSV is ready. Duplicates will be handled during save.', {
+          icon: '⚠️',
+          duration: 5000
+        });
+      }
     } catch (error: any) {
-      console.error('Error processing CSV:', error);
       toast.error('Failed to process CSV file');
     } finally {
       setUploadingCSV(false);
@@ -444,24 +490,140 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
         return;
       }
 
+      // Step 2: Create users in Auth and Users table
+      toast.loading('Creating user accounts...', { id: 'creating-users' });
+      
+      const validRows = csvPreview.filter(row => row.status === 'valid' && row.email);
+      const usersToCreate = validRows.map(row => ({
+        email: row.email,
+        firstname: row.firstname,
+        lastname: row.lastname,
+        phone: row.phone,
+        degree: row.degree,
+        website: row.website,
+        address: row.address,
+        avatar: row.avatar,
+      }));
+
+      const createUsersResponse = await fetch('/api/clinic-members/create-users-from-csv', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          users: usersToCreate,
+          clinicId: clinicId
+        })
+      });
+
+      const createUsersData = await createUsersResponse.json();
+      toast.dismiss('creating-users');
+
+      if (!createUsersResponse.ok) {
+        toast.error(`Failed to create users: ${createUsersData.error || 'Unknown error'}`);
+        setSavingCSV(false);
+        return;
+      }
+
+      // Create a map of email to userId for linking
+      // Include both newly created users and existing users (they can still be added to clinic)
+      const emailToUserIdMap = new Map<string, string>();
+      createUsersData.results.success.forEach((result: { email: string; userId: string }) => {
+        emailToUserIdMap.set(result.email.toLowerCase(), result.userId);
+      });
+      
+      // Also check skipped users - if they exist, we can still add them to clinic
+      // (The API now returns existing users as success, but keeping this for safety)
+      if (createUsersData.results.skipped) {
+        // Try to get user IDs for skipped users from Users table
+        const skippedEmails = createUsersData.results.skipped.map((s: any) => s.email);
+        if (skippedEmails.length > 0) {
+          const { data: skippedUsers } = await supabase
+            .from('Users')
+            .select('id, email')
+            .in('email', skippedEmails);
+          
+          skippedUsers?.forEach((u: any) => {
+            emailToUserIdMap.set(u.email.toLowerCase(), u.id);
+          });
+        }
+      }
+
+      // Check for failed users - they might still exist in Users table
+      if (createUsersData.results.failed && createUsersData.results.failed.length > 0) {
+        const failedEmails = createUsersData.results.failed.map((f: any) => f.email);
+        const { data: failedUsers } = await supabase
+          .from('Users')
+          .select('id, email')
+          .in('email', failedEmails);
+        
+        failedUsers?.forEach((u: any) => {
+          emailToUserIdMap.set(u.email.toLowerCase(), u.id);
+        });
+      }
+
+      // Step 3: Save to ClinicMembers table and link to created users
+      // IMPORTANT: practitioner_id MUST be the id from Users table
+      // Only insert members where we have a valid userId from Users table
+      const membersToInsert = validRows
+        .filter(row => {
+          const userId = emailToUserIdMap.get(row.email.toLowerCase());
+          if (!userId) {
+            return false;
+          }
+          return true;
+        })
+        .map(row => {
+          const userId = emailToUserIdMap.get(row.email.toLowerCase());
+          
+          // practitioner_id MUST be the id from Users table
+          const insertData: any = {
+            clinic_id: profile.id, // UUID of clinic owner
+            practitioner_id: userId, // Always use Users.id - never generate random UUID
+            user_id: userId, // Link to auth.users (same as practitioner_id since user exists in Users table)
+            email: row.email,
+            firstname: row.firstname || null,
+            lastname: row.lastname || null,
+            phone: row.phone || null,
+            degree: row.degree || null,
+            website: row.website || null,
+            address: row.address || null,
+            avatar: row.avatar || null,
+            role: 'member', // Default role is 'member'
+            invitation_status: 'pending', // Set to pending so invitation email can be sent
+          };
+
+          return insertData;
+        });
+
+      // Insert all members in a single batch operation
+      const { data: insertedMembers, error: bulkInsertError } = await supabase
+        .from('ClinicMembers')
+        .insert(membersToInsert)
+        .select('id, email');
+
       let successCount = 0;
       let failureCount = 0;
       const errors: string[] = [];
       const newMemberIds: string[] = [];
 
-      // Filter only valid rows
-      const validRows = csvPreview.filter(row => row.status === 'valid' && row.email);
+      if (bulkInsertError) {
+        // If bulk insert fails, try inserting one by one to identify which ones fail
+        
+        for (const row of validRows) {
+          try {
+            const userId = emailToUserIdMap.get(row.email.toLowerCase());
+            
+            // Skip if no userId - user must exist in Users table
+            if (!userId) {
+              errors.push(`Skipped ${row.email}: User not found in Users table`);
+              failureCount++;
+              continue;
+            }
 
-      // Process each valid row - save directly to ClinicMembers table
-      for (const row of validRows) {
-        try {
-          // Save practitioner data directly to ClinicMembers table
-          // clinic_id = profile.id (the clinic owner's practitioner_id)
-          // practitioner_id = auto-generated UUID
-          const { data: insertedMember, error: memberError } = await supabase
-            .from('ClinicMembers')
-            .insert({
-              clinic_id: profile.id, // UUID of clinic owner
+            // practitioner_id MUST be the id from Users table
+            const insertData: any = {
+              clinic_id: profile.id,
+              practitioner_id: userId, // Always use Users.id - never generate random UUID
+              user_id: userId, // Link to auth.users (same as practitioner_id since user exists in Users table)
               email: row.email,
               firstname: row.firstname || null,
               lastname: row.lastname || null,
@@ -470,42 +632,66 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
               website: row.website || null,
               address: row.address || null,
               avatar: row.avatar || null,
-              role: 'member', // Default role is 'member'
-              invitation_status: 'pending', // Set initial invitation status
-              // practitioner_id is auto-generated with gen_random_uuid()
-            })
-            .select('id')
-            .single();
+              role: 'member',
+              invitation_status: 'pending', // Set to pending so invitation email can be sent
+            };
 
-          if (memberError) {
-            // If duplicate (already added), skip and count as success
-            if (memberError.code === '23505') {
-              console.warn(`${row.email} is already a member of this clinic`);
-              successCount++; // Still count as success
-            } else {
-              console.error(`Error adding ${row.email} to clinic members:`, memberError);
-              errors.push(`Failed to add ${row.email}`);
-              failureCount++;
+            const { data: insertedMember, error: memberError } = await supabase
+              .from('ClinicMembers')
+              .insert(insertData)
+              .select('id')
+              .single();
+
+            if (memberError) {
+              // If duplicate (already added), skip and count as success
+              if (memberError.code === '23505') {
+                successCount++; // Still count as success
+              } else {
+                errors.push(`Failed to add ${row.email}: ${memberError.message}`);
+                failureCount++;
+              }
+              continue;
             }
-            continue;
-          }
 
-          if (insertedMember?.id) {
-            newMemberIds.push(insertedMember.id);
-          }
+            if (insertedMember?.id) {
+              newMemberIds.push(insertedMember.id);
+            }
 
-          successCount++;
-          console.log(`Successfully added ${row.email} to clinic members`);
-        } catch (error) {
-          console.error(`Error processing ${row.email}:`, error);
-          errors.push(`Unexpected error processing ${row.email}`);
-          failureCount++;
+            successCount++;
+          } catch (error: any) {
+            errors.push(`Unexpected error processing ${row.email}: ${error.message}`);
+            failureCount++;
+          }
         }
+      } else {
+        // Bulk insert succeeded
+        if (insertedMembers && insertedMembers.length > 0) {
+          successCount = insertedMembers.length;
+          newMemberIds.push(...insertedMembers.map(m => m.id));
+        }
+      }
+
+      // Show results from user creation
+      const userCreationSummary = createUsersData.summary;
+      if (userCreationSummary.successful > 0 || userCreationSummary.skipped > 0) {
+        const messages = [];
+        if (userCreationSummary.successful > 0) {
+          messages.push(`Created ${userCreationSummary.successful} user account(s) in Auth and Users table`);
+        }
+        if (userCreationSummary.skipped > 0) {
+          messages.push(`${userCreationSummary.skipped} user(s) already exist`);
+        }
+        if (userCreationSummary.failed > 0) {
+          messages.push(`${userCreationSummary.failed} user(s) failed to create`);
+        }
+        if (successCount > 0) {
+          messages.push(`Added ${successCount} member(s) to your clinic`);
+        }
+        toast.success(messages.join('. '));
       }
 
       // Show results
       if (successCount > 0) {
-        toast.success(`Successfully added ${successCount} practitioner(s) to your clinic`);
 
         // Refresh clinic members list
         const { data: updatedMembers } = await supabase
@@ -586,7 +772,6 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
               toast.error('Members added but failed to send invitation emails');
             }
           } catch (inviteError) {
-            console.error('Error sending invitations:', inviteError);
             toast.dismiss('sending-invites');
             toast.error('Members added but failed to send invitation emails');
           }
@@ -605,7 +790,6 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
         fileInputRef.current.value = '';
       }
     } catch (error: any) {
-      console.error('Error saving CSV practitioners:', error);
       toast.error('Failed to save practitioners');
     } finally {
       setSavingCSV(false);
@@ -621,15 +805,12 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
     if (!memberToRemove) return;
 
     try {
-      console.log('Removing member:', memberToRemove.id);
-
       const { error } = await supabase
         .from('ClinicMembers')
         .delete()
         .eq('id', memberToRemove.id);
 
       if (error) {
-        console.error('Error removing member:', error);
         toast.error(`Failed to remove member: ${error.message}`);
         setShowRemoveConfirm(false);
         setMemberToRemove(null);
@@ -641,7 +822,6 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
       setShowRemoveConfirm(false);
       setMemberToRemove(null);
     } catch (error) {
-      console.error('Error removing member:', error);
       toast.error('Failed to remove member');
       setShowRemoveConfirm(false);
       setMemberToRemove(null);
@@ -773,7 +953,6 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
         .eq('id', editingMember.id);
 
       if (error) {
-        console.error('Error updating member:', error);
         toast.error(`Failed to update member: ${error.message}`);
         setSavingEdit(false);
         return;
@@ -811,7 +990,6 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
       setEditingMember(null);
       setSavingEdit(false);
     } catch (error) {
-      console.error('Error saving member:', error);
       toast.error('Failed to save member details');
       setSavingEdit(false);
     }
@@ -950,14 +1128,67 @@ email,name,type{'\n'}doctor1@example.com,John Doe,MD{'\n'}doctor2@example.com,Ja
                   body={(rowData) => rowData[header] || '-'}
                 />
               ))}
+              <Column
+                header="Status"
+                body={(rowData: CSVRow) => {
+                  if (rowData.status === 'exists') {
+                    return (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        Exists
+                      </span>
+                    );
+                  } else if (rowData.status === 'valid') {
+                    return (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Ready
+                      </span>
+                    );
+                  }
+                  return (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                      {rowData.status || 'Unknown'}
+                    </span>
+                  );
+                }}
+                style={{ width: '120px' }}
+              />
+              <Column
+                header="Message"
+                body={(rowData: CSVRow) => (
+                  <span className="text-xs text-gray-600">{rowData.message || '-'}</span>
+                )}
+                style={{ width: '250px' }}
+              />
             </DataTable>
 
-            <div className="mt-6 flex justify-end gap-2">
-              <button
-                onClick={saveCSVPractitioners}
-                disabled={savingCSV || csvPreview.filter(r => r.status === 'valid').length === 0}
-                className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
-              >
+            <div className="mt-6 space-y-3">
+              {/* Summary */}
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-4">
+                  <span className="text-gray-600">
+                    <span className="font-semibold text-green-600">
+                      {csvPreview.filter(r => r.status === 'valid').length}
+                    </span> ready to create
+                  </span>
+                  {csvPreview.filter(r => r.status === 'exists').length > 0 && (
+                    <span className="text-gray-600">
+                      <span className="font-semibold text-yellow-600">
+                        {csvPreview.filter(r => r.status === 'exists').length}
+                      </span> already exist
+                    </span>
+                  )}
+                </div>
+              </div>
+              
+              {/* Actions */}
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={saveCSVPractitioners}
+                  disabled={savingCSV || csvPreview.filter(r => r.status === 'valid').length === 0}
+                  className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+                >
                 {savingCSV ? (
                   <>
                     <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -982,6 +1213,7 @@ email,name,type{'\n'}doctor1@example.com,John Doe,MD{'\n'}doctor2@example.com,Ja
               >
                 Cancel
               </button>
+              </div>
             </div>
           </div>
         </div>

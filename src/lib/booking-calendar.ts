@@ -24,7 +24,6 @@ export class BookingCalendarIntegration {
 
       return { success: true };
     } catch (error: any) {
-      console.error('Error creating calendar event:', error);
       return {
         success: false,
         error: error.message || 'Failed to create calendar event'
@@ -47,7 +46,6 @@ export class BookingCalendarIntegration {
 
       return { success: true };
     } catch (error: any) {
-      console.error('Error updating calendar event:', error);
       return {
         success: false,
         error: error.message || 'Failed to update calendar event'
@@ -68,7 +66,6 @@ export class BookingCalendarIntegration {
 
       return { success: true };
     } catch (error: any) {
-      console.error('Error deleting calendar event:', error);
       return {
         success: false,
         error: error.message || 'Failed to delete calendar event'

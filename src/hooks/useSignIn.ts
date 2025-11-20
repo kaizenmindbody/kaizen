@@ -71,10 +71,8 @@ export function useSignIn(): UseSignInReturn {
         // Check if it's a "not found" error (user doesn't have a profile yet)
         if (profileError.code === 'PGRST116') {
           // User not found in Users table - this is expected for auth-only users
-          console.log('User profile not found in Users table, redirecting to default profile page');
         } else {
           // Actual error occurred
-          console.error('Error fetching user profile:', profileError);
         }
 
         // If we can't fetch profile, default to /profile
@@ -101,7 +99,6 @@ export function useSignIn(): UseSignInReturn {
         redirectPath,
       };
     } catch (error) {
-      console.error('Sign in error:', error);
       return {
         success: false,
         error: 'An unexpected error occurred. Please try again.',

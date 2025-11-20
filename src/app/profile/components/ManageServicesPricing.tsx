@@ -252,7 +252,6 @@ const ManageServicesPricing: React.FC<ManageServicesPricingProps> = ({ profile }
     );
 
     if (success) {
-      console.log('Service pricing saved successfully');
     }
   };
 

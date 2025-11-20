@@ -132,7 +132,6 @@ const Events = ({ onRefreshData }: { onRefreshData: () => void }) => {
 
       return publicUrl;
     } catch (error) {
-      console.error('Error uploading image:', error);
       showError('Failed to upload image');
       return null;
     } finally {
@@ -181,7 +180,6 @@ const Events = ({ onRefreshData }: { onRefreshData: () => void }) => {
         showError('Error adding event');
       }
     } catch (error) {
-      console.error('Error in addEvent:', error);
       showError('Error adding event');
     }
   };
@@ -248,7 +246,6 @@ const Events = ({ onRefreshData }: { onRefreshData: () => void }) => {
         showError('Error updating event');
       }
     } catch (error) {
-      console.error('Error in editEvent:', error);
       showError('Error updating event');
     }
   };

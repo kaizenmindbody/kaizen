@@ -67,7 +67,6 @@ export function usePractitionersDirectory(): UsePractitionersDirectoryReturn {
       setPractitioners(result.practitioners || []);
       setPagination(result.pagination || null);
     } catch (err) {
-      console.error('Error fetching practitioners:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch practitioners');
     } finally {
       setLoading(false);

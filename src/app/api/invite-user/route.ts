@@ -30,7 +30,6 @@ export async function POST(request: NextRequest) {
     const { data: existingUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers();
 
     if (listError || !existingUsers?.users) {
-      console.error('Error checking existing users:', listError);
       return NextResponse.json(
         { error: 'Failed to check existing users' },
         { status: 500 }
@@ -68,7 +67,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (error) {
-      console.error('Error inviting user:', error);
       return NextResponse.json(
         { error: error.message },
         { status: 400 }
@@ -85,7 +83,6 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
   } catch (error: any) {
-    console.error('Unexpected error:', error);
     return NextResponse.json(
       { error: error.message || 'An unexpected error occurred' },
       { status: 500 }

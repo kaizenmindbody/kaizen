@@ -34,7 +34,6 @@ export async function GET(request: NextRequest) {
       { status: 400 }
     );
   } catch (error) {
-    console.error('Error in Google auth GET:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -76,7 +75,6 @@ export async function POST(request: NextRequest) {
     // For now, we'll return them to be stored in environment
     return response;
   } catch (error) {
-    console.error('Error exchanging code for tokens:', error);
     return NextResponse.json(
       { error: 'Failed to connect Google Calendar' },
       { status: 500 }

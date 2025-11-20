@@ -62,7 +62,6 @@ export function useBasicInformation(): UseBasicInformationReturn {
         }
         return false;
       } catch (error) {
-        console.error('Error in uploadAvatar:', error);
         return false;
       }
     },
@@ -92,7 +91,6 @@ export function useBasicInformation(): UseBasicInformationReturn {
         }
         return false;
       } catch (error) {
-        console.error('Error in removeAvatar:', error);
         return false;
       }
     },
@@ -122,7 +120,6 @@ export function useBasicInformation(): UseBasicInformationReturn {
         }
         return false;
       } catch (error) {
-        console.error('Error in updateBasicInfo:', error);
         return false;
       }
     },

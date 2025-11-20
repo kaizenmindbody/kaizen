@@ -11,7 +11,6 @@ export async function GET() {
       .order('clinic_name', { ascending: true });
 
     if (error) {
-      console.error('Error fetching clinics from Supabase:', error);
       return NextResponse.json(
         { error: `Failed to fetch clinics: ${error.message}` },
         { status: 500 }
@@ -29,7 +28,6 @@ export async function GET() {
 
     return NextResponse.json({ data: clinicPreviews });
   } catch (err: any) {
-    console.error('Unexpected error in GET /api/clinics:', err);
     return NextResponse.json(
       { error: `Internal server error: ${err.message}` },
       { status: 500 }
@@ -69,7 +67,6 @@ export async function POST(request: NextRequest) {
       .select();
 
     if (error) {
-      console.error('Error adding clinic:', error);
       return NextResponse.json(
         { error: 'Failed to add clinic' },
         { status: 500 }
@@ -87,7 +84,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ data: clinicPreview });
   } catch (err: any) {
-    console.error('Unexpected error:', err);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -127,7 +123,6 @@ export async function PUT(request: NextRequest) {
       .select();
 
     if (error) {
-      console.error('Error updating clinic:', error);
       return NextResponse.json(
         { error: 'Failed to update clinic' },
         { status: 500 }
@@ -152,7 +147,6 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ data: clinicPreview });
   } catch (err: any) {
-    console.error('Unexpected error:', err);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -178,7 +172,6 @@ export async function DELETE(request: NextRequest) {
       .eq('id', id);
 
     if (error) {
-      console.error('Error deleting clinic:', error);
       return NextResponse.json(
         { error: 'Failed to delete clinic' },
         { status: 500 }
@@ -187,7 +180,6 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (err: any) {
-    console.error('Unexpected error:', err);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

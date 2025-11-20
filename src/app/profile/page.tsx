@@ -204,7 +204,6 @@ const ProfilePage = () => {
           setAvailableDegrees([]);
         }
       } catch (err) {
-        console.error('Unexpected error fetching degrees:', err instanceof Error ? err.message : String(err));
         setAvailableDegrees([]);
       }
     };
@@ -495,13 +494,11 @@ const ProfilePage = () => {
         // Delete old video if exists
         if (profile?.video) {
           const oldVideoPath = profile.video.split('/').slice(-2).join('/');
-          supabase.storage.from('kaizen').remove([oldVideoPath]).catch(console.error);
         }
       } else if (stagedVideoUrl === 'DELETED' && profile?.video) {
         // Video was deleted
         updateData.video = null;
         const oldVideoPath = profile.video.split('/').slice(-2).join('/');
-        supabase.storage.from('kaizen').remove([oldVideoPath]).catch(console.error);
       }
 
       // Handle images if user made image changes
@@ -541,7 +538,6 @@ const ProfilePage = () => {
         const removedImages = existingImages.filter((img: string) => !finalImages.includes(img));
         for (const removedImg of removedImages) {
           const imagePath = removedImg.split('/').slice(-2).join('/');
-          supabase.storage.from('kaizen').remove([imagePath]).catch(console.error);
         }
       }
 
@@ -576,7 +572,6 @@ const ProfilePage = () => {
       toast.success('Media saved successfully!');
 
     } catch (error) {
-      console.error('Error saving media:', error);
       toast.error('Failed to save media. Please try again.');
     } finally {
       setIsSavingMedia(false);
@@ -645,12 +640,10 @@ const ProfilePage = () => {
               message: error.message || 'Unknown error'
             });
           } catch (logError) {
-            console.error('Error fetching user profile: Unable to log full error details');
           }
 
           // If user not found in Users table, create a basic profile
           if (error.code === 'PGRST116') {
-            console.warn('User not found in Users table, creating basic profile');
             const defaultProfile: ProfileData = {
               id: user.id,
               email: user.email || '',
@@ -687,7 +680,6 @@ const ProfilePage = () => {
         }
 
         if (!data) {
-          console.warn('No user data returned');
           setLoading(false);
           return;
         }
@@ -737,7 +729,6 @@ const ProfilePage = () => {
         setAddressInput(profileData.address || '');
 
       } catch (error) {
-        console.error('Error fetching profile:', error instanceof Error ? error.message : String(error));
       } finally {
         setLoading(false);
       }
@@ -851,10 +842,8 @@ const ProfilePage = () => {
         .remove([filePath]);
 
       if (deleteError) {
-        console.error('Error deleting old avatar:', deleteError);
       }
     } catch (error) {
-      console.error('Error processing avatar deletion:', error);
     }
   };
 
@@ -884,7 +873,6 @@ const ProfilePage = () => {
 
       return publicUrl;
     } catch (error) {
-      console.error('Avatar upload error:', error);
       throw error;
     }
   };
@@ -954,7 +942,6 @@ const ProfilePage = () => {
       await refreshProfile();
       setIsEditing(false);
     } catch (error) {
-      console.error('Save error:', error);
       setErrors({ general: 'An unexpected error occurred. Please try again.' });
     } finally {
       setIsSaving(false);
@@ -1241,8 +1228,10 @@ const ProfilePage = () => {
                               </svg>
                             </button>
 
-                            {expandedMenu === 'Profile' && (
-                              <div className="mt-3 ml-8 space-y-2">
+                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                              expandedMenu === 'Profile' ? 'max-h-96 opacity-100 mt-3' : 'max-h-0 opacity-0 mt-0'
+                            }`}>
+                              <div className="ml-8 space-y-2">
                                 {profileSubItems.map((subItem) => {
                                   const getSubItemIcon = (subItemName: string) => {
                                     switch(subItemName) {
@@ -1301,7 +1290,7 @@ const ProfilePage = () => {
                                   );
                                 })}
                               </div>
-                            )}
+                            </div>
                           </div>
                         );
                       }
@@ -1343,8 +1332,10 @@ const ProfilePage = () => {
                               </svg>
                             </button>
 
-                            {expandedMenu === 'Clinic' && (
-                              <div className="mt-3 ml-8 space-y-2">
+                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                              expandedMenu === 'Clinic' ? 'max-h-96 opacity-100 mt-3' : 'max-h-0 opacity-0 mt-0'
+                            }`}>
+                              <div className="ml-8 space-y-2">
                                 {clinicSubItems.map((subItem) => {
                                   const getClinicSubItemIcon = (subItemName: string) => {
                                     switch(subItemName) {
@@ -1391,7 +1382,7 @@ const ProfilePage = () => {
                                   );
                                 })}
                               </div>
-                            )}
+                            </div>
                           </div>
                         );
                       }
@@ -1433,8 +1424,10 @@ const ProfilePage = () => {
                               </svg>
                             </button>
 
-                            {expandedMenu === 'Events' && (
-                              <div className="mt-3 ml-8 space-y-2">
+                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                              expandedMenu === 'Events' ? 'max-h-96 opacity-100 mt-3' : 'max-h-0 opacity-0 mt-0'
+                            }`}>
+                              <div className="ml-8 space-y-2">
                                 {['Create Event', 'Manage Events'].map((subItem) => {
                                   const getEventSubItemIcon = (subItemName: string) => {
                                     switch(subItemName) {
@@ -1474,7 +1467,7 @@ const ProfilePage = () => {
                                   );
                                 })}
                               </div>
-                            )}
+                            </div>
                           </div>
                         );
                       }

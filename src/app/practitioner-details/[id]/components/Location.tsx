@@ -59,7 +59,6 @@ const formatSpecialties = (specialty) => {
 
     return 'General Practice';
   } catch (error) {
-    console.warn('Error formatting specialties:', error);
     return 'General Practice';
   }
 };
@@ -92,7 +91,6 @@ export const Location = ({ practitioner, mapCenter, showInfoWindow, setShowInfoW
         timeoutCount++;
         setTimeout(checkGoogleMaps, 100);
       } else {
-        console.error('Google Maps failed to load. Please check your API key configuration.');
         // Set loaded to true to show error message
         setIsGoogleMapsLoaded(false);
       }

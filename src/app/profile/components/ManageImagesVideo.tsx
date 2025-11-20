@@ -94,7 +94,6 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
       };
 
       reader.onerror = (error) => {
-        console.error('FileReader error:', error);
         toast.error(`Failed to load preview for ${file.name}`);
       };
 
@@ -166,7 +165,6 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
     const success = await deleteImage(profile.id, imageUrl);
     if (!success) {
       // Error toast will be shown by the useEffect hook
-      console.error('Failed to delete image');
     }
   };
 
@@ -176,7 +174,6 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
     const success = await deleteVideo(profile.id, videoUrl);
     if (!success) {
       // Error toast will be shown by the useEffect hook
-      console.error('Failed to delete video');
     }
   };
 
@@ -209,7 +206,6 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
         toast.error('Upload failed. Please check console for details.');
       }
     } catch (err: any) {
-      console.error('Upload error:', err);
       toast.error(err.message || 'Failed to upload media');
     }
   };

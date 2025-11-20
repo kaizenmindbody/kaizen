@@ -155,7 +155,6 @@ const Step5Confirmation: React.FC<Step5ConfirmationProps> = ({
         throw new Error('Missing date or time information');
       }
     } catch (error) {
-      console.error('Error parsing booking date/time:', error, booking);
       // Fallback to current time if parsing fails
       startDate = new Date();
     }
@@ -208,7 +207,6 @@ This appointment was booked through the Kaizen medical platform.
         selectedBookings.forEach((booking, index) => {
           setTimeout(() => {
             const calendarUrl = createGoogleCalendarUrl(booking);
-            console.log(`Opening calendar URL ${index + 1}:`, calendarUrl);
 
             const newWindow = window.open(calendarUrl, `calendar_${index}_${Date.now()}`);
 
@@ -237,7 +235,6 @@ This appointment was booked through the Kaizen medical platform.
         }, 3000);
       }
     } catch (error) {
-      console.error('Error creating calendar events:', error);
       toast.error('Failed to create calendar events');
     }
   };

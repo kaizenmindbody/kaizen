@@ -128,7 +128,6 @@ const PractitionerSignup = () => {
           });
 
         if (insertError) {
-          console.error('Error inserting user data:', insertError);
           // Don't show this error to user as auth signup was successful
         }
       }
@@ -136,7 +135,6 @@ const PractitionerSignup = () => {
       setSignupSuccess(true);
       
     } catch (error) {
-      console.error('Signup error:', error);
       setErrors({ general: 'An unexpected error occurred. Please try again.' });
     } finally {
       setIsLoading(false);

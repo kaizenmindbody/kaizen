@@ -30,7 +30,6 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching coupons:', error);
       return NextResponse.json(
         { error: 'Failed to fetch coupons' },
         { status: 500 }
@@ -42,7 +41,6 @@ export async function GET(request: NextRequest) {
       coupons: coupons || [],
     });
   } catch (error: any) {
-    console.error('Error in GET /api/coupons:', error);
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }
@@ -100,7 +98,6 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error creating coupon:', error);
 
       // Check for unique constraint violation
       if (error.code === '23505') {
@@ -122,7 +119,6 @@ export async function POST(request: NextRequest) {
       coupon,
     });
   } catch (error: any) {
-    console.error('Error in POST /api/coupons:', error);
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }
@@ -182,7 +178,6 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error updating coupon:', error);
       return NextResponse.json(
         { error: 'Failed to update coupon' },
         { status: 500 }
@@ -195,7 +190,6 @@ export async function PUT(request: NextRequest) {
       coupon,
     });
   } catch (error: any) {
-    console.error('Error in PUT /api/coupons:', error);
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }
@@ -233,7 +227,6 @@ export async function DELETE(request: NextRequest) {
       .eq('host_id', hostId);
 
     if (error) {
-      console.error('Error deleting coupon:', error);
       return NextResponse.json(
         { error: 'Failed to delete coupon' },
         { status: 500 }
@@ -245,7 +238,6 @@ export async function DELETE(request: NextRequest) {
       message: 'Coupon deleted successfully',
     });
   } catch (error: any) {
-    console.error('Error in DELETE /api/coupons:', error);
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }

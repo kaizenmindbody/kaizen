@@ -38,7 +38,6 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
-      console.error('Error fetching availability:', error);
       return NextResponse.json(
         { error: 'Failed to fetch availability' },
         { status: 500 }
@@ -47,7 +46,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ availability: data });
   } catch (error) {
-    console.error('Error in availability GET:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -101,7 +99,6 @@ export async function POST(request: NextRequest) {
       .select();
 
     if (error) {
-      console.error('Error saving availability:', error);
       return NextResponse.json(
         { error: 'Failed to save availability' },
         { status: 500 }
@@ -113,7 +110,6 @@ export async function POST(request: NextRequest) {
       data 
     });
   } catch (error) {
-    console.error('Error in availability POST:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

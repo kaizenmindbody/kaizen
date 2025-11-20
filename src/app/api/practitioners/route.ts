@@ -30,7 +30,6 @@ export async function GET(request: NextRequest) {
     if (specialty && specialty !== 'All Specialties' && specialty !== '') {
       // Ensure case-insensitive partial matching for specialty field
       const searchTerm = specialty.toLowerCase();
-      console.log('Filtering by specialty:', searchTerm);
       query = query.ilike('specialty', `%${searchTerm}%`);
     }
 
@@ -70,7 +69,6 @@ export async function GET(request: NextRequest) {
           (typeof practitioner.languages === 'string' ?
             JSON.parse(practitioner.languages) : practitioner.languages) : [];
       } catch (e) {
-        console.error('Error parsing languages:', e);
         languages = [];
       }
 
@@ -99,7 +97,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('API error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

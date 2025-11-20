@@ -93,7 +93,6 @@ const AdminDashboard = () => {
       });
 
     } catch (error) {
-      console.error('Error fetching admin data:', error);
     } finally {
       setLoadingData(false);
     }

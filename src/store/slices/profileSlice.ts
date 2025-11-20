@@ -160,9 +160,6 @@ export const updateBasicInfo = createAsyncThunk(
         address: addressParts || null,
       };
 
-      console.log('Updating profile with type_of_practitioner:', data.type_of_practitioner);
-      console.log('Sending ptype to API:', updateData.ptype);
-
       const response = await fetch('/api/profile', {
         method: 'PUT',
         headers: {

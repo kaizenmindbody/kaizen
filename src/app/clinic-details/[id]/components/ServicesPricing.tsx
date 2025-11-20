@@ -53,7 +53,6 @@ export const ServicesPricing = ({ clinic }: ServicesPricingProps) => {
           setPackagePricings(packages);
         }
       } catch (error) {
-        console.error('Error fetching pricing:', error);
       } finally {
         setLoading(false);
       }

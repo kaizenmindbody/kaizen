@@ -3,12 +3,10 @@ import { createServerSupabaseClient } from '@/lib/supabase';
 
 export async function DELETE(request: NextRequest) {
   try {
-    console.log('[Event Delete API] Starting event deletion...');
     const { searchParams } = new URL(request.url);
     const eventId = searchParams.get('event_id');
     const hostId = searchParams.get('host_id');
 
-    console.log('[Event Delete API] Received data:', { eventId, hostId });
 
     // Validate required fields
     if (!eventId || !hostId) {
@@ -22,7 +20,6 @@ export async function DELETE(request: NextRequest) {
 
     // Validate Supabase client
     if (!supabase) {
-      console.error('Failed to create Supabase client');
       return NextResponse.json(
         { error: 'Server configuration error' },
         { status: 500 }
@@ -38,7 +35,6 @@ export async function DELETE(request: NextRequest) {
       .single();
 
     if (fetchError) {
-      console.error('Error fetching event:', fetchError);
       return NextResponse.json(
         { error: 'Event not found or unauthorized' },
         { status: 404 }
@@ -53,7 +49,6 @@ export async function DELETE(request: NextRequest) {
       .eq('host_id', hostId); // Ensure user can only delete their own events
 
     if (deleteError) {
-      console.error('Event deletion error:', deleteError);
       return NextResponse.json(
         { error: `Failed to delete event: ${deleteError.message}` },
         { status: 500 }
@@ -65,9 +60,7 @@ export async function DELETE(request: NextRequest) {
       try {
         const filePath = eventData.event_image.split('/').slice(-2).join('/');
         await supabase.storage.from('kaizen').remove([filePath]);
-        console.log('Event image deleted successfully');
       } catch (imageError) {
-        console.error('Error deleting event image:', imageError);
         // Continue anyway - event is already deleted
       }
     }
@@ -78,7 +71,6 @@ export async function DELETE(request: NextRequest) {
     }, { status: 200 });
 
   } catch (error: any) {
-    console.error('Unexpected error in DELETE /api/events/delete:', error);
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }

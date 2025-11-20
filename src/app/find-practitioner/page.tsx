@@ -188,7 +188,6 @@ const UserDirectoryContent = () => {
         setSpecialtyOptions(options);
       }
     } catch (error) {
-      console.error('Error fetching specialties:', error);
       // Fallback to empty options if API fails
       setSpecialtyOptions([{ value: '', label: 'All Specialties' }]);
     }
@@ -239,13 +238,6 @@ const UserDirectoryContent = () => {
     if (searchParam || locationParam || specialtyParam) {
       // Use specialty param directly if available, otherwise use selected dropdown value
       const specialtyValue = specialtyParam || (selectedSpecialty?.value === '' ? undefined : selectedSpecialty?.value);
-
-      console.log('Frontend search params:', {
-        search: searchParam,
-        location: selectedState?.value,
-        specialty: specialtyValue,
-        originalSpecialtyParam: specialtyParam
-      });
 
       // Trigger search with the URL parameters
       fetchPractitioners({
@@ -341,13 +333,11 @@ const UserDirectoryContent = () => {
               lng: location.lng()
             });
           } else {
-            console.warn(`Geocoding failed for address: ${address}, status: ${status}`);
             resolve(null);
           }
         });
       });
     } catch (error) {
-      console.error('Error geocoding address:', error);
       return null;
     }
   };
@@ -523,7 +513,6 @@ const UserDirectoryContent = () => {
   // Fixed function - now properly receives practitioner parameter
   const navigateToBooking = (practitioner) => {
     if (!practitioner || !practitioner.id) {
-      console.error('Invalid practitioner data:', practitioner);
       return;
     }
 

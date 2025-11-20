@@ -77,7 +77,6 @@ const InvitationSignupContent = () => {
         setVerifying(false);
         setLoading(false);
       } catch (err: any) {
-        console.error('Error verifying invitation:', err);
         setError('Failed to verify invitation. Please try again.');
         setVerifying(false);
         setLoading(false);
@@ -188,7 +187,6 @@ const InvitationSignupContent = () => {
       });
 
       if (signInError) {
-        console.error('Auto sign-in error:', signInError);
         // Don't show error to user, they can manually sign in
       }
 
@@ -198,7 +196,6 @@ const InvitationSignupContent = () => {
       }, 2000);
 
     } catch (err: any) {
-      console.error('Signup error:', err);
       setError('An unexpected error occurred. Please try again.');
       setSubmitting(false);
     }

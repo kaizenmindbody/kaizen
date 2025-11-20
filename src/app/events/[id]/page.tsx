@@ -46,7 +46,6 @@ const EventDetailPage = () => {
           setTicketTypes([]);
         }
       } catch (error) {
-        console.error(`Error fetching tickets for event ${eventId}:`, error);
         setTicketTypes([]);
       } finally {
         setLoadingTickets(false);

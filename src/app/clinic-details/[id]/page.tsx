@@ -135,7 +135,6 @@ const ClinicDetailsPage = () => {
 
         setClinic(transformedClinic);
       } catch (error) {
-        console.error('Error fetching clinic:', error);
         toast.error('Error fetching clinic details');
         setError('Failed to fetch clinic details');
       } finally {
@@ -164,13 +163,11 @@ const ClinicDetailsPage = () => {
               lng: location.lng()
             });
           } else {
-            console.warn(`Geocoding failed for address: ${address}, status: ${status}`);
             resolve(null);
           }
         });
       });
     } catch (error) {
-      console.error('Error geocoding address:', error);
       return null;
     }
   };

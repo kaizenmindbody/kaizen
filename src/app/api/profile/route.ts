@@ -23,7 +23,6 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error fetching profile:', error);
       return NextResponse.json(
         { error: error.message },
         { status: 500 }
@@ -39,7 +38,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(data);
   } catch (err: any) {
-    console.error('Unexpected error:', err);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -77,7 +75,6 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    console.log('[Profile Update] Received user_id:', user_id);
 
     const supabase = createServerSupabaseClient();
 
@@ -88,10 +85,8 @@ export async function PUT(request: NextRequest) {
       .eq('id', user_id)
       .maybeSingle();
 
-    console.log('[Profile Update] Existing user check:', { existingUser, fetchError });
 
     if (fetchError) {
-      console.error('[Profile Update] Error checking user existence:', fetchError);
       return NextResponse.json(
         { error: `Failed to verify user: ${fetchError.message}` },
         { status: 500 }
@@ -99,7 +94,6 @@ export async function PUT(request: NextRequest) {
     }
 
     if (!existingUser) {
-      console.error('[Profile Update] User not found with id:', user_id);
       return NextResponse.json(
         { error: 'User not found. Please ensure your account is properly set up.' },
         { status: 404 }
@@ -126,7 +120,6 @@ export async function PUT(request: NextRequest) {
     if (gender !== undefined) updateData.gender = gender;
     if (specialty_rate !== undefined) updateData.specialty_rate = specialty_rate ? JSON.stringify(specialty_rate) : null;
 
-    console.log('[Profile Update] Update data:', updateData);
 
     // Update profile in database
     const { data: updatedData, error } = await supabase
@@ -135,10 +128,8 @@ export async function PUT(request: NextRequest) {
       .eq('id', user_id)
       .select();
 
-    console.log('[Profile Update] Update result:', { updatedData, error });
 
     if (error) {
-      console.error('[Profile Update] Error updating profile:', error);
       return NextResponse.json(
         { error: error.message },
         { status: 500 }
@@ -147,7 +138,6 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: updatedData });
   } catch (err: any) {
-    console.error('[Profile Update] Unexpected error:', err);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

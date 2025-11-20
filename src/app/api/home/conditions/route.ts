@@ -8,7 +8,6 @@ export async function GET() {
       .select('*');
 
     if (error) {
-      console.error('Error fetching conditions:', error);
       return NextResponse.json(
         { error: 'Failed to fetch conditions' },
         { status: 500 }
@@ -17,7 +16,6 @@ export async function GET() {
 
     return NextResponse.json({ data });
   } catch (err: any) {
-    console.error('Unexpected error:', err);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -206,7 +206,7 @@ export const Practitioners = ({ clinic }: PractitionersProps) => {
                 >
                   <div className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all overflow-hidden h-full flex flex-col">
                     {/* Media Display - Video, Image, or Default Avatar */}
-                    <div className="w-full aspect-[9/16] bg-gray-100 rounded-t-xl overflow-hidden relative flex-shrink-0 group">
+                    <div className="w-full aspect-[3/4] bg-gray-100 rounded-t-xl overflow-hidden relative flex-shrink-0 group">
                       {displayMedia.type === 'video' ? (
                         <>
                           <video

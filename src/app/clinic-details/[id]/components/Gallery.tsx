@@ -43,21 +43,25 @@ export const Gallery = ({ clinic }: GalleryProps) => {
             Clinic Gallery
           </h2>
 
-          {/* Video Section */}
-          {clinic.clinic_video && (
+          {/* Videos Section */}
+          {clinic.clinic_videos && clinic.clinic_videos.length > 0 && (
             <div className="mb-8">
               <h3 className="text-lg font-semibold mb-4 flex items-center text-gray-900">
                 <Film className="w-5 h-5 mr-2 text-rose-600" />
-                Clinic Tour Video
+                Clinic Videos ({clinic.clinic_videos.length})
               </h3>
-              <div className="relative rounded-2xl overflow-hidden shadow-lg border border-gray-200">
-                <video
-                  src={clinic.clinic_video}
-                  controls
-                  className="w-full max-w-3xl mx-auto rounded-xl"
-                >
-                  Your browser does not support the video tag.
-                </video>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {clinic.clinic_videos.map((videoUrl: string, index: number) => (
+                  <div key={index} className="relative aspect-[9/16] rounded-2xl overflow-hidden shadow-lg border border-gray-200">
+                    <video
+                      src={videoUrl}
+                      controls
+                      className="w-full h-full object-cover rounded-xl"
+                    >
+                      Your browser does not support the video tag.
+                    </video>
+                  </div>
+                ))}
               </div>
             </div>
           )}

@@ -22,6 +22,7 @@ interface HeaderProps {
 
 export const Header = ({ clinic, user }: HeaderProps) => {
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
+  const [selectedVideoIndex, setSelectedVideoIndex] = useState<number | null>(null);
   const [showAllMediaModal, setShowAllMediaModal] = useState(false);
 
   const handlePrevImage = () => {
@@ -41,14 +42,16 @@ export const Header = ({ clinic, user }: HeaderProps) => {
         <div className="grid lg:grid-cols-3 gap-8 min-h-[500px]">
           {/* Left Side - Video (Desktop Only) */}
           <div className="hidden lg:block lg:col-span-1 lg:h-full">
-            <div className="relative w-full h-full rounded-2xl overflow-hidden">
-              {clinic.clinic_video ? (
-                <video
-                  src={clinic.clinic_video}
-                  controls
-                  className="w-full h-full rounded-2xl object-cover"
-                  title={`${clinic.clinic_name} video`}
-                />
+            <div className="relative w-full h-full rounded-2xl overflow-hidden flex items-center justify-center">
+              {clinic.clinic_videos && clinic.clinic_videos.length > 0 ? (
+                <div className="w-full max-w-[360px] aspect-[9/16]">
+                  <video
+                    src={clinic.clinic_videos[0]}
+                    controls
+                    className="w-full h-full rounded-2xl object-cover"
+                    title={`${clinic.clinic_name} video`}
+                  />
+                </div>
               ) : (
                 <div className="absolute inset-0 h-full w-full rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
                   <div className="text-center text-gray-500">
@@ -180,42 +183,48 @@ export const Header = ({ clinic, user }: HeaderProps) => {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-gray-900">Photos & Videos</h3>
 
-                  {/* Video Section (Mobile Only) */}
-                  {clinic.clinic_video && (
-                    <div className="lg:hidden mb-4">
-                      <div className="relative w-full h-72 rounded-2xl overflow-hidden">
-                        <video
-                          src={clinic.clinic_video}
-                          controls
-                          className="w-full h-full rounded-2xl object-cover"
-                          title={`${clinic.clinic_name} video`}
-                        />
+                  {/* Media count info */}
+                  {(clinic.clinic_images && clinic.clinic_images.length > 0) || (clinic.clinic_videos && clinic.clinic_videos.length > 0) ? (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-600">
+                          {clinic.clinic_images && clinic.clinic_images.length > 0 && `${clinic.clinic_images.length} image${clinic.clinic_images.length !== 1 ? 's' : ''}`}
+                          {clinic.clinic_images && clinic.clinic_images.length > 0 && clinic.clinic_videos && clinic.clinic_videos.length > 0 && ' • '}
+                          {clinic.clinic_videos && clinic.clinic_videos.length > 0 && `${clinic.clinic_videos.length} video${clinic.clinic_videos.length !== 1 ? 's' : ''}`}
+                        </span>
                       </div>
+                      {clinic.clinic_images && clinic.clinic_images.length > 5 && (
+                        <button
+                          onClick={() => setShowAllMediaModal(true)}
+                          className="text-sm text-blue-600 hover:text-blue-700 font-medium hover:underline"
+                        >
+                          +{clinic.clinic_images.length - 5} More
+                        </button>
+                      )}
                     </div>
-                  )}
+                  ) : null}
 
-                  {/* Photo Gallery Grid - Real Images from Database */}
-                  {clinic.clinic_images && clinic.clinic_images.length > 0 ? (
+                  {/* Combined Media Grid - Videos and Images side by side */}
+                  {(clinic.clinic_images && clinic.clinic_images.length > 0) || (clinic.clinic_videos && clinic.clinic_videos.length > 0) ? (
                     <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm text-gray-600">
-                            {clinic.clinic_images.length} image{clinic.clinic_images.length !== 1 ? 's' : ''}
-                            {clinic.clinic_video && ' • 1 video'}
-                          </span>
+                      {/* Videos Section - Show on all screens except large (already shown on left on desktop) */}
+                      {clinic.clinic_videos && clinic.clinic_videos.length > 0 && (
+                        <div className="lg:hidden grid grid-cols-2 md:grid-cols-3 gap-3">
+                          {clinic.clinic_videos.slice(0, 3).map((videoUrl: string, index: number) => (
+                            <div key={index} className="relative w-full aspect-[9/16] rounded-lg overflow-hidden border-2 border-gray-200">
+                              <video
+                                src={videoUrl}
+                                controls
+                                className="w-full h-full object-cover"
+                                title={`${clinic.clinic_name} video ${index + 1}`}
+                              />
+                            </div>
+                          ))}
                         </div>
-                        {clinic.clinic_images.length > 5 && (
-                          <button
-                            onClick={() => setShowAllMediaModal(true)}
-                            className="text-sm text-blue-600 hover:text-blue-700 font-medium hover:underline"
-                          >
-                            +{clinic.clinic_images.length - 5} More
-                          </button>
-                        )}
-                      </div>
+                      )}
 
                       {/* Flexible Image Layout based on count */}
-                      {(() => {
+                      {clinic.clinic_images && clinic.clinic_images.length > 0 && (() => {
                         const totalImages = clinic.clinic_images.length;
 
                         // Layout for 1 image

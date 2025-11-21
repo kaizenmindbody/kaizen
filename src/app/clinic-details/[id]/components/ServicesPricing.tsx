@@ -37,7 +37,7 @@ export const ServicesPricing = ({ clinic }: ServicesPricingProps) => {
 
       try {
         // Fetch service pricing from API
-        const response = await fetch(`/api/service-pricing?practitionerId=${clinic.practitioner_id}&isClinic=true`);
+        const response = await fetch(`/api/service-pricing?practitionerId=${clinic.practitioner_id}&isClinicSpecific=true`);
         if (!response.ok) {
           setLoading(false);
           return;

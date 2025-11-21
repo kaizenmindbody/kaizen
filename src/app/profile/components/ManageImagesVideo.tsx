@@ -376,15 +376,17 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
 
         {/* Videos Grid */}
         {uploadedVideos.length > 0 || videosPreviews.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {/* Uploaded Videos */}
             {uploadedVideos.map((videoUrl, index) => (
               <div key={`uploaded-video-${index}-${videoUrl.substring(videoUrl.length - 20)}`} className="relative group">
-                <video
-                  src={videoUrl}
-                  controls
-                  className="w-full rounded-lg border border-gray-200"
-                />
+                <div className="relative w-full aspect-[9/16] rounded-lg overflow-hidden border border-gray-200">
+                  <video
+                    src={videoUrl}
+                    controls
+                    className="w-full h-full object-cover"
+                  />
+                </div>
                 <button
                   onClick={() => handleDeleteUploadedVideo(videoUrl)}
                   className="mt-2 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors w-full"
@@ -398,14 +400,16 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
             {/* Pending Videos (Previews) */}
             {videosPreviews.map((previewUrl, index) => (
               <div key={`preview-video-${index}`} className="relative">
-                <div className="absolute top-2 left-2 px-2 py-1 bg-blue-600 text-white text-xs rounded z-10">
-                  New
+                <div className="relative w-full aspect-[9/16] rounded-lg overflow-hidden border-2 border-dashed border-blue-400">
+                  <video
+                    src={previewUrl}
+                    controls
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute top-2 left-2 px-2 py-1 bg-blue-600 text-white text-xs rounded z-10">
+                    New
+                  </div>
                 </div>
-                <video
-                  src={previewUrl}
-                  controls
-                  className="w-full rounded-lg border-2 border-dashed border-blue-400"
-                />
                 <button
                   onClick={() => handleRemovePendingVideo(index)}
                   className="mt-2 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors w-full"

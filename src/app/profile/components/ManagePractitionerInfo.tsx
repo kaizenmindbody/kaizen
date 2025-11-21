@@ -446,8 +446,7 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
         showToast.dismiss('validating-users');
         // Still show preview even if validation fails
         setCSVPreview(csvRows);
-        toast('Could not validate existing users, but CSV is ready. Duplicates will be handled during save.', {
-          icon: '⚠️',
+        showToast.warning('Could not validate existing users, but CSV is ready. Duplicates will be handled during save.', {
           duration: 5000
         });
       }

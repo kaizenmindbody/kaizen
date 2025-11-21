@@ -20,7 +20,7 @@ interface ClinicData {
   clinic_email: string | null;
   clinic_address: string | null;
   clinic_logo: string | null;
-  clinic_video: string | null;
+  clinic_videos: string[] | null;
   clinic_images: string[] | null;
   created_at: string;
   updated_at: string;
@@ -69,10 +69,17 @@ const Clinic: React.FC<ClinicProps> = ({ profile }) => {
         if (error) {
           setClinicData(null);
         } else {
-          // Parse clinic_images if it's a JSON string
+          // Parse clinic_videos and clinic_images if they're JSON strings
           if (data) {
             const parsedData = {
               ...data,
+              clinic_videos: data.clinic_videos
+                ? (typeof data.clinic_videos === 'string'
+                    ? JSON.parse(data.clinic_videos)
+                    : Array.isArray(data.clinic_videos)
+                      ? data.clinic_videos
+                      : [])
+                : null,
               clinic_images: data.clinic_images
                 ? (typeof data.clinic_images === 'string'
                     ? JSON.parse(data.clinic_images)
@@ -380,23 +387,27 @@ const Clinic: React.FC<ClinicProps> = ({ profile }) => {
         </div>
       )}
 
-      {/* Clinic Video */}
-      {clinicData.clinic_video && (
+      {/* Clinic Videos */}
+      {clinicData.clinic_videos && clinicData.clinic_videos.length > 0 && (
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-6">
             <div className="w-10 h-10 bg-rose-50 rounded-lg flex items-center justify-center">
               <Film className="w-5 h-5 text-rose-600" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900">Clinic Video</h3>
+            <h3 className="text-xl font-bold text-gray-900">Clinic Videos</h3>
           </div>
-          <div className="flex justify-center items-center">
-            <video
-              src={clinicData.clinic_video}
-              controls
-              className="w-full max-w-2xl rounded-xl shadow-lg bg-black"
-            >
-              Your browser does not support the video tag.
-            </video>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {clinicData.clinic_videos.map((videoUrl, index) => (
+              <div key={index} className="relative aspect-[9/16] rounded-xl overflow-hidden shadow-lg border border-gray-200">
+                <video
+                  src={videoUrl}
+                  controls
+                  className="w-full h-full object-cover bg-black"
+                >
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+            ))}
           </div>
         </div>
       )}

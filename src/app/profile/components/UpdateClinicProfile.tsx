@@ -71,12 +71,10 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
   const [isSaving, setIsSaving] = useState(false);
 
   // Media upload states
-  const [clinicVideoFile, setClinicVideoFile] = useState<File | null>(null);
-  const [clinicVideoPreview, setClinicVideoPreview] = useState<string | null>(null);
+  const [clinicVideos, setClinicVideos] = useState<Array<{ file?: File; url: string; isNew: boolean }>>([]);
   const [clinicImages, setClinicImages] = useState<Array<{ file?: File; url: string; isNew: boolean }>>([]);
-  const [existingVideo, setExistingVideo] = useState<string | null>(null);
+  const [existingVideos, setExistingVideos] = useState<string[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
-  const [videoDeleted, setVideoDeleted] = useState(false);
 
   // PlaceKit ref
   const addressInputRef = useRef<HTMLInputElement>(null);
@@ -220,9 +218,23 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
         // Parse address into separate fields
         setAddressFields(parseAddress(data.clinic_address || ''));
 
-        // Load existing video
-        if (data.clinic_video) {
-          setExistingVideo(data.clinic_video);
+        // Load existing videos
+        if (data.clinic_videos) {
+          // Parse if it's a JSON string, otherwise use as-is if it's already an array
+          const parsedVideos = typeof data.clinic_videos === 'string'
+            ? JSON.parse(data.clinic_videos)
+            : Array.isArray(data.clinic_videos)
+              ? data.clinic_videos
+              : [];
+
+          if (Array.isArray(parsedVideos) && parsedVideos.length > 0) {
+            const videoObjects = parsedVideos.map((url: string) => ({
+              url,
+              isNew: false
+            }));
+            setClinicVideos(videoObjects);
+            setExistingVideos(parsedVideos);
+          }
         }
 
         // Load existing images
@@ -421,38 +433,53 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
     }
   };
 
-  // Handle video file selection
-  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+  // Handle video files selection
+  const handleVideosChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+
+    if (files.length === 0) return;
+
+    // Check if adding these files would exceed 5 videos
+    if (clinicVideos.length + files.length > 5) {
+      showToast.error('You can upload a maximum of 5 videos');
+      return;
+    }
+
+    // Validate each file
+    const validFiles: Array<{ file: File; url: string; isNew: boolean }> = [];
+
+    for (const file of files) {
       // Validate file type
       if (!file.type.startsWith('video/')) {
-        showToast.error('Please select a video file');
-        return;
+        showToast.error(`${file.name} is not a video file`);
+        continue;
       }
 
       // Validate file size (max 50MB)
       if (file.size > 50 * 1024 * 1024) {
-        showToast.error('Video size must be less than 50MB');
-        return;
+        showToast.error(`${file.name} is too large. Max size is 50MB`);
+        continue;
       }
 
-      setClinicVideoFile(file);
-
-      // Create preview
       const url = URL.createObjectURL(file);
-      setClinicVideoPreview(url);
+      validFiles.push({ file, url, isNew: true });
+    }
+
+    if (validFiles.length > 0) {
+      setClinicVideos([...clinicVideos, ...validFiles]);
     }
   };
 
   // Remove video
-  const handleRemoveVideo = () => {
-    if (clinicVideoPreview) {
-      URL.revokeObjectURL(clinicVideoPreview);
+  const handleRemoveVideo = (index: number) => {
+    const videoToRemove = clinicVideos[index];
+
+    // Revoke object URL if it's a new video
+    if (videoToRemove.isNew && videoToRemove.url.startsWith('blob:')) {
+      URL.revokeObjectURL(videoToRemove.url);
     }
-    setClinicVideoFile(null);
-    setClinicVideoPreview(null);
-    setVideoDeleted(true);
+
+    setClinicVideos(clinicVideos.filter((_, i) => i !== index));
   };
 
   // Handle image files selection
@@ -504,33 +531,41 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
     setClinicImages(clinicImages.filter((_, i) => i !== index));
   };
 
-  // Upload video to storage
-  const uploadVideo = async (): Promise<string | null> => {
-    if (!clinicVideoFile || !profile?.id) return null;
+  // Upload videos to storage
+  const uploadVideos = async (): Promise<string[]> => {
+    if (!profile?.id) return [];
 
-    try {
-      const fileExt = clinicVideoFile.name.split('.').pop();
-      const fileName = `${profile.id}-clinic-${Date.now()}.${fileExt}`;
-      const filePath = `clinic_videos/${fileName}`;
+    const uploadedUrls: string[] = [];
+    const newVideos = clinicVideos.filter(vid => vid.isNew && vid.file);
 
-      const { error } = await supabase.storage
-        .from('kaizen')
-        .upload(filePath, clinicVideoFile, {
-          cacheControl: '3600',
-          upsert: false
-        });
+    for (const videoObj of newVideos) {
+      if (!videoObj.file) continue;
 
-      if (error) throw error;
+      try {
+        const fileExt = videoObj.file.name.split('.').pop();
+        const fileName = `${profile.id}-clinic-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `clinic_videos/${fileName}`;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('kaizen')
-        .getPublicUrl(filePath);
+        const { error } = await supabase.storage
+          .from('kaizen')
+          .upload(filePath, videoObj.file, {
+            cacheControl: '3600',
+            upsert: false
+          });
 
-      return publicUrl;
-    } catch (error) {
-      showToast.error('Failed to upload video');
-      return null;
+        if (error) throw error;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('kaizen')
+          .getPublicUrl(filePath);
+
+        uploadedUrls.push(publicUrl);
+      } catch (error) {
+        showToast.error('Failed to upload some videos');
+      }
     }
+
+    return uploadedUrls;
   };
 
   // Upload images to storage
@@ -743,19 +778,15 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
         }
       }
 
-      // Upload video if changed
-      let videoUrl = existingVideo;
-      if (clinicVideoFile) {
-        const uploadedVideoUrl = await uploadVideo();
-        if (uploadedVideoUrl) {
-          videoUrl = uploadedVideoUrl;
-        } else {
-          throw new Error('Failed to upload video');
-        }
-      } else if (videoDeleted) {
-        // Video was explicitly deleted
-        videoUrl = null;
-      }
+      // Upload new videos
+      const newVideoUrls = await uploadVideos();
+
+      // Combine existing videos with newly uploaded ones
+      const existingVideoUrls = clinicVideos
+        .filter(vid => !vid.isNew)
+        .map(vid => vid.url);
+
+      const allVideoUrls = [...existingVideoUrls, ...newVideoUrls];
 
       // Upload new images
       const newImageUrls = await uploadImages();
@@ -794,7 +825,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
             clinic_email: clinicInfo.clinic_email,
             clinic_address: combinedAddress,
             clinic_logo: logoUrl,
-            clinic_video: videoUrl,
+            clinic_videos: allVideoUrls,
             clinic_images: allImageUrls,
           })
           .eq('practitioner_id', profile.id)
@@ -813,7 +844,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
             clinic_email: clinicInfo.clinic_email,
             clinic_address: combinedAddress,
             clinic_logo: logoUrl,
-            clinic_video: videoUrl,
+            clinic_videos: allVideoUrls,
             clinic_images: allImageUrls,
           })
           .select();
@@ -848,17 +879,13 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
       setLogoFile(null);
       setLogoPreview(null);
 
-      // Clear media file state
-      setClinicVideoFile(null);
-      setClinicVideoPreview(null);
-      setVideoDeleted(false);
-
-      // Update existing media state with uploaded media
-      if (videoUrl) {
-        setExistingVideo(videoUrl);
-      } else {
-        setExistingVideo(null);
-      }
+      // Update clinic videos to mark all as existing (no longer new)
+      const updatedVideos = clinicVideos.map(video => ({
+        ...video,
+        isNew: false
+      }));
+      setClinicVideos(updatedVideos);
+      setExistingVideos(allVideoUrls);
 
       // Update clinic images to mark all as existing
       if (allImageUrls.length > 0) {
@@ -1146,49 +1173,62 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
         </div>
 
         <div className="p-6 space-y-8">
-          {/* Video Upload Section */}
+          {/* Videos Upload Section */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
               <Film className="w-5 h-5 text-gray-500" />
-              Clinic Video
-              <span className="text-xs text-gray-500 font-normal">(Optional, Max 50MB)</span>
+              Clinic Videos
+              <span className="text-xs text-gray-500 font-normal">(Optional, Max 5 videos, 50MB each)</span>
             </label>
 
-            {/* Video Preview */}
-            {(clinicVideoPreview || existingVideo) && (
-              <div className="relative mb-4 rounded-lg overflow-hidden border-2 border-gray-200">
-                <video
-                  src={clinicVideoPreview || existingVideo || ''}
-                  controls
-                  className="w-full max-h-96 bg-black"
-                >
-                  Your browser does not support the video tag.
-                </video>
-                <button
-                  type="button"
-                  onClick={handleRemoveVideo}
-                  className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors shadow-lg"
-                  title="Remove video"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+            {/* Videos Grid */}
+            {clinicVideos.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
+                {clinicVideos.map((video, index) => (
+                  <div key={index} className="relative group">
+                    <div className="relative w-full aspect-[9/16] border-2 border-gray-200 rounded-lg overflow-hidden">
+                      <video
+                        src={video.url}
+                        controls
+                        className="w-full h-full object-cover bg-black"
+                      >
+                        Your browser does not support the video tag.
+                      </video>
+                      {video.isNew && (
+                        <span className="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded z-10">
+                          New
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveVideo(index)}
+                      className="mt-2 w-full bg-red-500 text-white rounded-lg px-3 py-2 hover:bg-red-600 transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                      title="Remove video"
+                    >
+                      <X className="w-4 h-4" />
+                      Remove Video
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
 
             {/* Upload Button */}
-            {!clinicVideoPreview && !existingVideo && (
+            {clinicVideos.length < 5 && (
               <div className="flex items-center gap-4">
                 <label className="cursor-pointer flex-1">
                   <input
                     type="file"
                     accept="video/*"
-                    onChange={handleVideoChange}
+                    multiple
+                    onChange={handleVideosChange}
                     className="hidden"
                   />
                   <div className="flex items-center justify-center gap-3 px-6 py-8 bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-dashed border-purple-300 rounded-lg hover:border-purple-400 hover:bg-purple-100 transition-all">
                     <Film className="w-6 h-6 text-purple-600" />
                     <span className="text-sm font-medium text-gray-700">
-                      Click to upload clinic video (MP4, MOV, AVI)
+                      Click to upload clinic videos (MP4, MOV, AVI) - {clinicVideos.length}/5 uploaded
                     </span>
                   </div>
                 </label>

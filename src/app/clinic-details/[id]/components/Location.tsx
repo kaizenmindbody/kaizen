@@ -86,7 +86,7 @@ export const Location = ({ clinic, mapCenter, showInfoWindow, setShowInfoWindow 
         {/* Page Title */}
         <div className="mb-8">
           <h3 className="text-3xl font-bold text-gray-900 mb-2">Location & Directions</h3>
-          <div className="h-1 w-24 bg-gradient-to-r from-blue-500 to-blue-300 rounded-full"></div>
+          <div className="h-1 w-24 rounded-full" style={{ backgroundColor: '#EA7D00' }}></div>
         </div>
 
         {clinic.clinic_address && clinic.clinic_address.trim() !== '' ? (
@@ -128,8 +128,14 @@ export const Location = ({ clinic, mapCenter, showInfoWindow, setShowInfoWindow 
                     )}
                   </GoogleMap>
                 ) : isClient ? (
-                  <div className="flex flex-col items-center justify-center gap-3" style={mapContainerStyle}>
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  <div className="flex flex-col items-center justify-center gap-3" style={{ ...mapContainerStyle, backgroundColor: '#FEF5E7' }}>
+                    <div 
+                      className="animate-spin rounded-full h-8 w-8 border-2 border-t-transparent" 
+                      style={{ 
+                        borderColor: '#EA7D00',
+                        borderTopColor: 'transparent'
+                      }}
+                    ></div>
                     <p className="text-gray-500">Loading map...</p>
                   </div>
                 ) : (
@@ -145,7 +151,7 @@ export const Location = ({ clinic, mapCenter, showInfoWindow, setShowInfoWindow 
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div className="flex items-start gap-4 flex-1">
                   <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-md" style={{ backgroundColor: '#EA7D00' }}>
                       <Building2 className="w-6 h-6 text-white" />
                     </div>
                   </div>
@@ -165,7 +171,13 @@ export const Location = ({ clinic, mapCenter, showInfoWindow, setShowInfoWindow 
                     href={getDirectionsUrl()}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-md hover:shadow-lg whitespace-nowrap w-full md:w-auto"
+                    className="inline-flex items-center justify-center gap-2 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg whitespace-nowrap w-full md:w-auto"
+                    style={{ 
+                      backgroundColor: '#EA7D00',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#D66D00'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#EA7D00'}
                   >
                     <Navigation className="w-4 h-4" />
                     Get Directions

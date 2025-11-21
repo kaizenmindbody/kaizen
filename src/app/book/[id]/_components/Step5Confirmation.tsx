@@ -3,6 +3,7 @@ import Image from 'next/image';
 import QRCode from 'react-qr-code';
 import { Booking, SelectedService, Practitioner, Step5ConfirmationProps } from '@/types/booking';
 import toast from 'react-hot-toast';
+import { formatPractitionerNameFromFullName } from '@/lib/formatters';
 
 const Step5Confirmation: React.FC<Step5ConfirmationProps> = ({
   practitioner,
@@ -289,12 +290,23 @@ This appointment was booked through the Kaizen medical platform.
                   </div>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">Dr. {practitioner.full_name}</h3>
-                  <p className="text-blue-700 text-sm font-medium mb-2">Your Healthcare Provider</p>
-                  <p className="text-gray-700 text-sm leading-relaxed">
-                    Your appointment has been confirmed and Dr. {practitioner.full_name} is looking forward to meeting with you.
-                    Please arrive 10 minutes early for check-in.
-                  </p>
+                  {(() => {
+                    const formattedName = formatPractitionerNameFromFullName(
+                      practitioner.full_name,
+                      undefined,
+                      practitioner.degrees as string | string[] | undefined
+                    );
+                    return (
+                      <>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-1">{formattedName}</h3>
+                        <p className="text-blue-700 text-sm font-medium mb-2">Your Healthcare Provider</p>
+                        <p className="text-gray-700 text-sm leading-relaxed">
+                          Your appointment has been confirmed and {formattedName} is looking forward to meeting with you.
+                          Please arrive 10 minutes early for check-in.
+                        </p>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             </div>

@@ -12,7 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import states from 'states-us';
 import { Specialty } from '@/types/user';
 import { useFindPractitioners } from '@/hooks/useFindPractitioners';
-import { formatPhoneNumber, getAvatarUrl, formatPractitionerType } from '@/lib/formatters';
+import { formatPhoneNumber, getAvatarUrl, formatPractitionerType, formatPractitionerName } from '@/lib/formatters';
 import { UserCard, UserCardSkeleton } from './components';
 
 // Dynamically import Google Maps components with SSR disabled
@@ -270,7 +270,12 @@ const UserDirectoryContent = () => {
     }
 
     const transformed = supabaseUsers.map((practitioner) => {
-      const fullName = `${practitioner.firstname || ''} ${practitioner.lastname || ''}`.trim();
+      const fullName = formatPractitionerName(
+        practitioner.firstname,
+        practitioner.lastname,
+        practitioner.title,
+        practitioner.degree
+      );
       return {
         ...practitioner,
         avatar: {
@@ -290,7 +295,12 @@ const UserDirectoryContent = () => {
   // Filter and search functionality
   const filteredUsers = useMemo(() => {
     return practitioners.filter(practitioner => {
-      const fullName = `${practitioner.firstname || ''} ${practitioner.lastname || ''}`.trim();
+      const fullName = formatPractitionerName(
+        practitioner.firstname,
+        practitioner.lastname,
+        practitioner.title,
+        practitioner.degree
+      );
       const formattedPtype = formatPractitionerType(practitioner.ptype);
 
       // Search functionality
@@ -1057,7 +1067,12 @@ const UserDirectoryContent = () => {
                   }}
                 >
                   {generateUserLocations.map((practitioner) => {
-                    const fullName = `${practitioner.firstname || ''} ${practitioner.lastname || ''}`.trim();
+                    const fullName = formatPractitionerName(
+                      practitioner.firstname,
+                      practitioner.lastname,
+                      practitioner.title,
+                      practitioner.degree
+                    );
                     return (
                       <Marker
                         key={practitioner.id}
@@ -1076,7 +1091,12 @@ const UserDirectoryContent = () => {
                         {(() => {
                           const practitioner = generateUserLocations.find(p => p.id === selectedMapUser);
                           if (!practitioner) return null;
-                          const fullName = `${practitioner.firstname || ''} ${practitioner.lastname || ''}`.trim();
+                          const fullName = formatPractitionerName(
+                            practitioner.firstname,
+                            practitioner.lastname,
+                            practitioner.title,
+                            practitioner.degree
+                          );
                           return (
                             <div className="relative">
                               {/* Header with gradient background */}
@@ -1197,7 +1217,12 @@ const UserDirectoryContent = () => {
                           }}
                         >
                           {generateUserLocations.map((practitioner) => {
-                            const fullName = `${practitioner.firstname || ''} ${practitioner.lastname || ''}`.trim();
+                            const fullName = formatPractitionerName(
+                              practitioner.firstname,
+                              practitioner.lastname,
+                              practitioner.title,
+                              practitioner.degree
+                            );
                             return (
                               <Marker
                                 key={practitioner.id}
@@ -1216,7 +1241,12 @@ const UserDirectoryContent = () => {
                                 {(() => {
                                   const practitioner = generateUserLocations.find(p => p.id === selectedMapUser);
                                   if (!practitioner) return null;
-                                  const fullName = `${practitioner.firstname || ''} ${practitioner.lastname || ''}`.trim();
+                                  const fullName = formatPractitionerName(
+                                    practitioner.firstname,
+                                    practitioner.lastname,
+                                    practitioner.title,
+                                    practitioner.degree
+                                  );
                                   return (
                                     <div className="relative">
                                       {/* Header with gradient background */}

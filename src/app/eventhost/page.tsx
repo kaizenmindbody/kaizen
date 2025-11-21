@@ -183,7 +183,7 @@ export default function EventHostPage() {
 
       // If not loading and no user, redirect to login
       if (!user?.id) {
-        router.push('/login');
+        router.push('/auth/login');
         return;
       }
 

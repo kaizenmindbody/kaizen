@@ -949,9 +949,15 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
                 className="hidden"
               />
 
-              <p className="text-xs text-gray-500">
-                Upload a high-quality image that represents your event. Recommended size: 1200x630px
-              </p>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-xs text-blue-800 space-y-1">
+                  <strong>Image Requirements:</strong>
+                  <br />
+                  Dimensions: 1200 x 630 pixels (landscape orientation, 3:2 aspect ratio)
+                  <br />
+                  File Size: Maximum 5MB | Format: JPG, PNG, or WebP
+                </p>
+              </div>
             </div>
           </div>
 
@@ -1044,9 +1050,14 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
               <div className="space-y-4">
                 {/* Enable Ticketing Toggle */}
                 <div className="flex items-center justify-between gap-3 p-3 bg-white rounded-lg">
-                  <span className="text-sm font-medium text-gray-700 flex-1 min-w-0 break-words">
-                    Enable Ticketing with Kaizen
-                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-gray-700 mb-1">
+                      Enable Ticketing with Kaizen
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      Sell tickets directly through your Kaizen account.
+                    </div>
+                  </div>
                   <button
                     type="button"
                     onClick={() => setEnableTicketing(!enableTicketing)}
@@ -1065,9 +1076,14 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
 
                 {/* Non-Refundable Toggle */}
                 <div className="flex items-center justify-between gap-3 p-3 bg-white rounded-lg">
-                  <span className="text-sm font-medium text-gray-700 flex-1 min-w-0 break-words">
-                    Non-Refundable Event?
-                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-gray-700 mb-1">
+                      Non-Refundable Event?
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      When enabled, tickets to your event will be non-refundable.
+                    </div>
+                  </div>
                   <button
                     type="button"
                     onClick={() => setNonRefundable(!nonRefundable)}

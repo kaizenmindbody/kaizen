@@ -74,11 +74,19 @@ const ClinicDetailsPage = () => {
 
         const { supabase } = await import('@/lib/supabase');
 
+        // Convert clinicId to number for integer ID
+        const clinicIdNum = Number(clinicId);
+        if (isNaN(clinicIdNum)) {
+          setError('Invalid clinic ID format.');
+          setLoading(false);
+          return;
+        }
+
         // Fetch clinic data
         const { data: clinicData, error: clinicError } = await supabase
           .from('Clinics')
           .select('*')
-          .eq('id', clinicId)
+          .eq('id', clinicIdNum)
           .single();
 
         if (clinicError || !clinicData) {
@@ -96,10 +104,11 @@ const ClinicDetailsPage = () => {
           : [];
 
         // Fetch all clinic members (practitioners working at this clinic)
+        // Note: clinic_id in ClinicMembers refers to the clinic owner's practitioner_id (UUID), not the clinic's integer id
         const { data: clinicMembers } = await supabase
           .from('ClinicMembers')
           .select('practitioner_id')
-          .eq('clinic_id', clinicId);
+          .eq('clinic_id', clinicData.practitioner_id);
 
         // Get IDs of all practitioners in the clinic
         const practitionerIds = clinicMembers?.map(m => m.practitioner_id) || [];

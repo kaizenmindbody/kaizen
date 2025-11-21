@@ -216,12 +216,12 @@ export const Practitioners = ({ clinic }: PractitionersProps) => {
             className=""
             containerClass="container"
             dotListClass=""
-            draggable
+            draggable={false}
             focusOnSelect={false}
             infinite={false}
             itemClass=""
             keyBoardControl
-            minimumTouchDrag={50}
+            minimumTouchDrag={0}
             pauseOnHover
             renderArrowsWhenDisabled={false}
             renderButtonGroupOutside={false}
@@ -234,7 +234,7 @@ export const Practitioners = ({ clinic }: PractitionersProps) => {
             showDots={false}
             sliderClass=""
             slidesToSlide={1}
-            swipeable
+            swipeable={false}
           >
             {clinicMembers.map((member) => {
               const displayMedia = getDisplayMedia(member);

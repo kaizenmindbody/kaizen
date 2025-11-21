@@ -3,7 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEvents } from "@/hooks/useEvents";
 import Image from "next/image";
-import { Calendar, MapPin, DollarSign, ArrowLeft, User, Share2, Heart } from "lucide-react";
+import { Calendar, MapPin, DollarSign, ArrowLeft, User, Share2, Heart, Phone, Mail } from "lucide-react";
 import Breadcrumb from "@/components/commons/breadcrumb";
 import { useEffect, useState } from "react";
 
@@ -13,6 +13,24 @@ interface TicketType {
   is_active?: boolean;
 }
 
+interface EventHost {
+  id: string;
+  firstname: string;
+  lastname: string;
+  avatar: string;
+  bio: string;
+  email: string;
+  phone: string;
+}
+
+interface HostEvent {
+  id: number;
+  event_name: string;
+  event_image: string;
+  address: string;
+  event_start_datetime: string;
+}
+
 const EventDetailPage = () => {
   const params = useParams();
   const router = useRouter();
@@ -20,6 +38,10 @@ const EventDetailPage = () => {
   const eventId = parseInt(params.id as string);
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(false);
+  const [eventHost, setEventHost] = useState<EventHost | null>(null);
+  const [loadingHost, setLoadingHost] = useState(false);
+  const [hostEvents, setHostEvents] = useState<HostEvent[]>([]);
+  const [loadingHostEvents, setLoadingHostEvents] = useState(false);
 
   // Find the event by ID
   const event = events.find(e => e.id === eventId);
@@ -33,7 +55,7 @@ const EventDetailPage = () => {
       try {
         const response = await fetch(`/api/events/${eventId}/tickets`);
         const result = await response.json();
-        
+
         if (result.success && result.tickets) {
           setTicketTypes(
             result.tickets.map((ticket: any) => ({
@@ -54,6 +76,117 @@ const EventDetailPage = () => {
 
     fetchTicketTypes();
   }, [eventId]);
+
+  // Fetch event host information
+  useEffect(() => {
+    if (!event || !(event as any).host_id) return;
+
+    const fetchEventHost = async () => {
+      setLoadingHost(true);
+      try {
+        const { supabase } = await import('@/lib/supabase');
+
+        // Fetch host user data
+        const { data: hostData, error: hostError } = await supabase
+          .from('Users')
+          .select('id, firstname, lastname, avatar, email, phone, website, title, degree')
+          .eq('id', (event as any).host_id)
+          .single();
+
+        if (hostError || !hostData) {
+          console.error('Error fetching host:', hostError);
+          setEventHost(null);
+          return;
+        }
+
+        // Fetch host description from Descriptions table
+        const { data: descriptionData } = await supabase
+          .from('Descriptions')
+          .select('background')
+          .eq('user_id', (event as any).host_id)
+          .single();
+
+        setEventHost({
+          id: hostData.id,
+          firstname: hostData.firstname || '',
+          lastname: hostData.lastname || '',
+          avatar: hostData.avatar || 'https://vbioebgdmwgrykkphupd.supabase.co/storage/v1/object/public/kaizen/avatars/default.jpg',
+          bio: descriptionData?.background || '',
+          email: hostData.email || '',
+          phone: hostData.phone || ''
+        });
+      } catch (error) {
+        console.error('Error fetching host:', error);
+        setEventHost(null);
+      } finally {
+        setLoadingHost(false);
+      }
+    };
+
+    fetchEventHost();
+  }, [event]);
+
+  // Fetch other events by this host
+  useEffect(() => {
+    if (!event) {
+      console.log('No event data available yet');
+      return;
+    }
+
+    const hostId = (event as any).host_id;
+
+    console.log('Current event:', event);
+    console.log('Host ID from event:', hostId);
+
+    if (!hostId) {
+      console.log('No host_id found on event - this event may not have a host assigned');
+      return;
+    }
+
+    const fetchHostEvents = async () => {
+      setLoadingHostEvents(true);
+      try {
+        const { supabase } = await import('@/lib/supabase');
+
+        console.log('Fetching events for host_id:', hostId);
+
+        const { data: eventsData, error: eventsError } = await supabase
+          .from('Events')
+          .select('id, event_name, event_image, address, event_start_datetime, host_id')
+          .eq('host_id', hostId)
+          .order('event_start_datetime', { ascending: false })
+          .limit(10);
+
+        if (eventsError) {
+          console.error('Error fetching host events:', eventsError);
+          setHostEvents([]);
+          return;
+        }
+
+        console.log('Raw events data from database:', eventsData);
+
+        // Filter out current event and limit to 3
+        const filteredEvents = (eventsData || [])
+          .filter((e: any) => {
+            const isSameEvent = String(e.id) === String(eventId) || String(e.id) === String((event as any).id);
+            console.log('Comparing:', e.id, 'vs', eventId, 'and', (event as any).id, 'Same?', isSameEvent);
+            return !isSameEvent;
+          })
+          .slice(0, 3);
+
+        console.log('Host events found:', filteredEvents.length, 'Total events by host:', eventsData?.length || 0);
+        console.log('Filtered events:', filteredEvents);
+        setHostEvents(filteredEvents);
+      } catch (error) {
+        console.error('Error fetching host events:', error);
+        setHostEvents([]);
+      } finally {
+        setLoadingHostEvents(false);
+      }
+    };
+
+    fetchHostEvents();
+  }, [event, eventId]);
 
   // Get minimum price from ticket types for this event
   const getEventPrice = (): { price: number; hasMultiplePrices: boolean } => {
@@ -159,6 +292,7 @@ const EventDetailPage = () => {
                     src={event.image}
                     alt={event.title}
                     fill
+                    sizes="(max-width: 1024px) 100vw, 33vw"
                     className="object-cover"
                   />
                 ) : (
@@ -226,9 +360,11 @@ const EventDetailPage = () => {
                 )}
 
                 {/* Hosted By */}
-                {event.author && (
+                {(eventHost || event.author) && (
                   <div className="bg-gray-100 px-4 py-3 rounded-lg mt-4">
-                    <p className="text-gray-700 text-xl font-medium">Hosted by {event.author}</p>
+                    <p className="text-gray-700 text-xl font-medium">
+                      Hosted by {eventHost ? `${eventHost.firstname} ${eventHost.lastname}` : event.author}
+                    </p>
                   </div>
                 )}
               </div>
@@ -252,27 +388,127 @@ const EventDetailPage = () => {
               </div>
 
               {/* About Your Host */}
-              {event.author && (
-                <div className="mb-8">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">About Your Host</h2>
-                  <div className="space-y-4">
-                    {/* Host Image */}
-                    <div className="relative w-32 h-32 rounded-lg overflow-hidden bg-gray-200">
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20">
-                        <User className="w-12 h-12 text-gray-400" />
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">About Your Host</h2>
+                {loadingHost ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                  </div>
+                ) : eventHost ? (
+                  <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                    <div className="flex flex-col md:flex-row gap-6">
+                      {/* Host Image */}
+                      <div className="flex-shrink-0">
+                        <div className="relative w-32 h-32 rounded-lg overflow-hidden bg-gray-200">
+                          <Image
+                            src={eventHost.avatar}
+                            alt={`${eventHost.firstname} ${eventHost.lastname}`}
+                            fill
+                            sizes="128px"
+                            className="object-cover"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Host Information */}
+                      <div className="flex-1 space-y-3">
+                        <h3 className="text-xl font-bold text-gray-900">
+                          {eventHost.firstname} {eventHost.lastname}
+                        </h3>
+
+                        {eventHost.bio && (
+                          <p className="text-gray-600 leading-relaxed">
+                            {eventHost.bio}
+                          </p>
+                        )}
+
+                        {/* Contact Info */}
+                        <div className="flex flex-wrap gap-4 pt-2">
+                          {eventHost.email && (
+                            <a
+                              href={`mailto:${eventHost.email}`}
+                              className="text-sm text-primary hover:underline flex items-center gap-1"
+                            >
+                              <Mail className="w-4 h-4" />
+                              {eventHost.email}
+                            </a>
+                          )}
+                          {eventHost.phone && (
+                            <a
+                              href={`tel:${eventHost.phone}`}
+                              className="text-sm text-primary hover:underline flex items-center gap-1"
+                            >
+                              <Phone className="w-4 h-4" />
+                              {eventHost.phone}
+                            </a>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    {/* Host Name and Description */}
-                    <div>
-                      <p className="text-gray-600 leading-relaxed">
-                        Host description will be displayed here. This section can include information about the host&apos;s background, expertise, and experience.
-                      </p>
-                    </div>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                    <p className="text-gray-600">Host information not available.</p>
+                  </div>
+                )}
+              </div>
+
             </div>
           </div>
+
+          {/* More Events by This Host - Full Width Section Below Grid */}
+          {eventHost && hostEvents.length > 0 && (
+            <div className="mt-12">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                More Events by {eventHost.firstname} {eventHost.lastname}
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {hostEvents.map((hostEvent) => (
+                  <div
+                    key={hostEvent.id}
+                    onClick={() => router.push(`/events/${hostEvent.id}`)}
+                    className="group cursor-pointer bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-all"
+                  >
+                    {/* Event Image */}
+                    <div className="relative w-full h-48 bg-gray-200">
+                      {hostEvent.event_image ? (
+                        <Image
+                          src={hostEvent.event_image}
+                          alt={hostEvent.event_name}
+                          fill
+                          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10">
+                          <Calendar className="w-12 h-12 text-secondary/30" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Event Info */}
+                    <div className="p-4">
+                      <h3 className="font-bold text-gray-900 text-lg line-clamp-2 group-hover:text-primary transition-colors mb-3">
+                        {hostEvent.event_name}
+                      </h3>
+                      {hostEvent.event_start_datetime && (
+                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                          <Calendar className="w-4 h-4" />
+                          <span>{formatDate(hostEvent.event_start_datetime)}</span>
+                        </div>
+                      )}
+                      {hostEvent.address && (
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <MapPin className="w-4 h-4" />
+                          <span className="line-clamp-1">{hostEvent.address}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </section>
     </>

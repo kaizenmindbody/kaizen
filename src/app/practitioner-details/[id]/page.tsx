@@ -249,23 +249,36 @@ const PractitionerDetailsPage = () => {
 
             // Handle if ptype is already an array
             if (Array.isArray(processedUser.ptype)) {
-              return processedUser.ptype.filter(s => s && s.trim() !== '');
+              const filtered = processedUser.ptype.filter(s => s && s.trim() !== '');
+              return filtered.length > 0 ? filtered : ['General Practice'];
             }
 
-            // Handle if ptype is a JSON string
+            // Handle if ptype is a string
             if (typeof processedUser.ptype === 'string') {
-              try {
-                const parsed = JSON.parse(processedUser.ptype);
-                if (Array.isArray(parsed)) {
-                  return parsed.filter(s => s && s.trim() !== '');
+              const trimmed = processedUser.ptype.trim();
+              if (!trimmed) return ['General Practice'];
+
+              // Try to parse as JSON array
+              if (trimmed.startsWith('[')) {
+                try {
+                  const parsed = JSON.parse(trimmed);
+                  if (Array.isArray(parsed)) {
+                    const filtered = parsed.filter(s => s && s.trim() !== '');
+                    return filtered.length > 0 ? filtered : ['General Practice'];
+                  }
+                } catch {
+                  // If JSON parsing fails, continue to treat as regular string
                 }
-              } catch {
-                // If JSON parsing fails, treat as single specialty
-                return [processedUser.ptype.trim()];
               }
 
-              // If it's just a regular string, return as single item array
-              return [processedUser.ptype.trim()];
+              // Handle comma-separated specialties
+              if (trimmed.includes(',')) {
+                const specialties = trimmed.split(',').map(s => s.trim()).filter(s => s !== '');
+                return specialties.length > 0 ? specialties : ['General Practice'];
+              }
+
+              // Single specialty string
+              return [trimmed];
             }
 
             return ['General Practice'];

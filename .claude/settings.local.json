@@ -23,7 +23,8 @@
       "Bash(set NODE_OPTIONS=--trace-warnings)",
       "Bash(npx next build)",
       "Bash(cat:*)",
-      "Bash(nul)"
+      "Bash(nul)",
+      "Bash(where:*)"
     ],
     "deny": [],
     "ask": []

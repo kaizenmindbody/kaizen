@@ -56,12 +56,12 @@ export const About = ({ practitioner, descriptionsData }: AboutProps) => {
           <div className="h-1 w-24 bg-gradient-to-r from-orange-500 to-orange-300 rounded-full"></div>
         </div>
 
-        {/* Professional Background */}
+        {/* Professional Background - Grey Area on Top */}
         {descriptions?.background && (
-          <div className="bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-2xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow">
+          <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md">
+                <div className="w-12 h-12 bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl flex items-center justify-center shadow-md">
                   <User className="w-6 h-6 text-white" />
                 </div>
               </div>
@@ -73,12 +73,12 @@ export const About = ({ practitioner, descriptionsData }: AboutProps) => {
           </div>
         )}
 
-        {/* Education & Credentials */}
+        {/* Education & Credentials - Grey */}
         {descriptions?.education && (
-          <div className="bg-gradient-to-br from-purple-50 to-white border border-purple-100 rounded-2xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow">
+          <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md">
+                <div className="w-12 h-12 bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl flex items-center justify-center shadow-md">
                   <GraduationCap className="w-6 h-6 text-white" />
                 </div>
               </div>
@@ -90,12 +90,12 @@ export const About = ({ practitioner, descriptionsData }: AboutProps) => {
           </div>
         )}
 
-        {/* Treatment Approach */}
+        {/* Treatment Approach - Grey */}
         {descriptions?.treatment && (
-          <div className="bg-gradient-to-br from-green-50 to-white border border-green-100 rounded-2xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow">
+          <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-md">
+                <div className="w-12 h-12 bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl flex items-center justify-center shadow-md">
                   <Stethoscope className="w-6 h-6 text-white" />
                 </div>
               </div>

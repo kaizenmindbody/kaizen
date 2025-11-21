@@ -33,12 +33,16 @@ interface ClinicData {
   clinic_images: string[];
   created_at: string;
   updated_at: string;
-  // Practitioner info
-  practitioner?: {
+  // All practitioners working at this clinic
+  practitioners?: {
+    id: string;
     full_name: string;
     avatar: string;
-    specialty: string[];
-  };
+    specialties: string[];
+    degree: string;
+    phone: string;
+    email: string;
+  }[];
 }
 
 const ClinicDetailsPage = () => {
@@ -91,46 +95,70 @@ const ClinicDetailsPage = () => {
                 : [])
           : [];
 
-        // Fetch practitioner info
-        const { data: practitionerData } = await supabase
-          .from('Users')
-          .select('id, full_name, firstname, lastname, avatar, specialty')
-          .eq('id', clinicData.practitioner_id)
-          .single();
+        // Fetch all clinic members (practitioners working at this clinic)
+        const { data: clinicMembers } = await supabase
+          .from('ClinicMembers')
+          .select('practitioner_id')
+          .eq('clinic_id', clinicId);
 
-        let practitionerInfo = null;
-        if (practitionerData) {
-          // Compute full_name
-          const fullName = practitionerData.firstname && practitionerData.lastname
-            ? `${practitionerData.firstname} ${practitionerData.lastname}`.trim()
-            : practitionerData.firstname || practitionerData.lastname || practitionerData.full_name || '';
+        // Get IDs of all practitioners in the clinic
+        const practitionerIds = clinicMembers?.map(m => m.practitioner_id) || [];
 
-          // Parse specialty
-          let specialty = [];
-          if (practitionerData.specialty) {
-            if (typeof practitionerData.specialty === 'string') {
-              try {
-                specialty = JSON.parse(practitionerData.specialty);
-              } catch {
-                specialty = [practitionerData.specialty];
+        // Fetch all practitioners info
+        let practitioners = [];
+        if (practitionerIds.length > 0) {
+          const { data: practitionersData } = await supabase
+            .from('Users')
+            .select('id, firstname, lastname, avatar, ptype, degree, phone, email')
+            .in('id', practitionerIds);
+
+          if (practitionersData) {
+            practitioners = practitionersData.map(p => {
+              // Compute full_name
+              const fullName = p.firstname && p.lastname
+                ? `${p.firstname} ${p.lastname}`.trim()
+                : p.firstname || p.lastname || '';
+
+              // Parse ptype (practitioner type/specialty)
+              let specialties = [];
+              if (p.ptype) {
+                if (typeof p.ptype === 'string') {
+                  // Try to parse as JSON
+                  if (p.ptype.startsWith('[')) {
+                    try {
+                      specialties = JSON.parse(p.ptype);
+                    } catch {
+                      specialties = [p.ptype];
+                    }
+                  } else if (p.ptype.includes(',')) {
+                    // Comma-separated
+                    specialties = p.ptype.split(',').map(s => s.trim());
+                  } else {
+                    // Single specialty
+                    specialties = [p.ptype];
+                  }
+                } else if (Array.isArray(p.ptype)) {
+                  specialties = p.ptype;
+                }
               }
-            } else if (Array.isArray(practitionerData.specialty)) {
-              specialty = practitionerData.specialty;
-            }
-          }
 
-          practitionerInfo = {
-            id: practitionerData.id,
-            full_name: fullName,
-            avatar: practitionerData.avatar || 'https://vbioebgdmwgrykkphupd.supabase.co/storage/v1/object/public/kaizen/avatars/default.jpg',
-            specialty: specialty
-          };
+              return {
+                id: p.id,
+                full_name: fullName,
+                avatar: p.avatar || 'https://vbioebgdmwgrykkphupd.supabase.co/storage/v1/object/public/kaizen/avatars/default.jpg',
+                specialties: specialties,
+                degree: p.degree || '',
+                phone: p.phone || '',
+                email: p.email || ''
+              };
+            });
+          }
         }
 
         const transformedClinic: ClinicData = {
           ...clinicData,
           clinic_images: parsedImages,
-          practitioner: practitionerInfo
+          practitioners: practitioners
         };
 
         setClinic(transformedClinic);

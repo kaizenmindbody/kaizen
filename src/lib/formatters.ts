@@ -39,12 +39,45 @@ export const getAvatarUrl = (avatar: string | { url: string; alt: string } | nul
 };
 
 // Utility function to safely format practitioner type (ptype)
+// Handles: strings, arrays, JSON array strings, and comma-separated strings
 export const formatPractitionerType = (ptype: any): string => {
   if (!ptype) return 'General Practice';
 
-  // ptype should be a simple string now
+  // Handle arrays (multiple specialties)
+  if (Array.isArray(ptype)) {
+    const filtered = ptype.filter(s => s && typeof s === 'string' && s.trim() !== '');
+    if (filtered.length === 0) return 'General Practice';
+    return filtered.join(' & ');
+  }
+
+  // Handle strings
   if (typeof ptype === 'string') {
-    return ptype.trim() || 'General Practice';
+    const trimmed = ptype.trim();
+    if (!trimmed) return 'General Practice';
+
+    // Try to parse as JSON array
+    if (trimmed.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          const filtered = parsed.filter(s => s && typeof s === 'string' && s.trim() !== '');
+          if (filtered.length === 0) return 'General Practice';
+          return filtered.join(' & ');
+        }
+      } catch {
+        // If JSON parsing fails, continue to treat as regular string
+      }
+    }
+
+    // Handle comma-separated specialties
+    if (trimmed.includes(',')) {
+      const specialties = trimmed.split(',').map(s => s.trim()).filter(s => s !== '');
+      if (specialties.length === 0) return 'General Practice';
+      return specialties.join(' & ');
+    }
+
+    // Single specialty string
+    return trimmed;
   }
 
   return 'General Practice';

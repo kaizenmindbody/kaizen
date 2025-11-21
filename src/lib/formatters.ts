@@ -50,7 +50,7 @@ export const formatPractitionerType = (ptype: any): string => {
   return 'General Practice';
 };
 
-// Utility function to format practitioner name with Dr. prefix if applicable
+// Format practitioner name with Dr. prefix based on title or degree
 export const formatPractitionerName = (
   firstname: string | null | undefined,
   lastname: string | null | undefined,
@@ -61,8 +61,7 @@ export const formatPractitionerName = (
   return formatPractitionerNameFromFullName(fullName, title, degree);
 };
 
-// Utility function to format practitioner name from full_name (for cases where we only have full_name)
-// Respects the title field from database as source of truth
+// Format practitioner name from full name string
 export const formatPractitionerNameFromFullName = (
   fullName: string,
   title?: string | null | undefined,
@@ -71,26 +70,26 @@ export const formatPractitionerNameFromFullName = (
   if (!fullName || fullName.trim() === '') {
     return 'Practitioner';
   }
-  
+
   const nameTrimmed = fullName.trim();
-  
+
   // If title exists in database, use it as-is (database is source of truth)
   if (title && title.trim()) {
     return `${title.trim()} ${nameTrimmed}`;
   }
-  
+
   // If no title in database, check degree to determine if we should add "Dr."
   if (degree) {
     const degreeStr = Array.isArray(degree) ? degree.join(' ') : String(degree);
     const degreeUpper = degreeStr.toUpperCase();
     const doctorDegrees = ['MD', 'DO', 'DDS', 'DMD', 'DC', 'ND', 'OD', 'DPM', 'PHARMD', 'DPT'];
     const hasDoctorDegree = doctorDegrees.some(d => degreeUpper.includes(d));
-    
+
     if (hasDoctorDegree) {
       return `Dr. ${nameTrimmed}`;
     }
   }
-  
+
   // No title and no doctor degree, return name as-is
   return nameTrimmed;
 };

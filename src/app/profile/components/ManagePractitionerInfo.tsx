@@ -3,7 +3,7 @@
 import { ProfileData } from '@/types/user';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import toast from 'react-hot-toast';
+import { showToast } from '@/lib/toast';
 import Image from 'next/image';
 import { UserPlus, Users, Send, CheckCircle, XCircle, Clock, Trash2, Mail, Search, Building2, AlertCircle, Upload, FileUp, Edit } from 'lucide-react';
 import Select from 'react-select';
@@ -140,7 +140,7 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
           .neq('id', profile?.id || ''); // Exclude current user
 
         if (error) {
-          toast.error(`Failed to load practitioners: ${error.message}`);
+          showToast.error(`Failed to load practitioners: ${error.message}`);
           setPractitioners([]);
           return;
         }
@@ -150,7 +150,7 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
 
         setPractitioners(data || []);
       } catch (error: any) {
-        toast.error('Failed to load practitioners list');
+        showToast.error('Failed to load practitioners list');
         setPractitioners([]);
       } finally {
         setLoadingPractitioners(false);
@@ -227,7 +227,7 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
   const handleCSVUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
-      toast.error('Please select a CSV file');
+      showToast.error('Please select a CSV file');
       return;
     }
 
@@ -238,7 +238,7 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
       const lines = text.split('\n').filter(line => line.trim());
 
       if (lines.length < 2) {
-        toast.error('CSV file must contain headers and at least one row');
+        showToast.error('CSV file must contain headers and at least one row');
         setUploadingCSV(false);
         return;
       }
@@ -278,7 +278,7 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
       const emailIndex = headers.findIndex(h => h.includes('email'));
 
       if (emailIndex === -1) {
-        toast.error('CSV must contain an "email" column');
+        showToast.error('CSV must contain an "email" column');
         setUploadingCSV(false);
         return;
       }
@@ -376,13 +376,13 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
       }
 
       if (csvRows.length === 0) {
-        toast.error('No valid email addresses found in CSV');
+        showToast.error('No valid email addresses found in CSV');
         setUploadingCSV(false);
         return;
       }
 
       // Validate against existing clinic members (only check if already in THIS clinic)
-      toast.loading('Checking for existing clinic members...', { id: 'validating-users' });
+      showToast.loading('Checking for existing clinic members...', { id: 'validating-users' });
       
       try {
         if (!profile?.id) {
@@ -430,23 +430,20 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
         const existsCount = validatedRows.filter(r => r.status === 'exists').length;
 
         setCSVPreview(validatedRows);
-        toast.dismiss('validating-users');
+        showToast.dismiss('validating-users');
 
         if (validCount > 0 && existsCount > 0) {
-          toast.success(
+          showToast.success(
             `Found ${validCount} user(s) to add. ${existsCount} user(s) are already members of this clinic.`,
             { duration: 5000 }
           );
         } else if (validCount > 0) {
-          toast.success(`Found ${validCount} user(s) ready to add as clinic members`);
+          showToast.success(`Found ${validCount} user(s) ready to add as clinic members`);
         } else if (existsCount > 0) {
-          toast(`All ${existsCount} user(s) are already members of this clinic.`, {
-            icon: '⚠️',
-            duration: 5000
-          });
+          showToast.warning(`All ${existsCount} user(s) are already members of this clinic.`);
         }
       } catch (error: any) {
-        toast.dismiss('validating-users');
+        showToast.dismiss('validating-users');
         // Still show preview even if validation fails
         setCSVPreview(csvRows);
         toast('Could not validate existing users, but CSV is ready. Duplicates will be handled during save.', {
@@ -455,7 +452,7 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
         });
       }
     } catch (error: any) {
-      toast.error('Failed to process CSV file');
+      showToast.error('Failed to process CSV file');
     } finally {
       setUploadingCSV(false);
     }
@@ -463,7 +460,7 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
 
   const saveCSVPractitioners = async () => {
     if (!clinicId || !profile?.id || csvPreview.length === 0) {
-      toast.error('No valid practitioners to save');
+      showToast.error('No valid practitioners to save');
       return;
     }
 
@@ -478,20 +475,20 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
         .single();
 
       if (clinicError || !clinicData) {
-        toast.error('Failed to verify clinic. Please refresh and try again.');
+        showToast.error('Failed to verify clinic. Please refresh and try again.');
         setSavingCSV(false);
         return;
       }
 
       // Verify that the current user is the clinic owner
       if (clinicData.practitioner_id !== profile.id) {
-        toast.error('You are not authorized to add members to this clinic. Only the clinic owner can add members.');
+        showToast.error('You are not authorized to add members to this clinic. Only the clinic owner can add members.');
         setSavingCSV(false);
         return;
       }
 
       // Step 2: Create users in Auth and Users table
-      toast.loading('Creating user accounts...', { id: 'creating-users' });
+      showToast.loading('Creating user accounts...', { id: 'creating-users' });
       
       const validRows = csvPreview.filter(row => row.status === 'valid' && row.email);
       const usersToCreate = validRows.map(row => ({
@@ -515,10 +512,10 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
       });
 
       const createUsersData = await createUsersResponse.json();
-      toast.dismiss('creating-users');
+      showToast.dismiss('creating-users');
 
       if (!createUsersResponse.ok) {
-        toast.error(`Failed to create users: ${createUsersData.error || 'Unknown error'}`);
+        showToast.error(`Failed to create users: ${createUsersData.error || 'Unknown error'}`);
         setSavingCSV(false);
         return;
       }
@@ -687,7 +684,7 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
         if (successCount > 0) {
           messages.push(`Added ${successCount} member(s) to your clinic`);
         }
-        toast.success(messages.join('. '));
+        showToast.success(messages.join('. '));
       }
 
       // Show results
@@ -740,7 +737,7 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
 
         // Send invitations to newly added members
         if (newMemberIds.length > 0) {
-          toast.loading('Sending invitation emails...', { id: 'sending-invites' });
+          showToast.loading('Sending invitation emails...', { id: 'sending-invites' });
 
           try {
             const inviteResponse = await fetch('/api/clinic-members/send-invitations', {
@@ -758,29 +755,29 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
               const successfulInvites = inviteData.results?.success?.length || 0;
               const failedInvites = inviteData.results?.failed?.length || 0;
 
-              toast.dismiss('sending-invites');
+              showToast.dismiss('sending-invites');
 
               if (successfulInvites > 0) {
-                toast.success(`Sent ${successfulInvites} invitation email(s) successfully!`);
+                showToast.success(`Sent ${successfulInvites} invitation email(s) successfully!`);
               }
 
               if (failedInvites > 0) {
-                toast.error(`Failed to send ${failedInvites} invitation email(s). Members were added but didn't receive email.`);
+                showToast.error(`Failed to send ${failedInvites} invitation email(s). Members were added but didn't receive email.`);
               }
             } else {
-              toast.dismiss('sending-invites');
-              toast.error('Members added but failed to send invitation emails');
+              showToast.dismiss('sending-invites');
+              showToast.error('Members added but failed to send invitation emails');
             }
           } catch (inviteError) {
-            toast.dismiss('sending-invites');
-            toast.error('Members added but failed to send invitation emails');
+            showToast.dismiss('sending-invites');
+            showToast.error('Members added but failed to send invitation emails');
           }
         }
       }
 
       if (failureCount > 0) {
         const errorMessage = errors.length > 0 ? `\n${errors.slice(0, 3).join('\n')}${errors.length > 3 ? '\n...' : ''}` : '';
-        toast.error(`Failed to add ${failureCount} practitioner(s)${errorMessage}`);
+        showToast.error(`Failed to add ${failureCount} practitioner(s)${errorMessage}`);
       }
 
       // Reset preview
@@ -790,7 +787,7 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
         fileInputRef.current.value = '';
       }
     } catch (error: any) {
-      toast.error('Failed to save practitioners');
+      showToast.error('Failed to save practitioners');
     } finally {
       setSavingCSV(false);
     }
@@ -811,18 +808,18 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
         .eq('id', memberToRemove.id);
 
       if (error) {
-        toast.error(`Failed to remove member: ${error.message}`);
+        showToast.error(`Failed to remove member: ${error.message}`);
         setShowRemoveConfirm(false);
         setMemberToRemove(null);
         return;
       }
 
-      toast.success(`${memberToRemove.name} has been removed from the clinic`);
+      showToast.success(`${memberToRemove.name} has been removed from the clinic`);
       setClinicMembers(prev => prev.filter(m => m.id !== memberToRemove.id));
       setShowRemoveConfirm(false);
       setMemberToRemove(null);
     } catch (error) {
-      toast.error('Failed to remove member');
+      showToast.error('Failed to remove member');
       setShowRemoveConfirm(false);
       setMemberToRemove(null);
     }
@@ -886,13 +883,13 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
+      showToast.error('Please select an image file');
       return;
     }
 
     // Validate file size (5MB)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size must be less than 5MB');
+      showToast.error('Image size must be less than 5MB');
       return;
     }
 
@@ -922,7 +919,7 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
           .upload(fileName, editingAvatar, { upsert: true });
 
         if (uploadError) {
-          toast.error('Failed to upload avatar');
+          showToast.error('Failed to upload avatar');
           setSavingEdit(false);
           return;
         }
@@ -953,12 +950,12 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
         .eq('id', editingMember.id);
 
       if (error) {
-        toast.error(`Failed to update member: ${error.message}`);
+        showToast.error(`Failed to update member: ${error.message}`);
         setSavingEdit(false);
         return;
       }
 
-      toast.success('Member details updated successfully');
+      showToast.success('Member details updated successfully');
 
       // Update local state
       setClinicMembers(prev =>
@@ -990,7 +987,7 @@ const ManagePractitionerInfo: React.FC<ManagePractitionerInfoProps> = ({ profile
       setEditingMember(null);
       setSavingEdit(false);
     } catch (error) {
-      toast.error('Failed to save member details');
+      showToast.error('Failed to save member details');
       setSavingEdit(false);
     }
   };

@@ -2,7 +2,7 @@ import React from 'react';
 import Image from 'next/image';
 import QRCode from 'react-qr-code';
 import { Booking, SelectedService, Practitioner, Step5ConfirmationProps } from '@/types/booking';
-import toast from 'react-hot-toast';
+import { showToast } from '@/lib/toast';
 import { formatPractitionerNameFromFullName } from '@/lib/formatters';
 
 const Step5Confirmation: React.FC<Step5ConfirmationProps> = ({
@@ -99,12 +99,12 @@ const Step5Confirmation: React.FC<Step5ConfirmationProps> = ({
     a.click();
     URL.revokeObjectURL(url);
 
-    toast.success(`Downloaded calendar file with ${selectedBookings.length} appointments!`, {
+    showToast.success(`Downloaded calendar file with ${selectedBookings.length} appointments!`, {
       duration: 4000,
     });
 
     setTimeout(() => {
-      toast('📅 Double-click the downloaded file to add all appointments to your calendar!', {
+      showToast.info('📅 Double-click the downloaded file to add all appointments to your calendar!', {
         duration: 5000,
         style: {
           background: '#10B981',
@@ -191,7 +191,7 @@ This appointment was booked through the Kaizen medical platform.
   // Function to handle adding all bookings to calendar
   const handleAddToCalendar = () => {
     if (!selectedBookings || selectedBookings.length === 0) {
-      toast.error('No bookings to add to calendar');
+      showToast.error('No bookings to add to calendar');
       return;
     }
 
@@ -200,10 +200,10 @@ This appointment was booked through the Kaizen medical platform.
         // Single booking - open directly
         const calendarUrl = createGoogleCalendarUrl(selectedBookings[0]);
         window.open(calendarUrl, '_blank');
-        toast.success('Opening Google Calendar...');
+        showToast.success('Opening Google Calendar...');
       } else {
         // Multiple bookings - simplified approach
-        toast.success(`Opening ${selectedBookings.length} calendar events...`);
+        showToast.success(`Opening ${selectedBookings.length} calendar events...`);
 
         selectedBookings.forEach((booking, index) => {
           setTimeout(() => {
@@ -213,11 +213,11 @@ This appointment was booked through the Kaizen medical platform.
 
             if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
               // If popup blocked, show toast notification
-              toast.error(`Popup blocked for appointment ${index + 1}! Please use the Download option instead.`, {
+              showToast.error(`Popup blocked for appointment ${index + 1}! Please use the Download option instead.`, {
                 duration: 4000,
               });
             } else {
-              toast.success(`Calendar event ${index + 1} opened!`, {
+              showToast.success(`Calendar event ${index + 1} opened!`, {
                 duration: 2000,
               });
             }
@@ -226,7 +226,7 @@ This appointment was booked through the Kaizen medical platform.
 
         // Show helpful tip
         setTimeout(() => {
-          toast('💡 If popups are blocked, try the "Download Calendar File" button below!', {
+          showToast.info('💡 If popups are blocked, try the "Download Calendar File" button below!', {
             duration: 6000,
             style: {
               background: '#3B82F6',
@@ -236,7 +236,7 @@ This appointment was booked through the Kaizen medical platform.
         }, 3000);
       }
     } catch (error) {
-      toast.error('Failed to create calendar events');
+      showToast.error('Failed to create calendar events');
     }
   };
   return (

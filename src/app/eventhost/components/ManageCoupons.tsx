@@ -1,6 +1,6 @@
 import { TicketIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useState, useEffect, useCallback } from 'react';
-import toast from 'react-hot-toast';
+import { showToast } from '@/lib/toast';
 
 interface Coupon {
   id: string;
@@ -51,7 +51,7 @@ export default function ManageCoupons({ hostId }: ManageCouponsProps) {
         setCoupons(transformedCoupons);
       }
     } catch (error) {
-      toast.error('Failed to load coupons');
+      showToast.error('Failed to load coupons');
     } finally {
       setLoading(false);
     }
@@ -90,14 +90,14 @@ export default function ManageCoupons({ hostId }: ManageCouponsProps) {
 
       if (response.ok && result.success) {
         setCoupons(coupons.filter(c => c.id !== couponToDelete.id));
-        toast.success('Coupon deleted successfully');
+        showToast.success('Coupon deleted successfully');
         setShowDeleteConfirm(false);
         setCouponToDelete(null);
       } else {
-        toast.error(result.error || 'Failed to delete coupon');
+        showToast.error(result.error || 'Failed to delete coupon');
       }
     } catch (error) {
-      toast.error('Failed to delete coupon');
+      showToast.error('Failed to delete coupon');
     } finally {
       setDeletingCouponId(null);
     }
@@ -134,10 +134,10 @@ export default function ManageCoupons({ hostId }: ManageCouponsProps) {
 
         if (response.ok && result.success) {
           await fetchCoupons(); // Refresh the list
-          toast.success('Coupon updated successfully');
+          showToast.success('Coupon updated successfully');
           setShowCouponModal(false);
         } else {
-          toast.error(result.error || 'Failed to update coupon');
+          showToast.error(result.error || 'Failed to update coupon');
           throw new Error(result.error || 'Failed to update coupon');
         }
       } else {
@@ -152,15 +152,15 @@ export default function ManageCoupons({ hostId }: ManageCouponsProps) {
 
         if (response.ok && result.success) {
           await fetchCoupons(); // Refresh the list
-          toast.success('Coupon created successfully');
+          showToast.success('Coupon created successfully');
           setShowCouponModal(false);
         } else {
-          toast.error(result.error || 'Failed to create coupon');
+          showToast.error(result.error || 'Failed to create coupon');
           throw new Error(result.error || 'Failed to create coupon');
         }
       }
     } catch (error) {
-      toast.error('Failed to save coupon');
+      showToast.error('Failed to save coupon');
       throw error; // Re-throw so modal can handle it
     }
   };
@@ -193,12 +193,12 @@ export default function ManageCoupons({ hostId }: ManageCouponsProps) {
         setCoupons(coupons.map(c =>
           c.id === couponId ? { ...c, isActive: !c.isActive } : c
         ));
-        toast.success('Coupon status updated');
+        showToast.success('Coupon status updated');
       } else {
-        toast.error(result.error || 'Failed to update coupon status');
+        showToast.error(result.error || 'Failed to update coupon status');
       }
     } catch (error) {
-      toast.error('Failed to update coupon status');
+      showToast.error('Failed to update coupon status');
     }
   };
 

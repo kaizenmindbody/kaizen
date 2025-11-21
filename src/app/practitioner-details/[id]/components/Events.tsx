@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { MapPin, Calendar, Clock, DollarSign, Ticket, Users, CheckCircle, AlertCircle } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { showToast } from '@/lib/toast';
 
 interface TicketType {
   id: string;
@@ -145,9 +145,9 @@ export const Events = ({ practitionerId }: EventsProps) => {
   const handleRegister = (event: EventData, ticket?: TicketType) => {
     // TODO: Implement event registration logic
     if (ticket) {
-      toast.success(`Registration for "${event.event_name}" - ${ticket.name} coming soon!`);
+      showToast.success(`Registration for "${event.event_name}" - ${ticket.name} coming soon!`);
     } else {
-      toast.success(`Registration for "${event.event_name}" coming soon!`);
+      showToast.success(`Registration for "${event.event_name}" coming soon!`);
     }
   };
 

@@ -8,7 +8,7 @@ declare global {
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
-import toast from 'react-hot-toast';
+import { showToast } from '@/lib/toast';
 import dynamic from 'next/dynamic';
 
 const Autocomplete = dynamic(
@@ -318,7 +318,7 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
     setEventImagePreview('');
     setTicketTypes([]);
     setWaivers([]);
-    toast.success('Form cleared - starting fresh!');
+    showToast.success('Form cleared - starting fresh!');
   };
 
   // Load event data when editing
@@ -465,34 +465,34 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
     e.preventDefault();
 
     if (!user?.id) {
-      toast.error('You must be logged in to create an event');
+      showToast.error('You must be logged in to create an event');
       return;
     }
 
     // Validate required fields
     if (!eventName.trim()) {
-      toast.error('Event name is required');
+      showToast.error('Event name is required');
       return;
     }
 
     if (!eventSummary.trim()) {
-      toast.error('Event summary is required');
+      showToast.error('Event summary is required');
       return;
     }
 
     if (!eventDescription.trim()) {
-      toast.error('Event description is required');
+      showToast.error('Event description is required');
       return;
     }
 
     if (!eventStartDate || !eventEndDate) {
-      toast.error('Event start and end dates are required');
+      showToast.error('Event start and end dates are required');
       return;
     }
 
     // Validate address fields
     if (!addressFields.street.trim() || !addressFields.city.trim() || !addressFields.state.trim() || !addressFields.zipCode.trim()) {
-      toast.error('Complete address is required (street, city, state, and zip code)');
+      showToast.error('Complete address is required (street, city, state, and zip code)');
       return;
     }
 
@@ -501,13 +501,13 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
     const endDate = new Date(eventEndDate);
 
     if (endDate < startDate) {
-      toast.error('Event End Date and Time cannot be before Event Start Date and Time');
+      showToast.error('Event End Date and Time cannot be before Event Start Date and Time');
       return;
     }
 
     // For create mode, image is required. For edit mode, image is optional
     if (!editingEvent && !eventImageFile) {
-      toast.error('Event image is required');
+      showToast.error('Event image is required');
       return;
     }
 
@@ -562,7 +562,7 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
       }
 
       // Success!
-      toast.success(result.message || `Event ${editingEvent ? 'updated' : 'created'} successfully!`);
+      showToast.success(result.message || `Event ${editingEvent ? 'updated' : 'created'} successfully!`);
 
       // Clear saved form data from localStorage
       clearSavedFormData();
@@ -603,7 +603,7 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
       }, 1500);
 
     } catch (error: any) {
-      toast.error(error.message || `Failed to ${editingEvent ? 'update' : 'create'} event. Please try again.`);
+      showToast.error(error.message || `Failed to ${editingEvent ? 'update' : 'create'} event. Please try again.`);
     } finally {
       setIsSubmitting(false);
     }

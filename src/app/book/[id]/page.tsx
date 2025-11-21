@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import toast from 'react-hot-toast';
+import { showToast } from '@/lib/toast';
 import {
   ProgressSteps,
   PractitionerInfo,
@@ -591,15 +591,15 @@ const PractitionerBooking = () => {
   const handleNextStep = async () => {
     // Add validation before proceeding to next step
     if (currentStep === 1 && !selectedService) {
-      toast.error('Please select a service before proceeding.');
+      showToast.error('Please select a service before proceeding.');
       return;
     }
     if (currentStep === 3 && selectedBookings.length === 0) {
-      toast.error('Please select at least one date and time slot before proceeding.');
+      showToast.error('Please select at least one date and time slot before proceeding.');
       return;
     }
     if (currentStep === 4 && !isFormValid()) {
-      toast.error('Please agree to the consent forms.');
+      showToast.error('Please agree to the consent forms.');
       return;
     }
 
@@ -684,7 +684,7 @@ const PractitionerBooking = () => {
   const handleStepClick = (targetStep) => {
     // Don't allow any navigation from confirmation step (step 5)
     if (currentStep === 5) {
-      toast.error('Booking is confirmed. You cannot navigate to previous steps.');
+      showToast.error('Booking is confirmed. You cannot navigate to previous steps.');
       return;
     }
 
@@ -701,7 +701,7 @@ const PractitionerBooking = () => {
         } else if (targetStep === 5 && (!selectedService || selectedBookings.length === 0 || !isFormValid())) {
           message = 'Please complete all previous steps first.';
         }
-        toast.error(message);
+        showToast.error(message);
         return;
       }
     }
@@ -731,11 +731,11 @@ const PractitionerBooking = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        toast.error(`Failed to cancel booking: ${data.error}`);
+        showToast.error(`Failed to cancel booking: ${data.error}`);
         return;
       }
 
-      toast.success(`Successfully cancelled ${data.cancelledBookings?.length || 0} bookings`);
+      showToast.success(`Successfully cancelled ${data.cancelledBookings?.length || 0} bookings`);
 
       // Clear the book number and reset state
       setCurrentBookNumber(null);
@@ -754,19 +754,19 @@ const PractitionerBooking = () => {
       // Navigate to find-practitioner page
       router.push('/find-practitioner');
     } catch (error) {
-      toast.error('Failed to cancel booking. Please try again.');
+      showToast.error('Failed to cancel booking. Please try again.');
     }
   };
 
   // Submit multiple bookings function
   const submitBooking = async () => {
     if (!selectedService || selectedBookings.length === 0) {
-      toast.error('Please complete all required fields before booking.');
+      showToast.error('Please complete all required fields before booking.');
       return false;
     }
 
     if (!user) {
-      toast.error('Please log in to make a booking.');
+      showToast.error('Please log in to make a booking.');
       router.push('/auth/signin');
       return false;
     }
@@ -803,11 +803,11 @@ const PractitionerBooking = () => {
         const data = await response.json();
 
         if (!response.ok) {
-          toast.error(`Failed to reschedule booking: ${data.error}`);
+          showToast.error(`Failed to reschedule booking: ${data.error}`);
           throw new Error(data.error);
         }
 
-        toast.success(`Successfully rescheduled ${data.bookings?.length || 0} bookings!`);
+        showToast.success(`Successfully rescheduled ${data.bookings?.length || 0} bookings!`);
         setIsRescheduleMode(false); // Exit reschedule mode
         return true;
       } else {
@@ -841,7 +841,7 @@ const PractitionerBooking = () => {
           if (!response.ok) {
             const errorData = await response.json();
             const errorMessage = `Failed to book ${booking.displayDate} at ${booking.timeSlot}: ${errorData.error}`;
-            toast.error(errorMessage);
+            showToast.error(errorMessage);
             throw new Error(errorMessage);
           }
 
@@ -850,11 +850,11 @@ const PractitionerBooking = () => {
 
         // Execute all booking requests
         const results = await Promise.all(bookingPromises);
-        toast.success(`${results.length} booking${results.length > 1 ? 's' : ''} created successfully!`);
+        showToast.success(`${results.length} booking${results.length > 1 ? 's' : ''} created successfully!`);
         return true;
       }
     } catch (error) {
-      toast.error(`Failed to create booking: ${error.message}`);
+      showToast.error(`Failed to create booking: ${error.message}`);
       return false;
     }
   };

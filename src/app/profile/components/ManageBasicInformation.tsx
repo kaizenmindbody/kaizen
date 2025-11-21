@@ -4,7 +4,7 @@ import { ProfileData } from '@/types/user';
 import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useAuth } from '@/contexts/AuthContext';
-import toast from 'react-hot-toast';
+import { showToast } from '@/lib/toast';
 import Select, { MultiValue } from 'react-select';
 import makeAnimated from 'react-select/animated';
 import { useDegrees } from '@/hooks/useDegrees';
@@ -163,14 +163,14 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
   // Show success/error toasts
   useEffect(() => {
     if (error) {
-      toast.error(error);
+      showToast.error(error);
       clearError();
     }
   }, [error, clearError]);
 
   useEffect(() => {
     if (successMessage) {
-      toast.success(successMessage);
+      showToast.success(successMessage);
       clearSuccessMessage();
     }
   }, [successMessage, clearSuccessMessage]);
@@ -240,13 +240,13 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      toast.error('Please select a valid image file');
+      showToast.error('Please select a valid image file');
       return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size must be less than 5MB');
+      showToast.error('Image size must be less than 5MB');
       return;
     }
 
@@ -359,18 +359,18 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
     e.preventDefault();
 
     if (!user) {
-      toast.error('User not authenticated');
+      showToast.error('User not authenticated');
       return;
     }
 
     // Validation
     if (!formData.first_name.trim() || !formData.last_name.trim()) {
-      toast.error('First name and last name are required');
+      showToast.error('First name and last name are required');
       return;
     }
 
     if (formData.website && !formData.website.startsWith('http')) {
-      toast.error('Website must start with http:// or https://');
+      showToast.error('Website must start with http:// or https://');
       return;
     }
 
@@ -378,7 +378,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
     if (avatarFile) {
       const avatarSuccess = await uploadAvatar(user.id, avatarFile, profile?.avatar || null);
       if (!avatarSuccess) {
-        toast.error('Failed to upload avatar. Please try again.');
+        showToast.error('Failed to upload avatar. Please try again.');
         return;
       }
       // Clear the pending avatar file after successful upload

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import toast from 'react-hot-toast';
+import { showToast } from '@/lib/toast';
 import { useParams } from 'next/navigation';
 
 // Import components
@@ -346,7 +346,7 @@ const PractitionerDetailsPage = () => {
         setPractitioner(transformedPractitioner);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-        toast.error(`Error loading practitioner: ${errorMessage}`);
+        showToast.error(`Error loading practitioner: ${errorMessage}`);
         setError(`Failed to fetch practitioner: ${errorMessage}`);
       } finally {
         setLoading(false);
@@ -379,7 +379,7 @@ const PractitionerDetailsPage = () => {
         });
       });
     } catch (error) {
-      toast.error('Error geocoding address');
+      showToast.error('Error geocoding address');
       return null;
     }
   };

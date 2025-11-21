@@ -2,7 +2,7 @@
 
 import { ProfileData } from '@/types/user';
 import { useState, useEffect } from 'react';
-import toast from 'react-hot-toast';
+import { showToast } from '@/lib/toast';
 import { useDescriptions } from '@/hooks/useDescriptions';
 
 interface ManageDescriptionsProps {
@@ -90,7 +90,7 @@ const ManageDescriptions: React.FC<ManageDescriptionsProps> = ({ profile }) => {
     e.preventDefault();
 
     if (!profile?.id) {
-      toast.error('Profile not found');
+      showToast.error('Profile not found');
       return;
     }
 
@@ -105,11 +105,11 @@ const ManageDescriptions: React.FC<ManageDescriptionsProps> = ({ profile }) => {
     });
 
     if (result.success) {
-      toast.success('Descriptions saved successfully!');
+      showToast.success('Descriptions saved successfully!');
       await refreshDescriptions();
       setHasChanges(false);
     } else {
-      toast.error(result.error || 'Failed to save descriptions. Please try again.');
+      showToast.error(result.error || 'Failed to save descriptions. Please try again.');
     }
   };
 

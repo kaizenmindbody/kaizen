@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import toast from 'react-hot-toast';
+import { showToast } from '@/lib/toast';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Import components
@@ -163,7 +163,7 @@ const ClinicDetailsPage = () => {
 
         setClinic(transformedClinic);
       } catch (error) {
-        toast.error('Error fetching clinic details');
+        showToast.error('Error fetching clinic details');
         setError('Failed to fetch clinic details');
       } finally {
         setLoading(false);

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Database, FileText, Calendar, ExternalLink } from 'lucide-react';
 import { SettingsProps } from '@/types/admin';
-import toast from 'react-hot-toast';
+import { showToast } from '@/lib/toast';
 
 const Settings = ({ users, specialties, stats, onRefreshData }: SettingsProps) => {
   const { user } = useAuth();
@@ -30,12 +30,12 @@ const Settings = ({ users, specialties, stats, onRefreshData }: SettingsProps) =
       if (response.ok && data.authUrl) {
         // Open the authorization URL in a new window
         window.open(data.authUrl, '_blank', 'width=500,height=600');
-        toast.success('Please complete the authorization in the new window');
+        showToast.success('Please complete the authorization in the new window');
       } else {
-        toast.error('Failed to start Google Calendar connection');
+        showToast.error('Failed to start Google Calendar connection');
       }
     } catch (error) {
-      toast.error('Failed to connect to Google Calendar');
+      showToast.error('Failed to connect to Google Calendar');
     } finally {
       setConnectingCalendar(false);
     }

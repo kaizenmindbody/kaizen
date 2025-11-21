@@ -8,7 +8,7 @@ import { ServicePricing, PackagePricing } from '@/store/slices/servicePricingSli
 import { useAppDispatch } from '@/store/hooks';
 import { resetServicePricing } from '@/store/slices/servicePricingSlice';
 import { supabase } from '@/lib/supabase';
-import toast from 'react-hot-toast';
+import { showToast } from '@/lib/toast';
 import Image from 'next/image';
 import { Building2, Globe, Phone, Mail, MapPin, Upload, X, Film, Image as ImageIcon } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -203,7 +203,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
 
 
       if (error) {
-        toast.error('Failed to load clinic information');
+        showToast.error('Failed to load clinic information');
         return;
       }
 
@@ -364,13 +364,13 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
     if (file) {
       // Validate file type
       if (!file.type.startsWith('image/')) {
-        toast.error('Please select an image file');
+        showToast.error('Please select an image file');
         return;
       }
 
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        toast.error('Image size must be less than 5MB');
+        showToast.error('Image size must be less than 5MB');
         return;
       }
 
@@ -414,7 +414,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
 
       return publicUrl;
     } catch (error) {
-      toast.error('Failed to upload logo');
+      showToast.error('Failed to upload logo');
       return null;
     } finally {
       setUploadingLogo(false);
@@ -427,13 +427,13 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
     if (file) {
       // Validate file type
       if (!file.type.startsWith('video/')) {
-        toast.error('Please select a video file');
+        showToast.error('Please select a video file');
         return;
       }
 
       // Validate file size (max 50MB)
       if (file.size > 50 * 1024 * 1024) {
-        toast.error('Video size must be less than 50MB');
+        showToast.error('Video size must be less than 50MB');
         return;
       }
 
@@ -463,7 +463,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
 
     // Check if adding these files would exceed 10 images
     if (clinicImages.length + files.length > 10) {
-      toast.error('You can upload a maximum of 10 images');
+      showToast.error('You can upload a maximum of 10 images');
       return;
     }
 
@@ -473,13 +473,13 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
     for (const file of files) {
       // Validate file type
       if (!file.type.startsWith('image/')) {
-        toast.error(`${file.name} is not an image file`);
+        showToast.error(`${file.name} is not an image file`);
         continue;
       }
 
       // Validate file size (max 10MB)
       if (file.size > 10 * 1024 * 1024) {
-        toast.error(`${file.name} is too large. Max size is 10MB`);
+        showToast.error(`${file.name} is too large. Max size is 10MB`);
         continue;
       }
 
@@ -528,7 +528,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
 
       return publicUrl;
     } catch (error) {
-      toast.error('Failed to upload video');
+      showToast.error('Failed to upload video');
       return null;
     }
   };
@@ -563,7 +563,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
 
         uploadedUrls.push(publicUrl);
       } catch (error) {
-        toast.error('Failed to upload some images');
+        showToast.error('Failed to upload some images');
       }
     }
 
@@ -712,7 +712,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
   // Save all changes
   const handleSaveAll = async () => {
     if (!profile?.id) {
-      toast.error('Profile not found');
+      showToast.error('Profile not found');
       return;
     }
 
@@ -720,7 +720,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
     const { data: { user: authUser } } = await supabase.auth.getUser();
 
     if (authUser?.id !== profile.id) {
-      toast.error('Authentication mismatch: Your session user ID does not match the profile ID. Please sign out and sign in again.');
+      showToast.error('Authentication mismatch: Your session user ID does not match the profile ID. Please sign out and sign in again.');
       setIsSaving(false);
       return;
     }
@@ -869,7 +869,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
         setExistingImages([]);
       }
 
-      toast.success('Clinic profile updated successfully!');
+      showToast.success('Clinic profile updated successfully!');
     } catch (error: any) {
       console.error('[Clinic Save] Error saving clinic profile:', error);
 
@@ -893,7 +893,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
         errorMessage = 'User record not found. Please ensure your account is properly set up.';
       }
 
-      toast.error(errorMessage);
+      showToast.error(errorMessage);
     } finally {
       setIsSaving(false);
     }

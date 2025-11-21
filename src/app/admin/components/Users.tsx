@@ -5,7 +5,7 @@ import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { FilterMatchMode } from 'primereact/api';
 import Image from 'next/image';
-import toast from 'react-hot-toast';
+import { showToast } from '@/lib/toast';
 import { useState, useRef } from 'react';
 import { User, UsersProps } from '@/types/user';
 import { useUsers } from '@/hooks/useUsers';
@@ -41,11 +41,11 @@ const UsersComponent = ({ users, specialties, onRefreshData }: UsersProps) => {
   const { deleteUser: deleteUserFromDB, isDeleting } = useUsers();
 
   const showSuccess = (message: string) => {
-    toast.success(message);
+    showToast.success(message);
   };
 
   const showError = (message: string) => {
-    toast.error(message);
+    showToast.error(message);
   };
 
   const onGlobalFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {

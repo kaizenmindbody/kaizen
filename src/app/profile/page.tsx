@@ -9,7 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { useProfile } from "@/hooks/useProfile";
 import dynamic from 'next/dynamic';
-import toast from 'react-hot-toast';
+import { showToast } from '@/lib/toast';
 import 'react-phone-input-2/lib/style.css';
 import { ProfileData } from '@/types/user';
 import 'react-quill-new/dist/quill.snow.css';
@@ -384,13 +384,13 @@ const ProfilePage = () => {
     // Validate file size (600MB limit)
     const maxSize = 600 * 1024 * 1024; // 600MB in bytes
     if (file.size > maxSize) {
-      toast.error('Video file size must be less than 600MB');
+      showToast.error('Video file size must be less than 600MB');
       return;
     }
 
     // Validate file type
     if (!file.type.startsWith('video/')) {
-      toast.error('Please select a valid video file');
+      showToast.error('Please select a valid video file');
       return;
     }
 
@@ -413,11 +413,11 @@ const ProfilePage = () => {
     const maxSize = 10 * 1024 * 1024; // 10MB per image
     for (const file of files) {
       if (file.size > maxSize) {
-        toast.error('Each image file must be less than 10MB');
+        showToast.error('Each image file must be less than 10MB');
         return;
       }
       if (!file.type.startsWith('image/')) {
-        toast.error('Please select only image files');
+        showToast.error('Please select only image files');
         return;
       }
     }
@@ -569,10 +569,10 @@ const ProfilePage = () => {
       setHasUnsavedMediaChanges(false);
       setImagesWereModified(false);
 
-      toast.success('Media saved successfully!');
+      showToast.success('Media saved successfully!');
 
     } catch (error) {
-      toast.error('Failed to save media. Please try again.');
+      showToast.error('Failed to save media. Please try again.');
     } finally {
       setIsSavingMedia(false);
     }

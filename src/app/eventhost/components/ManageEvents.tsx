@@ -1,7 +1,7 @@
 import { CalendarIcon, MapPinIcon, ClockIcon, TicketIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';
 import { useState } from 'react';
-import toast from 'react-hot-toast';
+import { showToast } from '@/lib/toast';
 
 interface EventData {
   id: string;
@@ -67,12 +67,12 @@ export default function ManageEvents({ events, setActiveTab, onEditEvent, onEven
         throw new Error(result.error || 'Failed to delete event');
       }
 
-      toast.success('Event deleted successfully!');
+      showToast.success('Event deleted successfully!');
       setShowDeleteConfirm(false);
       setEventToDelete(null);
       onEventDeleted();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to delete event');
+      showToast.error(error.message || 'Failed to delete event');
     } finally {
       setDeletingEventId(null);
     }

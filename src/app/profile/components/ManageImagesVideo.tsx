@@ -2,7 +2,7 @@
 
 import { ProfileData } from '@/types/user';
 import { useState, useRef, useEffect, useMemo } from 'react';
-import toast from 'react-hot-toast';
+import { showToast } from '@/lib/toast';
 import Image from 'next/image';
 import { useImageVideo } from '@/hooks/useImageVideo';
 
@@ -35,14 +35,14 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
   // Show success/error toasts
   useEffect(() => {
     if (error) {
-      toast.error(error);
+      showToast.error(error);
       clearError();
     }
   }, [error, clearError]);
 
   useEffect(() => {
     if (successMessage) {
-      toast.success(successMessage);
+      showToast.success(successMessage);
       clearSuccessMessage();
     }
   }, [successMessage, clearSuccessMessage]);
@@ -58,13 +58,13 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
     for (const file of filesArray) {
       // Validate file type
       if (!file.type.startsWith('image/')) {
-        toast.error(`${file.name} is not a valid image file`);
+        showToast.error(`${file.name} is not a valid image file`);
         return;
       }
 
       // Validate file size (10MB)
       if (file.size > 10 * 1024 * 1024) {
-        toast.error(`${file.name} is larger than 10MB`);
+        showToast.error(`${file.name} is larger than 10MB`);
         return;
       }
     }
@@ -88,13 +88,13 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
           if (processedCount === filesArray.length) {
             setPendingImages(prev => [...prev, ...newFiles]);
             setImagesPreviews(prev => [...prev, ...newPreviews]);
-            toast.success(`${filesArray.length} image${filesArray.length > 1 ? 's' : ''} added! Click "Save Changes" to upload.`);
+            showToast.success(`${filesArray.length} image${filesArray.length > 1 ? 's' : ''} added! Click "Save Changes" to upload.`);
           }
         }
       };
 
       reader.onerror = (error) => {
-        toast.error(`Failed to load preview for ${file.name}`);
+        showToast.error(`Failed to load preview for ${file.name}`);
       };
 
       reader.readAsDataURL(file);
@@ -115,13 +115,13 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
     for (const file of filesArray) {
       // Validate file type
       if (!file.type.startsWith('video/')) {
-        toast.error(`${file.name} is not a valid video file`);
+        showToast.error(`${file.name} is not a valid video file`);
         return;
       }
 
       // Validate file size (600MB)
       if (file.size > 600 * 1024 * 1024) {
-        toast.error(`${file.name} is larger than 600MB`);
+        showToast.error(`${file.name} is larger than 600MB`);
         return;
       }
     }
@@ -139,7 +139,7 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
 
     setPendingVideos(prev => [...prev, ...newFiles]);
     setVideosPreviews(prev => [...prev, ...newPreviews]);
-    toast.success(`${filesArray.length} video${filesArray.length > 1 ? 's' : ''} added! Click "Save Changes" to upload.`);
+    showToast.success(`${filesArray.length} video${filesArray.length > 1 ? 's' : ''} added! Click "Save Changes" to upload.`);
 
     // Reset input
     if (videoInputRef.current) videoInputRef.current.value = '';
@@ -179,12 +179,12 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
 
   const handleSave = async () => {
     if (!profile?.id) {
-      toast.error('Profile ID not found');
+      showToast.error('Profile ID not found');
       return;
     }
 
     if (pendingImages.length === 0 && pendingVideos.length === 0) {
-      toast.error('No changes to save');
+      showToast.error('No changes to save');
       return;
     }
 
@@ -201,12 +201,12 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
         videosPreviews.forEach(previewUrl => URL.revokeObjectURL(previewUrl));
         setVideosPreviews([]);
 
-        toast.success('Media uploaded successfully!');
+        showToast.success('Media uploaded successfully!');
       } else {
-        toast.error('Upload failed. Please check console for details.');
+        showToast.error('Upload failed. Please check console for details.');
       }
     } catch (err: any) {
-      toast.error(err.message || 'Failed to upload media');
+      showToast.error(err.message || 'Failed to upload media');
     }
   };
 

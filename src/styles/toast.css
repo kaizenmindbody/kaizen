@@ -1,0 +1,194 @@
+/* Professional Toast Animations and Styles */
+
+/* Smooth slide-in animation from right */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Smooth slide-out animation to right */
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+}
+
+/* Subtle bounce effect */
+@keyframes toastBounce {
+  0% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-10px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+/* Pulse animation for attention */
+@keyframes toastPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+/* Professional toast container styling */
+.professional-toast {
+  animation: slideInRight 0.3s cubic-bezier(0.21, 1.02, 0.73, 1) forwards;
+  transition: all 0.3s cubic-bezier(0.21, 1.02, 0.73, 1);
+  will-change: transform, opacity;
+}
+
+/* Toast entering animation */
+[data-status="entering"] {
+  animation: slideInRight 0.35s cubic-bezier(0.21, 1.02, 0.73, 1) forwards;
+}
+
+/* Toast exiting animation */
+[data-status="exiting"] {
+  animation: slideOutRight 0.25s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+/* Hover effects for professional feel */
+.professional-toast:hover {
+  transform: translateX(-4px) scale(1.01);
+  box-shadow: 0 25px 30px -5px rgba(0, 0, 0, 0.15),
+              0 15px 15px -5px rgba(0, 0, 0, 0.08),
+              0 0 0 1px rgba(0, 0, 0, 0.08) !important;
+  transition: all 0.2s cubic-bezier(0.21, 1.02, 0.73, 1);
+}
+
+/* Smooth transitions for all toast states */
+.professional-toast * {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Icon container animations */
+.professional-toast [class*="bg-green"],
+.professional-toast [class*="bg-red"],
+.professional-toast [class*="bg-blue"],
+.professional-toast [class*="bg-yellow"] {
+  transition: all 0.3s cubic-bezier(0.21, 1.02, 0.73, 1);
+}
+
+/* Icon hover effect */
+.professional-toast:hover [class*="bg-green"],
+.professional-toast:hover [class*="bg-red"],
+.professional-toast:hover [class*="bg-blue"],
+.professional-toast:hover [class*="bg-yellow"] {
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px -2px rgba(0, 0, 0, 0.15);
+}
+
+/* Loading spinner smooth rotation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Backdrop blur support for modern browsers */
+@supports (backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px)) {
+  .professional-toast {
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 640px) {
+  .professional-toast {
+    max-width: calc(100vw - 32px) !important;
+    min-width: calc(100vw - 32px) !important;
+    margin: 0 16px;
+  }
+
+  /* Adjust animation for mobile */
+  @keyframes slideInRight {
+    from {
+      transform: translateX(100vw);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+}
+
+/* Enhanced close button styling */
+.professional-toast button[aria-label="Close"] {
+  opacity: 0.5;
+  transition: all 0.2s ease-in-out;
+  border-radius: 6px;
+  padding: 4px;
+}
+
+.professional-toast button[aria-label="Close"]:hover {
+  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.05);
+  transform: scale(1.1);
+}
+
+/* Progress bar styling (if used) */
+.professional-toast [role="progressbar"] {
+  height: 3px;
+  background: linear-gradient(90deg, transparent, currentColor);
+  border-radius: 2px;
+  opacity: 0.3;
+  transition: all 0.2s ease-in-out;
+}
+
+/* Focus states for accessibility */
+.professional-toast:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* Smooth color transitions */
+.professional-toast,
+.professional-toast * {
+  color-transition: color 0.2s ease-in-out;
+}
+
+/* Enhanced shadow on active state */
+.professional-toast:active {
+  transform: translateX(-2px) scale(0.99);
+}
+
+/* Glassmorphism effect enhancement */
+.professional-toast::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: inherit;
+  background: inherit;
+  filter: blur(20px);
+  opacity: 0.3;
+  z-index: -1;
+}

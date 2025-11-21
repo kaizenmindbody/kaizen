@@ -6,7 +6,7 @@ import { Column } from 'primereact/column';
 import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 import { Dialog } from 'primereact/dialog';
-import toast from 'react-hot-toast';
+import { showToast } from '@/lib/toast';
 import { confirmDialog } from 'primereact/confirmdialog';
 import { FilterMatchMode } from 'primereact/api';
 import { useDegrees } from '@/hooks/useDegrees';
@@ -27,11 +27,11 @@ const Degrees = ({ onRefreshData }: { onRefreshData: () => void }) => {
   const dt = useRef<DataTable<Degree[]>>(null);
 
   const showSuccess = (message: string) => {
-    toast.success(message);
+    showToast.success(message);
   };
 
   const showError = (message: string) => {
-    toast.error(message);
+    showToast.error(message);
   };
 
   const onGlobalFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {

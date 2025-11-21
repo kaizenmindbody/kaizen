@@ -340,7 +340,12 @@ export const Practitioners = ({ clinic }: PractitionersProps) => {
                         <button
                           onClick={() => {
                             if (member.website) {
-                              window.open(member.website, '_blank', 'noopener,noreferrer');
+                              // Ensure URL is absolute (starts with http:// or https://)
+                              let websiteUrl = member.website.trim();
+                              if (!websiteUrl.startsWith('http://') && !websiteUrl.startsWith('https://')) {
+                                websiteUrl = `https://${websiteUrl}`;
+                              }
+                              window.open(websiteUrl, '_blank', 'noopener,noreferrer');
                             }
                           }}
                           disabled={!member.website}

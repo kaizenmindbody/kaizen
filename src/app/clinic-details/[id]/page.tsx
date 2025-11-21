@@ -94,29 +94,21 @@ const ClinicDetailsPage = () => {
         // Fetch practitioner info
         const { data: practitionerData } = await supabase
           .from('Users')
-          .select('id, full_name, firstname, lastname, avatar, specialty')
+          .select('id, firstname, lastname, avatar, ptype')
           .eq('id', clinicData.practitioner_id)
           .single();
 
         let practitionerInfo = null;
         if (practitionerData) {
-          // Compute full_name
+          // Compute full_name from firstname and lastname
           const fullName = practitionerData.firstname && practitionerData.lastname
             ? `${practitionerData.firstname} ${practitionerData.lastname}`.trim()
-            : practitionerData.firstname || practitionerData.lastname || practitionerData.full_name || '';
+            : practitionerData.firstname || practitionerData.lastname || '';
 
-          // Parse specialty
+          // Use ptype as specialty (Users table doesn't have specialty column)
           let specialty = [];
-          if (practitionerData.specialty) {
-            if (typeof practitionerData.specialty === 'string') {
-              try {
-                specialty = JSON.parse(practitionerData.specialty);
-              } catch {
-                specialty = [practitionerData.specialty];
-              }
-            } else if (Array.isArray(practitionerData.specialty)) {
-              specialty = practitionerData.specialty;
-            }
+          if (practitionerData.ptype) {
+            specialty = [practitionerData.ptype];
           }
 
           practitionerInfo = {

@@ -210,7 +210,7 @@ export const ServicesPricing = ({ clinic }: ServicesPricingProps) => {
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-gray-600">Sessions</span>
-                        <span className="text-2xl font-bold text-amber-600">{pkg.no_of_sessions}</span>
+                        <span className="text-2xl font-bold text-black">{pkg.no_of_sessions}</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-gray-600">Total Price</span>

@@ -26,6 +26,7 @@ interface ClinicInfo {
   clinic_email: string;
   clinic_address: string;
   clinic_logo: string;
+  clinic_type: string;
 }
 
 // Dynamic import for PhoneInput component
@@ -53,6 +54,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
     clinic_email: '',
     clinic_address: '',
     clinic_logo: '',
+    clinic_type: 'Healthcare Clinic',
   });
 
   // Separate address fields for UI display
@@ -213,6 +215,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
           clinic_email: data.clinic_email || '',
           clinic_address: data.clinic_address || '',
           clinic_logo: data.clinic_logo || '',
+          clinic_type: data.clinic_type || 'Healthcare Clinic',
         });
 
         // Parse address into separate fields
@@ -825,6 +828,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
             clinic_email: clinicInfo.clinic_email,
             clinic_address: combinedAddress,
             clinic_logo: logoUrl,
+            clinic_type: clinicInfo.clinic_type || 'Healthcare Clinic',
             clinic_videos: allVideoUrls,
             clinic_images: allImageUrls,
           })
@@ -844,6 +848,7 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
             clinic_email: clinicInfo.clinic_email,
             clinic_address: combinedAddress,
             clinic_logo: logoUrl,
+            clinic_type: clinicInfo.clinic_type || 'Healthcare Clinic',
             clinic_videos: allVideoUrls,
             clinic_images: allImageUrls,
           })
@@ -962,6 +967,21 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
               placeholder="Enter clinic name"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
             />
+          </div>
+
+          {/* Clinic Type */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Clinic Type
+            </label>
+            <input
+              type="text"
+              value={clinicInfo.clinic_type}
+              onChange={(e) => setClinicInfo({ ...clinicInfo, clinic_type: e.target.value })}
+              placeholder="e.g., Healthcare Clinic, Medical Center, Hospital"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+            />
+            <p className="text-xs text-gray-500 mt-1">This will be displayed as a badge on your clinic page</p>
           </div>
 
           {/* Website and Business Phone */}

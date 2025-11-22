@@ -332,7 +332,7 @@ export const Practitioners = ({ clinic }: PractitionersProps) => {
         )}
       </div>
 
-      <div className="bg-blue-50 p-6 rounded-xl border border-blue-100 mt-8">
+      {/* <div className="bg-blue-50 p-6 rounded-xl border border-blue-100 mt-8">
         <h3 className="text-lg font-semibold text-gray-900 mb-3">
           Join Our Team
         </h3>
@@ -345,7 +345,7 @@ export const Practitioners = ({ clinic }: PractitionersProps) => {
         >
           Contact us about opportunities →
         </a>
-      </div>
+      </div> */}
     </div>
   );
 };

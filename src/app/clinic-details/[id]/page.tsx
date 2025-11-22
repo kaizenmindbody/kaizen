@@ -29,6 +29,7 @@ interface ClinicData {
   clinic_email: string | null;
   clinic_address: string | null;
   clinic_logo: string | null;
+  clinic_type: string | null;
   clinic_videos: string[];
   clinic_images: string[];
   created_at: string;

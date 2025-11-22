@@ -209,12 +209,12 @@ export const ServicesPricing = ({ clinic }: ServicesPricingProps) => {
 
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Sessions</span>
+                        <span className="text-lg font-bold text-gray-900">Sessions</span>
                         <span className="text-2xl font-bold text-black">{pkg.no_of_sessions}</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-gray-600">Total Price</span>
-                        <span className="text-2xl font-bold text-gray-900">{pkg.price}</span>
+                        <span className="text-xl font-bold text-gray-900">{pkg.price}</span>
                       </div>
                     </div>
 
@@ -276,7 +276,7 @@ export const ServicesPricing = ({ clinic }: ServicesPricingProps) => {
           )}
 
           {/* Contact Info Card */}
-          <div className="bg-gradient-to-br from-purple-50 to-white border-2 border-purple-100 rounded-xl p-6">
+          {/* <div className="bg-gradient-to-br from-purple-50 to-white border-2 border-purple-100 rounded-xl p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Need Help?</h3>
             <p className="text-sm text-gray-600 mb-4">
               Contact us to learn more about our services or to schedule an appointment.
@@ -292,7 +292,7 @@ export const ServicesPricing = ({ clinic }: ServicesPricingProps) => {
                 Call Now
               </a>
             )}
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

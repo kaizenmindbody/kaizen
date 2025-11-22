@@ -100,7 +100,7 @@ export const Header = ({ clinic, user }: HeaderProps) => {
                     <div className="flex items-start mb-3">
                       <span className="inline-block bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium border border-primary/20">
                         <Building2 className="w-4 h-4 inline mr-1" />
-                        Healthcare Clinic
+                        {clinic.clinic_type || 'Healthcare Clinic'}
                       </span>
                     </div>
 

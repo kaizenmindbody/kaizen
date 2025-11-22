@@ -198,17 +198,6 @@ const UserDirectoryContent = () => {
     fetchSpecialties();
   }, []);
 
-  // Initial fetch of practitioners on component mount
-  useEffect(() => {
-    fetchPractitioners({
-      page: 1,
-      limit: 3,
-      sortBy: 'created_at',
-      order: 'desc'
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // Set specialty filter when specialty options are loaded and there's a specialty URL parameter
   useEffect(() => {
     const specialtyParam = searchParams.get('specialty');
@@ -229,28 +218,34 @@ const UserDirectoryContent = () => {
     }
   }, [specialtyOptions, searchParams]);
 
-  // Trigger search when component loads with search parameters
+  // Initial fetch and handle URL parameters (including page)
   useEffect(() => {
-    const searchParam = searchParams.get('search');
-    const locationParam = searchParams.get('location');
-    const specialtyParam = searchParams.get('specialty');
+    const searchParam = searchParams.get('search') || '';
+    const locationParam = searchParams.get('location') || '';
+    const specialtyParam = searchParams.get('specialty') || '';
+    const pageParam = searchParams.get('page');
+    const initialPage = pageParam ? parseInt(pageParam, 10) : 1;
 
-    if (searchParam || locationParam || specialtyParam) {
-      // Use specialty param directly if available, otherwise use selected dropdown value
-      const specialtyValue = specialtyParam || (selectedSpecialty?.value === '' ? undefined : selectedSpecialty?.value);
+    // Always fetch with URL parameters, even if only page is present
+    // Prioritize URL params over state (state might not be initialized yet)
+    const specialtyValue = specialtyParam || undefined;
+    const locationValue = locationParam || '';
+    
+    // Get sortBy from URL or use default
+    const sortByValue = sortBy?.value || 'created_at';
+    const orderValue = sortByValue === 'full_name' ? 'asc' : 'desc';
 
-      // Trigger search with the URL parameters
-      fetchPractitioners({
-        page: 1,
-        limit: 3,
-        search: searchParam || '',
-        location: selectedState?.value || '',
-        specialty: specialtyValue,
-        sortBy: sortBy?.value,
-        order: sortBy?.value === 'full_name' ? 'asc' : 'desc'
-      });
-    }
-  }, [searchParams, selectedState, selectedSpecialty, fetchPractitioners, sortBy?.value]);
+    fetchPractitioners({
+      page: initialPage,
+      limit: 3,
+      search: searchParam,
+      location: locationValue,
+      specialty: specialtyValue,
+      sortBy: sortByValue,
+      order: orderValue
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]); // Only depend on searchParams to avoid conflicts
 
   // Google Maps configuration
   const mapContainerStyle = {
@@ -463,15 +458,56 @@ const UserDirectoryContent = () => {
   // Use the practitioners directly from the API (already paginated)
   const currentUsers = supabaseUsers;
   
+  // Helper function to update URL with current filters (resets to page 1)
+  const updateURLWithFilters = (newState?: typeof selectedState, newSpecialty?: typeof selectedSpecialty) => {
+    const params = new URLSearchParams();
+    const state = newState || selectedState;
+    const specialty = newSpecialty || selectedSpecialty;
+    
+    if (searchQuery) {
+      params.set('search', searchQuery);
+    }
+    if (state?.value) {
+      params.set('location', state.value);
+    }
+    if (specialty?.value && specialty.value !== 'All Specialties') {
+      params.set('specialty', specialty.value);
+    }
+    // Don't include page=1 (default)
+    
+    router.push(`/find-practitioner?${params.toString()}`, { scroll: false });
+  };
+
   const handleSearch = () => {
     // Search with new parameters, reset to page 1
+    updateURLWithFilters();
     handlePageChange(1);
   };
 
   // Debounced search effect for search input
   const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const isInitialMount = useRef(true);
+  const previousSearchFromUrl = useRef<string>(searchParams.get('search') || '');
   
   useEffect(() => {
+    // On initial mount, just sync the ref and skip debounced search
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      previousSearchFromUrl.current = searchParams.get('search') || '';
+      return;
+    }
+    
+    const urlSearchParam = searchParams.get('search') || '';
+    
+    // Only trigger debounced search if searchQuery differs from URL param
+    // This means user typed something, not just initialization
+    if (searchQuery === urlSearchParam && searchQuery === previousSearchFromUrl.current) {
+      return;
+    }
+    
+    // Update ref
+    previousSearchFromUrl.current = searchQuery;
+
     // Clear previous timeout
     if (searchDebounceRef.current) {
       clearTimeout(searchDebounceRef.current);
@@ -479,6 +515,21 @@ const UserDirectoryContent = () => {
 
     // Set new timeout for debounced search
     searchDebounceRef.current = setTimeout(() => {
+      // Reset to page 1 when user searches (searchQuery differs from URL)
+      const params = new URLSearchParams();
+      if (searchQuery) {
+        params.set('search', searchQuery);
+      }
+      if (selectedState?.value) {
+        params.set('location', selectedState.value);
+      }
+      if (selectedSpecialty?.value && selectedSpecialty.value !== 'All Specialties') {
+        params.set('specialty', selectedSpecialty.value);
+      }
+      // Don't include page=1 in URL (default) - reset to page 1 when user searches
+      
+      router.push(`/find-practitioner?${params.toString()}`, { scroll: false });
+      
       // Trigger search with current search query and filters
       fetchPractitioners({
         page: 1,
@@ -499,7 +550,7 @@ const UserDirectoryContent = () => {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery]); // Trigger when searchQuery changes
+  }, [searchQuery]); // Only depend on searchQuery
 
   // Handle pagination with API calls
   const handlePageChange = (page: number) => {
@@ -512,12 +563,68 @@ const UserDirectoryContent = () => {
       sortBy: sortBy?.value,
     };
 
+    // Update URL with page parameter
+    const params = new URLSearchParams(searchParams.toString());
+    if (page === 1) {
+      params.delete('page');
+    } else {
+      params.set('page', page.toString());
+    }
+    
+    // Preserve other search parameters
+    if (searchQuery) {
+      params.set('search', searchQuery);
+    } else {
+      params.delete('search');
+    }
+    
+    if (selectedState?.value) {
+      params.set('location', selectedState.value);
+    } else {
+      params.delete('location');
+    }
+    
+    if (selectedSpecialty?.value && selectedSpecialty.value !== 'All Specialties') {
+      params.set('specialty', selectedSpecialty.value);
+    } else {
+      params.delete('specialty');
+    }
+
+    router.push(`/find-practitioner?${params.toString()}`, { scroll: false });
     fetchPractitioners(fetchParams);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+
+  // Helper function to build referral URL with current page and filters
+  const buildReferralUrl = () => {
+    const currentPage = pagination?.currentPage || 1;
+    const params = new URLSearchParams();
+    
+    if (currentPage > 1) {
+      params.set('page', currentPage.toString());
+    }
+    
+    // Preserve filters
+    if (searchQuery) {
+      params.set('search', searchQuery);
+    }
+    if (selectedState?.value) {
+      params.set('location', selectedState.value);
+    }
+    if (selectedSpecialty?.value && selectedSpecialty.value !== 'All Specialties') {
+      params.set('specialty', selectedSpecialty.value);
+    }
+    
+    return `/find-practitioner${params.toString() ? `?${params.toString()}` : ''}`;
+  };
+
   const navigateToPractitioner = (practitioner) => {
-    router.push(`/practitioner-details/${practitioner.id}`);
+    // Build referral URL with current page and filters
+    const referralUrl = buildReferralUrl();
+    
+    // Navigate to practitioner detail with referral URL as query parameter
+    router.push(`/practitioner-details/${practitioner.id}?from=${encodeURIComponent(referralUrl)}`);
   };
   
   // Fixed function - now properly receives practitioner parameter
@@ -526,8 +633,11 @@ const UserDirectoryContent = () => {
       return;
     }
 
-    // Always redirect to practitioner detail page Services tab first
-    router.push(`/practitioner-details/${practitioner.id}#services`);
+    // Build referral URL with current page and filters
+    const referralUrl = buildReferralUrl();
+    
+    // Navigate to practitioner detail with referral URL
+    router.push(`/practitioner-details/${practitioner.id}?from=${encodeURIComponent(referralUrl)}#services`);
   };
 
   const showOnMap = (practitioner, event) => {
@@ -591,7 +701,8 @@ const UserDirectoryContent = () => {
                   value={selectedState}
                   onChange={(option) => {
                     setSelectedState(option);
-                    // Trigger search immediately when state changes
+                    // Update URL and trigger search immediately when state changes
+                    updateURLWithFilters(option, undefined);
                     fetchPractitioners({
                       page: 1,
                       limit: 3,
@@ -636,7 +747,8 @@ const UserDirectoryContent = () => {
                   value={selectedState}
                   onChange={(option) => {
                     setSelectedState(option);
-                    // Trigger search immediately when state changes
+                    // Update URL and trigger search immediately when state changes
+                    updateURLWithFilters(option, undefined);
                     fetchPractitioners({
                       page: 1,
                       limit: 3,
@@ -699,6 +811,8 @@ const UserDirectoryContent = () => {
                     onChange={(option) => {
                       setSortBy(option);
                       const order = (option?.value === 'full_name') ? 'asc' : 'desc';
+                      // Update URL when sort changes
+                      updateURLWithFilters();
                       fetchPractitioners({
                         page: 1,
                         limit: 3,
@@ -732,6 +846,8 @@ const UserDirectoryContent = () => {
                       value={selectedSpecialty}
                       onChange={(option) => {
                         setSelectedSpecialty(option);
+                        // Update URL when specialty changes
+                        updateURLWithFilters(undefined, option);
                         fetchPractitioners({
                           page: 1,
                           limit: 3,
@@ -755,6 +871,8 @@ const UserDirectoryContent = () => {
                       value={selectedReview}
                       onChange={(option) => {
                         setSelectedReview(option);
+                        // Update URL when review filter changes
+                        updateURLWithFilters();
                         fetchPractitioners({
                           page: 1,
                           limit: 3,
@@ -778,6 +896,8 @@ const UserDirectoryContent = () => {
                       value={selectedCheck}
                       onChange={(option) => {
                         setSelectedCheck(option);
+                        // Update URL when check filter changes
+                        updateURLWithFilters();
                         fetchPractitioners({
                           page: 1,
                           limit: 3,
@@ -853,6 +973,8 @@ const UserDirectoryContent = () => {
                         value={selectedSpecialty}
                         onChange={(option) => {
                           setSelectedSpecialty(option);
+                          // Update URL when specialty changes
+                          updateURLWithFilters(undefined, option);
                           fetchPractitioners({
                             page: 1,
                             limit: 3,
@@ -877,6 +999,8 @@ const UserDirectoryContent = () => {
                         value={selectedReview}
                         onChange={(option) => {
                           setSelectedReview(option);
+                          // Update URL when review filter changes
+                          updateURLWithFilters();
                           fetchPractitioners({
                             page: 1,
                             limit: 3,
@@ -901,6 +1025,8 @@ const UserDirectoryContent = () => {
                         value={selectedCheck}
                         onChange={(option) => {
                           setSelectedCheck(option);
+                          // Update URL when check filter changes
+                          updateURLWithFilters();
                           fetchPractitioners({
                             page: 1,
                             limit: 3,
@@ -969,8 +1095,10 @@ const UserDirectoryContent = () => {
                   <p className="text-red-700 mb-4">Error loading practitioners: {error}</p>
                   <button 
                     onClick={() => {
+                      const pageParam = searchParams.get('page');
+                      const currentPage = pageParam ? parseInt(pageParam, 10) : 1;
                       fetchPractitioners({
-                        page: 1,
+                        page: currentPage,
                         limit: 3,
                         search: searchQuery,
                         location: selectedState?.value || '',
@@ -1157,7 +1285,8 @@ const UserDirectoryContent = () => {
                                 <button 
                                   onClick={() => {
                                     setSelectedMapUser(null);
-                                    router.push(`/practitioner-details/${practitioner.id}`);
+                                    const referralUrl = buildReferralUrl();
+                                    router.push(`/practitioner-details/${practitioner.id}?from=${encodeURIComponent(referralUrl)}`);
                                   }}
                                   className="flex-1 bg-primary text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-all duration-200 shadow-md hover:shadow-lg"
                                 >
@@ -1301,7 +1430,8 @@ const UserDirectoryContent = () => {
                                           onClick={() => {
                                             setSelectedMapUser(null);
                                             setShowMapSidebar(false);
-                                            router.push(`/practitioner-details/${practitioner.id}`);
+                                            const referralUrl = buildReferralUrl();
+                                            router.push(`/practitioner-details/${practitioner.id}?from=${encodeURIComponent(referralUrl)}`);
                                           }}
                                           className="flex-1 bg-primary text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-primary/90 transition-all duration-200 shadow-md hover:shadow-lg"
                                         >

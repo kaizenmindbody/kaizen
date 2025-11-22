@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { showToast } from '@/lib/toast';
 import { useParams } from 'next/navigation';
 
@@ -25,6 +25,7 @@ declare global {
 const PractitionerDetailsPage = () => {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const [practitioner, setPractitioner] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -46,6 +47,22 @@ const PractitionerDetailsPage = () => {
   };
 
   const practitionerId = params.id as string;
+
+  // Update browser history with referral URL when page loads
+  useEffect(() => {
+    const fromUrl = searchParams.get('from');
+    if (fromUrl && typeof window !== 'undefined') {
+      // Update the previous history entry to point to the referral URL
+      // This ensures browser back button goes to the correct URL
+      const decodedUrl = decodeURIComponent(fromUrl);
+      // Replace current state to include referral info
+      window.history.replaceState(
+        { ...window.history.state, referralUrl: decodedUrl },
+        '',
+        window.location.href
+      );
+    }
+  }, [searchParams]);
 
   // Check URL hash and set active tab on component mount
   useEffect(() => {
@@ -432,7 +449,15 @@ const PractitionerDetailsPage = () => {
           <div className="text-red-600 text-xl font-semibold mb-2">Error Loading Practitioner</div>
           <div className="text-gray-700 mb-4">{error}</div>
           <button
-            onClick={() => router.back()}
+            onClick={() => {
+              // Use referral URL if available, otherwise use browser back
+              const fromUrl = searchParams.get('from');
+              if (fromUrl) {
+                router.push(decodeURIComponent(fromUrl));
+              } else {
+                router.back();
+              }
+            }}
             className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
           >
             Go Back

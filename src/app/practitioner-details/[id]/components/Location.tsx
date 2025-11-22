@@ -104,7 +104,7 @@ export const Location = ({ practitioner, mapCenter, showInfoWindow, setShowInfoW
         {/* Page Title */}
         <div className="mb-8">
           <h3 className="text-3xl font-bold text-gray-900 mb-2">Practice Location</h3>
-          <div className="h-1 w-24 bg-gradient-to-r from-blue-500 to-blue-300 rounded-full"></div>
+          <div className="h-1 w-24 bg-gradient-to-r from-[#EA7D00] to-[#EA7D00]/70 rounded-full"></div>
         </div>
 
         {practitioner.address && practitioner.address.trim() !== '' ? (
@@ -238,14 +238,14 @@ export const Location = ({ practitioner, mapCenter, showInfoWindow, setShowInfoW
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div className="flex items-start gap-4 flex-1">
                   <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
+                    <div className="w-12 h-12 bg-[#EA7D00] rounded-xl flex items-center justify-center shadow-md">
                       <Building2 className="w-6 h-6 text-white" />
                     </div>
                   </div>
                   <div className="flex-1">
                     <h4 className="text-xl font-bold text-gray-900 mb-3">Practice Address</h4>
                     <div className="flex items-start gap-3">
-                      <MapPin className="w-5 h-5 text-indigo-500 mt-0.5 flex-shrink-0" />
+                      <MapPin className="w-5 h-5 text-[#EA7D00] mt-0.5 flex-shrink-0" />
                       <span className="text-gray-700 leading-relaxed text-base">{practitioner.address}</span>
                     </div>
                   </div>
@@ -255,7 +255,7 @@ export const Location = ({ practitioner, mapCenter, showInfoWindow, setShowInfoW
                     href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(practitioner.address)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-md hover:shadow-lg whitespace-nowrap w-full md:w-auto"
+                    className="inline-flex items-center justify-center gap-2 bg-[#EA7D00] text-white px-6 py-3 rounded-xl font-semibold hover:bg-[#EA7D00]/90 transition-all duration-200 shadow-md hover:shadow-lg whitespace-nowrap w-full md:w-auto"
                   >
                     <Navigation className="w-4 h-4" />
                     Get Directions

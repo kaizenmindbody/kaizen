@@ -24,10 +24,10 @@ interface Event {
 }
 
 interface ManageCouponsProps {
-  hostId: string;
+  practitionerId: string;
 }
 
-export default function ManageCoupons({ hostId }: ManageCouponsProps) {
+export default function ManageCoupons({ practitionerId }: ManageCouponsProps) {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [showCouponModal, setShowCouponModal] = useState(false);
@@ -40,7 +40,7 @@ export default function ManageCoupons({ hostId }: ManageCouponsProps) {
   const fetchCoupons = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/coupons?host_id=${hostId}`);
+      const response = await fetch(`/api/coupons?practitioner_id=${practitionerId}`);
       const result = await response.json();
 
       if (response.ok && result.success) {
@@ -66,11 +66,11 @@ export default function ManageCoupons({ hostId }: ManageCouponsProps) {
     } finally {
       setLoading(false);
     }
-  }, [hostId]);
+  }, [practitionerId]);
 
   const fetchEvents = useCallback(async () => {
     try {
-      const response = await fetch(`/api/events?host_id=${hostId}`);
+      const response = await fetch(`/api/events?practitioner_id=${practitionerId}`);
       const result = await response.json();
 
       if (response.ok && result.success) {
@@ -83,7 +83,7 @@ export default function ManageCoupons({ hostId }: ManageCouponsProps) {
     } catch (error) {
       console.error('Failed to load events:', error);
     }
-  }, [hostId]);
+  }, [practitionerId]);
 
   // Fetch coupons and events on mount
   useEffect(() => {
@@ -111,7 +111,7 @@ export default function ManageCoupons({ hostId }: ManageCouponsProps) {
 
     setDeletingCouponId(couponToDelete.id);
     try {
-      const response = await fetch(`/api/coupons?id=${couponToDelete.id}&host_id=${hostId}`, {
+      const response = await fetch(`/api/coupons?id=${couponToDelete.id}&practitioner_id=${practitionerId}`, {
         method: 'DELETE',
       });
 
@@ -140,7 +140,7 @@ export default function ManageCoupons({ hostId }: ManageCouponsProps) {
   const handleSaveCoupon = async (couponData: Omit<Coupon, 'id' | 'usedCount'>) => {
     try {
       const apiData = {
-        host_id: hostId,
+        practitioner_id: practitionerId,
         code: couponData.code,
         description: couponData.description,
         discount_type: couponData.discountType,
@@ -205,7 +205,7 @@ export default function ManageCoupons({ hostId }: ManageCouponsProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: couponId,
-          host_id: hostId,
+          practitioner_id: practitionerId,
           code: coupon.code,
           description: coupon.description,
           discount_type: coupon.discountType,
@@ -237,7 +237,7 @@ export default function ManageCoupons({ hostId }: ManageCouponsProps) {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Manage Coupons</h1>
-          <p className="text-gray-600 mt-1">Create and manage discount coupons</p>
+          <p className="text-gray-600 mt-1">Create and manage discount coupons for your services</p>
         </div>
         <button
           onClick={handleAddCoupon}
@@ -259,7 +259,7 @@ export default function ManageCoupons({ hostId }: ManageCouponsProps) {
           <div className="text-center py-12">
             <TicketIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No coupons yet</h3>
-            <p className="text-gray-500 mb-6">Create discount coupons to promote your events.</p>
+            <p className="text-gray-500 mb-6">Create discount coupons to offer special pricing to your clients.</p>
             <button
               onClick={handleAddCoupon}
               className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition"
@@ -407,45 +407,35 @@ function CouponModal({ coupon, onSave, onClose, events }: CouponModalProps) {
   useEffect(() => {
     if (coupon) {
       // Convert datetime to format required by datetime-local input (YYYY-MM-DDTHH:mm)
-      // Handle timezone correctly - datetime-local expects local time, not UTC
       const formatDateTimeForInput = (dateString: string) => {
         if (!dateString || typeof dateString !== 'string' || dateString.trim() === '') {
           return '';
         }
-        
+
         try {
-          // First, try to parse if it's already in YYYY-MM-DDTHH:mm format (with or without seconds)
           const simpleFormatMatch = dateString.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})/);
           if (simpleFormatMatch) {
-            // If it's already in the right format (or close), use it directly
             return simpleFormatMatch[1];
           }
-          
-          // Otherwise, parse the date string - JavaScript Date automatically handles timezone conversion
-          // Backend returns dates as ISO 8601 strings (e.g., "2025-11-27T05:20:00+00:00")
+
           const date = new Date(dateString);
-          
-          // Check if date is valid
+
           if (isNaN(date.getTime())) {
             return '';
           }
-          
-          // Get local date/time components (not UTC)
-          // This ensures the datetime-local input shows the correct local time
+
           const year = date.getFullYear();
           const month = String(date.getMonth() + 1).padStart(2, '0');
           const day = String(date.getDate()).padStart(2, '0');
           const hours = String(date.getHours()).padStart(2, '0');
           const minutes = String(date.getMinutes()).padStart(2, '0');
-          
-          const formatted = `${year}-${month}-${day}T${hours}:${minutes}`;
-          return formatted;
+
+          return `${year}-${month}-${day}T${hours}:${minutes}`;
         } catch (error) {
           return '';
         }
       };
 
-      // Format dates for datetime-local input
       const validFromFormatted = formatDateTimeForInput(coupon.validFrom);
       const validUntilFormatted = formatDateTimeForInput(coupon.validUntil);
 
@@ -469,19 +459,19 @@ function CouponModal({ coupon, onSave, onClose, events }: CouponModalProps) {
 
     // Validate required fields
     if (!formData.code || !formData.discountValue || !formData.maxUses || !formData.validFrom || !formData.validUntil) {
-      alert('Please fill in all required fields');
+      showToast.error('Please fill in all required fields');
       return;
     }
 
     // Validate discount value
     const discountValue = parseFloat(formData.discountValue);
     if (isNaN(discountValue) || discountValue <= 0) {
-      alert('Please enter a valid discount value');
+      showToast.error('Please enter a valid discount value');
       return;
     }
 
     if (formData.discountType === 'percentage' && discountValue > 100) {
-      alert('Percentage discount cannot exceed 100%');
+      showToast.error('Percentage discount cannot exceed 100%');
       return;
     }
 
@@ -490,7 +480,7 @@ function CouponModal({ coupon, onSave, onClose, events }: CouponModalProps) {
     const validUntil = new Date(formData.validUntil);
 
     if (validUntil < validFrom) {
-      alert('Valid Until date cannot be before Valid From date');
+      showToast.error('Valid Until date cannot be before Valid From date');
       return;
     }
 
@@ -553,7 +543,7 @@ function CouponModal({ coupon, onSave, onClose, events }: CouponModalProps) {
                 value={formData.code}
                 onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent font-mono"
-                placeholder="e.g., SUMMER2024, EARLYBIRD"
+                placeholder="e.g., NEWCLIENT, SAVE20"
                 required
               />
               <p className="text-xs text-gray-500 mt-1">
@@ -571,7 +561,7 @@ function CouponModal({ coupon, onSave, onClose, events }: CouponModalProps) {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                placeholder="e.g., Summer promotion discount"
+                placeholder="e.g., New client special offer"
               />
             </div>
 
@@ -673,7 +663,7 @@ function CouponModal({ coupon, onSave, onClose, events }: CouponModalProps) {
                   Active
                 </span>
                 <p className="text-xs text-gray-500 mt-1">
-                  Only active coupons can be used by customers
+                  Only active coupons can be used by clients
                 </p>
               </div>
               <button

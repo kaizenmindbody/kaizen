@@ -55,6 +55,7 @@ const ClinicDetailsPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [showInfoWindow, setShowInfoWindow] = useState(false);
   const [clinicLocation, setClinicLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [descriptionsData, setDescriptionsData] = useState<any>(null);
 
   // Google Maps configuration
   const defaultCenter = {
@@ -172,6 +173,17 @@ const ClinicDetailsPage = () => {
         };
 
         setClinic(transformedClinic);
+
+        // Fetch descriptions data (insurance, cancellation policy) for the clinic owner
+        const { data: descriptionsData } = await supabase
+          .from('Descriptions')
+          .select('insurance, cancellation')
+          .eq('practitioner_id', clinicData.practitioner_id)
+          .maybeSingle();
+
+        if (descriptionsData) {
+          setDescriptionsData(descriptionsData);
+        }
       } catch (error) {
         showToast.error('Error fetching clinic details');
         setError('Failed to fetch clinic details');
@@ -267,7 +279,7 @@ const ClinicDetailsPage = () => {
 
         {/* Services & Pricing Section */}
         <div className="bg-white rounded-xl shadow-sm p-4 md:p-8">
-          <ServicesPricing clinic={clinic} />
+          <ServicesPricing clinic={clinic} descriptionsData={descriptionsData} />
         </div>
 
         {/* About Section */}

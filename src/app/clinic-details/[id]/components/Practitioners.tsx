@@ -331,21 +331,6 @@ export const Practitioners = ({ clinic }: PractitionersProps) => {
           </div>
         )}
       </div>
-
-      {/* <div className="bg-blue-50 p-6 rounded-xl border border-blue-100 mt-8">
-        <h3 className="text-lg font-semibold text-gray-900 mb-3">
-          Join Our Team
-        </h3>
-        <p className="text-gray-700 mb-4">
-          Are you a healthcare professional interested in joining our team? We&apos;re always looking for talented practitioners who share our commitment to excellent patient care.
-        </p>
-        <a
-          href={`mailto:${clinic.clinic_email || 'info@clinic.com'}`}
-          className="inline-flex items-center text-primary font-medium hover:underline"
-        >
-          Contact us about opportunities →
-        </a>
-      </div> */}
     </div>
   );
 };

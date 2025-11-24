@@ -9,7 +9,7 @@ import { useClinics } from '@/hooks/useClinics';
 import { useFaq } from '@/hooks/useFaq';
 import { useBlogs } from '@/hooks/useBlogs';
 import { supabase } from '@/lib/supabase';
-import { Users as UsersIcon, FileText, Settings as SettingsIcon, BarChart3, Menu, X, Users, Settings, Building2, GraduationCap, HelpCircle, BookOpen, Calendar, Briefcase, LogOut, UserCircle } from 'lucide-react';
+import { Users as UsersIcon, FileText, Settings as SettingsIcon, BarChart3, Menu, X, Users, Settings, Building2, GraduationCap, HelpCircle, BookOpen, Calendar, Briefcase, LogOut, UserCircle, Scale } from 'lucide-react';
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 import Image from 'next/image';
 import Overview from './components/Overview';
@@ -23,6 +23,7 @@ import FaqsComponent from './components/Faqs';
 import BlogsComponent from './components/Blogs';
 import EventsComponent from './components/Events';
 import SettingsComponent from './components/Settings';
+import LegalContentComponent from './components/LegalContent';
 import { User, Stats } from '@/types/user';
 
 const AdminDashboard = () => {
@@ -124,7 +125,6 @@ const AdminDashboard = () => {
       acceptClassName: 'p-button-danger',
       accept: async () => {
         await signOut();
-        router.push('/');
       },
     });
   };
@@ -214,6 +214,7 @@ const AdminDashboard = () => {
                 { id: 'faqs', name: 'FAQs', icon: HelpCircle },
                 { id: 'blogs', name: 'Blogs', icon: BookOpen },
                 { id: 'events', name: 'Events', icon: Calendar },
+                { id: 'legal-content', name: 'Legal Content', icon: Scale },
                 { id: 'settings', name: 'Settings', icon: SettingsIcon },
               ].map((tab) => {
                 const Icon = tab.icon;
@@ -274,6 +275,7 @@ const AdminDashboard = () => {
                   { id: 'faqs', name: 'FAQs', icon: HelpCircle },
                   { id: 'blogs', name: 'Blogs', icon: BookOpen },
                   { id: 'events', name: 'Events', icon: Calendar },
+                  { id: 'legal-content', name: 'Legal Content', icon: Scale },
                   { id: 'settings', name: 'Settings', icon: Settings },
                 ].map((tab) => {
                   const Icon = tab.icon;
@@ -376,6 +378,12 @@ const AdminDashboard = () => {
 
             {activeTab === 'events' && (
               <EventsComponent
+                onRefreshData={fetchAdminData}
+              />
+            )}
+
+            {activeTab === 'legal-content' && (
+              <LegalContentComponent
                 onRefreshData={fetchAdminData}
               />
             )}

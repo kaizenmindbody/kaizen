@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Clock, CheckCircle } from 'lucide-react';
+import { DollarSign, Clock, CheckCircle, Building2, Video, Package } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface ServicesPricingProps {
   clinic: any;
+  descriptionsData?: any;
 }
 
 interface ServicePricing {
@@ -26,7 +27,26 @@ interface PackagePricing {
   price: string;
 }
 
-export const ServicesPricing = ({ clinic }: ServicesPricingProps) => {
+// Helper function to ensure price has $ prefix
+const formatPriceDisplay = (price: string | undefined | null): string => {
+  if (!price || price.trim() === '') return '';
+
+  const trimmed = price.trim();
+
+  // If already has $, return as is
+  if (trimmed.startsWith('$')) return trimmed;
+
+  // Handle ranges (e.g., "85 - 100")
+  if (trimmed.includes('-')) {
+    const parts = trimmed.split('-').map(p => p.trim());
+    return parts.map(p => p ? `$${p}` : '').join(' - ');
+  }
+
+  // Single price - add $
+  return `$${trimmed}`;
+};
+
+export const ServicesPricing = ({ clinic, descriptionsData }: ServicesPricingProps) => {
   const [servicePricings, setServicePricings] = useState<ServicePricing[]>([]);
   const [packagePricings, setPackagePricings] = useState<PackagePricing[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,228 +93,293 @@ export const ServicesPricing = ({ clinic }: ServicesPricingProps) => {
 
   if (servicePricings.length === 0 && packagePricings.length === 0) {
     return (
-      <div className="text-center py-12">
-        <DollarSign className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-        <h3 className="text-xl font-semibold text-gray-900 mb-2">Pricing Information Coming Soon</h3>
-        <p className="text-gray-600">
-          Please contact the clinic directly for pricing details and service information.
-        </p>
+      <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl p-12 md:p-16 shadow-sm">
+        <div className="text-center max-w-md mx-auto">
+          <div className="w-20 h-20 bg-gradient-to-br from-gray-200 to-gray-300 rounded-full flex items-center justify-center mx-auto mb-6">
+            <DollarSign className="w-10 h-10 text-gray-400" />
+          </div>
+          <h4 className="text-xl font-bold text-gray-700 mb-3">Pricing Not Available</h4>
+          <p className="text-base text-gray-500 leading-relaxed">
+            This clinic has not provided pricing information yet. Please contact them directly for rates and availability.
+          </p>
+        </div>
       </div>
     );
   }
 
-  // Get all unique service names for the right sidebar
-  const allServiceNames = [...new Set(servicePricings.map(s => s.service_name))];
-
   return (
-    <div className="space-y-8">
-      <h2 className="text-2xl font-bold mb-6" style={{ color: '#35375F' }}>
-        Services & Pricing
-      </h2>
-
-      {/* Two Column Layout */}
-      <div className="grid lg:grid-cols-3 gap-8">
-        {/* Left Column - Pricing Details */}
-        <div className="lg:col-span-2 space-y-8">
-          {/* In-Person Services */}
-          {servicePricings.filter(s => s.service_category === 'In-Person / Clinic Visit').length > 0 && (
-            <div>
-              <h3 className="text-xl font-semibold mb-4 flex items-center text-gray-900">
-                <svg className="w-6 h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-                In-Person / Clinic Visit
-              </h3>
-              <div className="grid gap-6">
-                {servicePricings
-                  .filter(s => s.service_category === 'In-Person / Clinic Visit')
-                  .map((service) => (
-                    <div key={service.id} className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-primary/50 hover:shadow-lg transition-all">
-                      <h4 className="text-lg font-bold text-gray-900 mb-4">{service.service_name}</h4>
-
-                      <div className="space-y-4">
-                        <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                          <div className="flex justify-between items-start mb-2">
-                            <span className="text-sm text-gray-600">First Time Patient</span>
-                            <span className="text-xl font-bold text-gray-900">{service.first_time_price}</span>
-                          </div>
-                          <div className="flex items-center text-sm text-gray-600">
-                            <Clock className="w-4 h-4 mr-1" />
-                            {service.first_time_duration} minutes
-                          </div>
-                        </div>
-
-                        <div className="bg-green-50 p-4 rounded-lg border border-green-100">
-                          <div className="flex justify-between items-start mb-2">
-                            <span className="text-sm text-gray-600">Returning Patient</span>
-                            <span className="text-xl font-bold text-gray-900">{service.returning_price}</span>
-                          </div>
-                          <div className="flex items-center text-sm text-gray-600">
-                            <Clock className="w-4 h-4 mr-1" />
-                            {service.returning_duration} minutes
-                          </div>
-                        </div>
-
-                        {service.is_sliding_scale && (
-                          <div className="flex items-center text-sm text-primary font-medium">
-                            <CheckCircle className="w-4 h-4 mr-2" />
-                            Sliding scale available
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          )}
-
-          {/* Virtual Services */}
-          {servicePricings.filter(s => s.service_category === 'Virtual Visit').length > 0 && (
-            <div>
-              <h3 className="text-xl font-semibold mb-4 flex items-center text-gray-900">
-                <svg className="w-6 h-6 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                Virtual Visit
-              </h3>
-              <div className="grid gap-6">
-                {servicePricings
-                  .filter(s => s.service_category === 'Virtual Visit')
-                  .map((service) => (
-                    <div key={service.id} className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-primary/50 hover:shadow-lg transition-all">
-                      <h4 className="text-lg font-bold text-gray-900 mb-4">{service.service_name}</h4>
-
-                      <div className="space-y-4">
-                        <div className="bg-purple-50 p-4 rounded-lg border border-purple-100">
-                          <div className="flex justify-between items-start mb-2">
-                            <span className="text-sm text-gray-600">First Time Patient</span>
-                            <span className="text-xl font-bold text-gray-900">{service.first_time_price}</span>
-                          </div>
-                          <div className="flex items-center text-sm text-gray-600">
-                            <Clock className="w-4 h-4 mr-1" />
-                            {service.first_time_duration} minutes
-                          </div>
-                        </div>
-
-                        <div className="bg-green-50 p-4 rounded-lg border border-green-100">
-                          <div className="flex justify-between items-start mb-2">
-                            <span className="text-sm text-gray-600">Returning Patient</span>
-                            <span className="text-xl font-bold text-gray-900">{service.returning_price}</span>
-                          </div>
-                          <div className="flex items-center text-sm text-gray-600">
-                            <Clock className="w-4 h-4 mr-1" />
-                            {service.returning_duration} minutes
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          )}
-
-          {/* Package Pricing */}
-          {packagePricings.length > 0 && (
-            <div>
-              <h3 className="text-xl font-semibold mb-4 flex items-center text-gray-900">
-                <svg className="w-6 h-6 mr-2 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                </svg>
-                Package Deals
-              </h3>
-              <div className="grid gap-6">
-                {packagePricings.map((pkg) => (
-                  <div key={pkg.id} className="bg-gradient-to-br from-amber-50 to-white border-2 border-amber-200 rounded-xl p-6 hover:shadow-lg transition-all">
-                    <h4 className="text-lg font-bold text-gray-900 mb-4">{pkg.service_name}</h4>
-
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-lg font-bold text-gray-900">Sessions</span>
-                        <span className="text-2xl font-bold text-black">{pkg.no_of_sessions}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Total Price</span>
-                        <span className="text-xl font-bold text-gray-900">{pkg.price}</span>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 pt-4 border-t border-amber-200">
-                      <p className="text-sm text-gray-600 flex items-center">
-                        <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                        Save with package pricing
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Right Column - Services List & Specialties */}
-        <div className="lg:col-span-1 space-y-6">
-          {/* Services List */}
-          {allServiceNames.length > 0 && (
-            <div className="bg-gradient-to-br from-blue-50 to-white border-2 border-blue-100 rounded-xl p-6 sticky top-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                Our Services
-              </h3>
-              <ul className="space-y-3">
-                {allServiceNames.map((serviceName, index) => (
-                  <li key={index} className="flex items-start">
-                    <CheckCircle className="w-5 h-5 text-primary mr-3 mt-0.5 flex-shrink-0" />
-                    <span className="text-gray-700 text-sm">{serviceName}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Specialties */}
-          {clinic.practitioner?.specialty && clinic.practitioner.specialty.length > 0 && (
-            <div className="bg-gradient-to-br from-green-50 to-white border-2 border-green-100 rounded-xl p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                <svg className="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Specialties
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {clinic.practitioner.specialty.map((spec: string, index: number) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center px-3 py-1.5 bg-white border-2 border-green-200 text-green-700 rounded-full text-sm font-medium"
-                  >
-                    {spec}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Contact Info Card */}
-          {/* <div className="bg-gradient-to-br from-purple-50 to-white border-2 border-purple-100 rounded-xl p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Need Help?</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Contact us to learn more about our services or to schedule an appointment.
-            </p>
-            {clinic.clinic_phone && (
-              <a
-                href={`tel:${clinic.clinic_phone}`}
-                className="inline-flex items-center justify-center w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm"
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
-                Call Now
-              </a>
-            )}
-          </div> */}
-        </div>
+    <div>
+      <div>
+        <h3 className="text-xl md:text-2xl font-bold text-orange-500 mb-4 md:mb-6">Services & Pricing</h3>
       </div>
+
+      {loading ? (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+          {/* Left Side - Services and Pricing */}
+          <div className="lg:col-span-2 space-y-6 md:space-y-8">
+            {/* In-Person Services */}
+            {servicePricings.filter(sp => sp.service_category === 'In-Person / Clinic Visit').length > 0 && (
+              <div className="bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-xl p-4 md:p-6 shadow-sm">
+                <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                    <Building2 className="w-4 h-4 text-white" />
+                  </div>
+                  In-Person / Clinic Visit
+                </h4>
+
+                {/* Table for Desktop */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-3 px-2 text-sm font-semibold text-gray-700">Service</th>
+                        <th className="text-center py-3 px-2 text-sm font-semibold text-gray-700">First Visit</th>
+                        <th className="text-center py-3 px-2 text-sm font-semibold text-gray-700">Return Visit</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {servicePricings
+                        .filter(sp => sp.service_category === 'In-Person / Clinic Visit')
+                        .map((service, index) => (
+                          <tr key={index} className="border-b border-gray-100 hover:bg-blue-50/30 transition-colors">
+                            <td className="py-3 px-2">
+                              <div className="font-medium text-gray-900">{service.service_name}</div>
+                              {service.is_sliding_scale && (
+                                <span className="text-xs text-blue-600">Sliding scale available</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-2 text-center">
+                              <div className="font-semibold text-gray-900">{formatPriceDisplay(service.first_time_price)}</div>
+                              {service.first_time_duration && (
+                                <div className="text-xs text-gray-500 flex items-center justify-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {service.first_time_duration} min
+                                </div>
+                              )}
+                            </td>
+                            <td className="py-3 px-2 text-center">
+                              <div className="font-semibold text-gray-900">{formatPriceDisplay(service.returning_price)}</div>
+                              {service.returning_duration && (
+                                <div className="text-xs text-gray-500 flex items-center justify-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {service.returning_duration} min
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* List for Mobile */}
+                <div className="md:hidden space-y-3">
+                  {servicePricings
+                    .filter(sp => sp.service_category === 'In-Person / Clinic Visit')
+                    .map((service, index) => (
+                      <div key={index} className="bg-white border border-gray-200 rounded-lg p-3">
+                        <div className="font-medium text-gray-900 mb-2">{service.service_name}</div>
+                        {service.is_sliding_scale && (
+                          <p className="text-xs text-blue-600 mb-2">Sliding scale available</p>
+                        )}
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <div className="text-xs text-gray-500 mb-1">First Visit</div>
+                            <div className="font-semibold text-gray-900">{formatPriceDisplay(service.first_time_price)}</div>
+                            {service.first_time_duration && (
+                              <div className="text-xs text-gray-500">{service.first_time_duration} min</div>
+                            )}
+                          </div>
+                          <div>
+                            <div className="text-xs text-gray-500 mb-1">Return Visit</div>
+                            <div className="font-semibold text-gray-900">{formatPriceDisplay(service.returning_price)}</div>
+                            {service.returning_duration && (
+                              <div className="text-xs text-gray-500">{service.returning_duration} min</div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* Virtual Visit Services */}
+            {servicePricings.filter(sp => sp.service_category === 'Virtual Visit').length > 0 && (
+              <div className="bg-gradient-to-br from-purple-50 to-white border border-purple-100 rounded-xl p-4 md:p-6 shadow-sm">
+                <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <Video className="w-4 h-4 text-white" />
+                  </div>
+                  Virtual Visit
+                </h4>
+
+                {/* Table for Desktop */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-3 px-2 text-sm font-semibold text-gray-700">Service</th>
+                        <th className="text-center py-3 px-2 text-sm font-semibold text-gray-700">First Visit</th>
+                        <th className="text-center py-3 px-2 text-sm font-semibold text-gray-700">Return Visit</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {servicePricings
+                        .filter(sp => sp.service_category === 'Virtual Visit')
+                        .map((service, index) => (
+                          <tr key={index} className="border-b border-gray-100 hover:bg-purple-50/30 transition-colors">
+                            <td className="py-3 px-2">
+                              <div className="font-medium text-gray-900">{service.service_name}</div>
+                              {service.is_sliding_scale && (
+                                <span className="text-xs text-purple-600">Sliding scale available</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-2 text-center">
+                              <div className="font-semibold text-gray-900">{formatPriceDisplay(service.first_time_price)}</div>
+                              {service.first_time_duration && (
+                                <div className="text-xs text-gray-500 flex items-center justify-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {service.first_time_duration} min
+                                </div>
+                              )}
+                            </td>
+                            <td className="py-3 px-2 text-center">
+                              <div className="font-semibold text-gray-900">{formatPriceDisplay(service.returning_price)}</div>
+                              {service.returning_duration && (
+                                <div className="text-xs text-gray-500 flex items-center justify-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {service.returning_duration} min
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* List for Mobile */}
+                <div className="md:hidden space-y-3">
+                  {servicePricings
+                    .filter(sp => sp.service_category === 'Virtual Visit')
+                    .map((service, index) => (
+                      <div key={index} className="bg-white border border-gray-200 rounded-lg p-3">
+                        <div className="font-medium text-gray-900 mb-2">{service.service_name}</div>
+                        {service.is_sliding_scale && (
+                          <p className="text-xs text-purple-600 mb-2">Sliding scale available</p>
+                        )}
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <div className="text-xs text-gray-500 mb-1">First Visit</div>
+                            <div className="font-semibold text-gray-900">{formatPriceDisplay(service.first_time_price)}</div>
+                            {service.first_time_duration && (
+                              <div className="text-xs text-gray-500">{service.first_time_duration} min</div>
+                            )}
+                          </div>
+                          <div>
+                            <div className="text-xs text-gray-500 mb-1">Return Visit</div>
+                            <div className="font-semibold text-gray-900">{formatPriceDisplay(service.returning_price)}</div>
+                            {service.returning_duration && (
+                              <div className="text-xs text-gray-500">{service.returning_duration} min</div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* Packages */}
+            {packagePricings.length > 0 && (
+              <div className="bg-gradient-to-br from-green-50 to-white border border-green-100 rounded-xl p-4 md:p-6 shadow-sm">
+                <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                    <Package className="w-4 h-4 text-white" />
+                  </div>
+                  Packages
+                </h4>
+
+                {/* Table for Desktop */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-3 px-2 text-sm font-semibold text-gray-700">Package</th>
+                        <th className="text-center py-3 px-2 text-sm font-semibold text-gray-700">Sessions</th>
+                        <th className="text-center py-3 px-2 text-sm font-semibold text-gray-700">Price</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {packagePricings.map((pkg, index) => (
+                        <tr key={index} className="border-b border-gray-100 hover:bg-green-50/30 transition-colors">
+                          <td className="py-3 px-2">
+                            <div className="font-medium text-gray-900">{pkg.service_name}</div>
+                          </td>
+                          <td className="py-3 px-2 text-center">
+                            <div className="text-gray-700">{pkg.no_of_sessions} sessions</div>
+                          </td>
+                          <td className="py-3 px-2 text-center">
+                            <div className="font-semibold text-gray-900">{formatPriceDisplay(pkg.price)}</div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* List for Mobile */}
+                <div className="md:hidden space-y-3">
+                  {packagePricings.map((pkg, index) => (
+                    <div key={index} className="bg-white border border-gray-200 rounded-lg p-3">
+                      <div className="font-medium text-gray-900 mb-2">{pkg.service_name}</div>
+                      <div className="flex justify-between items-center">
+                        <div className="text-sm text-gray-600">{pkg.no_of_sessions} sessions</div>
+                        <div className="font-semibold text-gray-900">{formatPriceDisplay(pkg.price)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right Side - Insurance and Cancellation Policy */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Insurance Information */}
+            <div className="bg-gradient-to-br from-orange-50 to-white border border-orange-200 rounded-xl p-6 shadow-sm">
+              <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-orange-500" />
+                Insurance
+              </h4>
+              <p className="text-sm md:text-base text-gray-700 leading-relaxed">
+                {descriptionsData?.insurance || 'We currently do not directly bill insurance. If you would like to submit a receipt to your insurance company, we can generate an invoice for you.'}
+              </p>
+            </div>
+
+            {/* Cancellation Policy */}
+            <div className="bg-gradient-to-br from-indigo-50 to-white border border-indigo-200 rounded-xl p-6 shadow-sm">
+              <h4 className="text-lg font-bold text-gray-900 mb-4">Cancellation Policy</h4>
+              <div className="text-sm md:text-base text-gray-700 leading-relaxed">
+                {descriptionsData?.cancellation ? (
+                  <p>{descriptionsData.cancellation}</p>
+                ) : (
+                  <div className="space-y-2">
+                    <p>Please provide 24 hours notice for cancellations.</p>
+                    <p>Late cancellations or no-shows may be subject to a fee.</p>
+                    <p>Contact us as soon as possible if you need to reschedule.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

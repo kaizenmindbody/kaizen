@@ -1,6 +1,7 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
+import Script from "next/script";
 
 const Footer = () => {
   return (
@@ -49,14 +50,6 @@ const Footer = () => {
                       FAQs
                     </Link>
                   </li>
-                  <li>
-                    <Link
-                      href="/video-consult"
-                      className="block sm:mb-4 text-sm sm:text-base duration-300 hover:text-primary py-1"
-                    >
-                      Video Consult
-                    </Link>
-                  </li>
                 </ul>
               </div>
             </div>
@@ -94,15 +87,14 @@ const Footer = () => {
                 <h2 className="mb-6 sm:mb-8 lg:mb-10 text-lg sm:text-xl font-bold text-secondary">
                   Join Our Wellness Community
                 </h2>
-                <div className="flex gap-0 mb-4 w-full max-w-xs mx-auto md:mx-0">
-                  <input
-                    type="email"
-                    placeholder="Enter Email"
-                    className="bg-white flex-1 min-w-0 px-2 sm:px-3 py-3 text-sm border border-gray-300 rounded-l-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-transparent"
+                {/* Kit Email Form Container */}
+                <div className="w-full max-w-xs mx-auto md:mx-0">
+                  <Script
+                    async
+                    data-uid="b5dc5d3bda"
+                    src="https://modern-aging.kit.com/b5dc5d3bda/index.js"
+                    strategy="lazyOnload"
                   />
-                  <button className="px-3 sm:px-4 py-3 bg-primary text-white font-medium text-sm rounded-r-lg hover:bg-primary/90 transition-colors duration-200 flex-shrink-0">
-                    Submit
-                  </button>
                 </div>
               </div>
             </div>

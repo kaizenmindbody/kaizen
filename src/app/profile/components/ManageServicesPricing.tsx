@@ -236,19 +236,38 @@ const ManageServicesPricing: React.FC<ManageServicesPricingProps> = ({ profile }
       return;
     }
 
-    // Validate required fields
-    const hasEmptyInPersonService = servicePricings.some(sp => !sp.service_name);
-    const hasEmptyVirtualService = virtualPricings.some(sp => !sp.service_name);
-    const hasEmptyPackage = packagePricings.some(pkg => !pkg.service_name);
+    // Filter out completely empty entries (where all fields are empty)
+    const isEntryEmpty = (entry: any) => {
+      return !entry.service_name?.trim() &&
+             !entry.first_time_price?.trim() &&
+             !entry.returning_price?.trim() &&
+             !entry.first_time_duration?.trim() &&
+             !entry.returning_duration?.trim();
+    };
 
-    if (hasEmptyInPersonService || hasEmptyVirtualService || hasEmptyPackage) {
+    const isPackageEmpty = (pkg: any) => {
+      return !pkg.service_name?.trim() &&
+             !pkg.no_of_sessions?.trim() &&
+             !pkg.price?.trim();
+    };
+
+    const filteredInPerson = servicePricings.filter(sp => !isEntryEmpty(sp));
+    const filteredVirtual = virtualPricings.filter(sp => !isEntryEmpty(sp));
+    const filteredPackages = packagePricings.filter(pkg => !isPackageEmpty(pkg));
+
+    // Validate that partially filled entries have required fields
+    const hasIncompleteInPerson = filteredInPerson.some(sp => !sp.service_name);
+    const hasIncompleteVirtual = filteredVirtual.some(sp => !sp.service_name);
+    const hasIncompletePackage = filteredPackages.some(pkg => !pkg.service_name);
+
+    if (hasIncompleteInPerson || hasIncompleteVirtual || hasIncompletePackage) {
       return;
     }
 
     const success = await saveServicePricing(
       profile.id,
-      [...servicePricings, ...virtualPricings],
-      packagePricings
+      [...filteredInPerson, ...filteredVirtual],
+      filteredPackages
     );
 
     if (success) {

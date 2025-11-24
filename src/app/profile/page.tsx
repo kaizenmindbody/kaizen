@@ -26,6 +26,7 @@ import {
   ManageServicesPricing,
   ManageDescriptions,
   ManageImagesVideo,
+  ManageCoupons,
   UpdateClinicProfile,
   ManagePractitionerInfo
 } from './components';
@@ -164,7 +165,7 @@ const ProfilePageSkeleton = () => {
 };
 
 const ProfilePage = () => {
-  const { user, loading: authLoading, refreshProfile, userProfile } = useAuth();
+  const { user, loading: authLoading, refreshProfile, userProfile, signOut } = useAuth();
   const router = useRouter();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1181,7 +1182,8 @@ const ProfilePage = () => {
                         'Manage Basic Information',
                         'Manage Services and Pricing',
                         'Manage Descriptions',
-                        'Manage Images and Video'
+                        'Manage Images and Video',
+                        'Manage Coupons'
                       ];
 
                       // Clinic sub-items
@@ -1264,6 +1266,12 @@ const ProfilePage = () => {
                                         return (
                                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                          </svg>
+                                        );
+                                      case 'Manage Coupons':
+                                        return (
+                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
                                           </svg>
                                         );
                                       default:
@@ -1548,10 +1556,7 @@ const ProfilePage = () => {
 
                 <button
                   type="button"
-                  onClick={async () => {
-                    await supabase.auth.signOut();
-                    router.push('/');
-                  }}
+                  onClick={signOut}
                   className="w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg font-medium transition-all text-sm text-white bg-[#8ED083] hover:bg-[#7FC071]"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1591,6 +1596,7 @@ const ProfilePage = () => {
                  activeTab === 'Manage Services and Pricing' ? 'Configure services and pricing' :
                  activeTab === 'Manage Descriptions' ? 'Edit professional bio' :
                  activeTab === 'Manage Images and Video' ? 'Upload and manage media' :
+                 activeTab === 'Manage Coupons' ? 'Create and manage discount coupons' :
                  activeTab === 'View Clinic Profile' ? 'View your clinic profile' :
                  activeTab === 'Update Clinic Page' ? 'Update your clinic information' :
                  activeTab === 'Manage Practitioner Info' ? 'Manage practitioner information' :
@@ -1625,6 +1631,10 @@ const ProfilePage = () => {
 
             {activeTab === 'Manage Images and Video' && (
               <ManageImagesVideo profile={profile} />
+            )}
+
+            {activeTab === 'Manage Coupons' && user && (
+              <ManageCoupons practitionerId={user.id} />
             )}
 
             {activeTab === 'Dashboard' && (

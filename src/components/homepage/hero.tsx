@@ -170,7 +170,7 @@ const Hero = () => {
                     </svg>
                     <input
                       type="text"
-                      placeholder="Search acupuncturists, message therapists"
+                      placeholder="Search acupuncturists"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && handleSearch()}

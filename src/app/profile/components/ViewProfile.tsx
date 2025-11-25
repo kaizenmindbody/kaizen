@@ -218,6 +218,32 @@ const ViewProfile: React.FC<ViewProfileProps> = ({ profile }) => {
             </div>
           )}
         </div>
+        
+        {/* Business Emails Section */}
+        {profile?.business_emails && Array.isArray(profile.business_emails) && profile.business_emails.length > 0 && (
+          <div className="mt-6">
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">Business Email Addresses</h4>
+            <div className="space-y-2">
+              {profile.business_emails
+                .filter(email => email && email.trim() !== '')
+                .map((email, index) => (
+                  <div key={index} className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                    <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    <div className="flex-1">
+                      <a 
+                        href={`mailto:${email.trim()}`} 
+                        className="text-blue-700 hover:text-blue-900 hover:underline font-medium"
+                      >
+                        {email.trim()}
+                      </a>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Professional Background */}

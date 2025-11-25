@@ -5,6 +5,7 @@ export interface BasicInfoData {
   last_name: string;
   title?: string;
   degree?: string;
+  specialty?: string[] | string;
   type_of_practitioner?: string;
   clinic_name?: string;
   create_clinic_page?: string;
@@ -147,7 +148,7 @@ export const updateBasicInfo = createAsyncThunk(
         .map(part => (part || '').trim())
         .join(', ');
 
-      const updateData = {
+      const updateData: any = {
         user_id: userId,
         firstname: data.first_name.trim(),
         lastname: data.last_name.trim(),
@@ -163,6 +164,17 @@ export const updateBasicInfo = createAsyncThunk(
           : null,
         address: addressParts || null,
       };
+
+      // Handle specialty - pass array as-is (API will handle conversion)
+      if (data.specialty !== undefined) {
+        if (Array.isArray(data.specialty) && data.specialty.length > 0) {
+          updateData.specialty = data.specialty;
+        } else if (typeof data.specialty === 'string' && data.specialty.trim() !== '') {
+          updateData.specialty = data.specialty;
+        } else {
+          updateData.specialty = null;
+        }
+      }
 
       const response = await fetch('/api/profile', {
         method: 'PUT',

@@ -151,6 +151,7 @@ const PractitionerDetailsPage = () => {
             type,
             ptype,
             degree,
+            specialty,
             clinic,
             website,
             title,
@@ -194,6 +195,58 @@ const PractitionerDetailsPage = () => {
         const userVideo = mediaData?.find(item => item.file_type === 'video')?.file_url || null;
 
 
+        // Helper function to parse specialty (similar to degree parsing)
+        const parseSpecialty = (specialty: any): string[] => {
+          if (!specialty) return [];
+          
+          if (Array.isArray(specialty)) {
+            return specialty.filter(Boolean).map(s => String(s).trim());
+          }
+          
+          if (typeof specialty === 'string') {
+            const trimmed = specialty.trim();
+            if (trimmed.startsWith('[')) {
+              try {
+                const parsed = JSON.parse(trimmed);
+                if (Array.isArray(parsed)) {
+                  return parsed.filter(Boolean).map(s => String(s).trim());
+                }
+              } catch (e) {
+                // If JSON parsing fails, fall through to comma-separated parsing
+              }
+            }
+            return trimmed.split(',').map(s => s.trim()).filter(Boolean);
+          }
+          
+          return [];
+        };
+
+        // Helper function to parse degree
+        const parseDegree = (degree: any): string[] => {
+          if (!degree) return [];
+          
+          if (Array.isArray(degree)) {
+            return degree.filter(Boolean).map(d => String(d).trim());
+          }
+          
+          if (typeof degree === 'string') {
+            const trimmed = degree.trim();
+            if (trimmed.startsWith('[')) {
+              try {
+                const parsed = JSON.parse(trimmed);
+                if (Array.isArray(parsed)) {
+                  return parsed.filter(Boolean).map(d => String(d).trim());
+                }
+              } catch (e) {
+                // If JSON parsing fails, fall through to comma-separated parsing
+              }
+            }
+            return trimmed.split(',').map(d => d.trim()).filter(Boolean);
+          }
+          
+          return [];
+        };
+
         // Process JSON fields from Users table
         const processedUser = {
           ...found,
@@ -204,7 +257,8 @@ const PractitionerDetailsPage = () => {
           firstname: found.firstname || '',
           lastname: found.lastname || '',
           title: found.title || '',
-          degree: found.degree || '',
+          degree: parseDegree(found.degree),
+          specialty: parseSpecialty(found.specialty),
           languages: [], // Languages will be fetched from Descriptions table
           bio: '', // Bio not stored in Users table
           aboutme: '', // About me not stored in Users table
@@ -265,7 +319,8 @@ const PractitionerDetailsPage = () => {
           // Media fields from UserMedia table
           video: userVideo,
           images: userImages,
-          degree: processedUser.degree || '',
+          degree: Array.isArray(processedUser.degree) ? processedUser.degree.join(', ') : (processedUser.degree || ''),
+          specialties: processedUser.specialty || [],
           languages: Array.isArray(processedUser.languages) ? processedUser.languages : (processedUser.languages ? [processedUser.languages] : ['English']),
           clinic: processedUser.clinic || 'Private Practice',
           address: processedUser.address || 'Address not available',
@@ -276,46 +331,6 @@ const PractitionerDetailsPage = () => {
           totalPatients: Math.floor(Math.random() * 300) + 100,
           nextAvailable: `${Math.floor(Math.random() * 12) + 8}:${Math.random() > 0.5 ? '00' : '30'} ${Math.random() > 0.5 ? 'AM' : 'PM'} - ${Math.floor(Math.random() * 28) + 1} ${['Jan', 'Feb', 'Mar', 'Apr', 'May'][Math.floor(Math.random() * 5)]}`,
           verified: Math.random() > 0.3,
-          // Extended fields for detail page - use actual specialties from database
-          specialties: (() => {
-            if (!processedUser.ptype) return ['General Practice'];
-
-            // Handle if ptype is already an array
-            if (Array.isArray(processedUser.ptype)) {
-              const filtered = processedUser.ptype.filter(s => s && s.trim() !== '');
-              return filtered.length > 0 ? filtered : ['General Practice'];
-            }
-
-            // Handle if ptype is a string
-            if (typeof processedUser.ptype === 'string') {
-              const trimmed = processedUser.ptype.trim();
-              if (!trimmed) return ['General Practice'];
-
-              // Try to parse as JSON array
-              if (trimmed.startsWith('[')) {
-                try {
-                  const parsed = JSON.parse(trimmed);
-                  if (Array.isArray(parsed)) {
-                    const filtered = parsed.filter(s => s && s.trim() !== '');
-                    return filtered.length > 0 ? filtered : ['General Practice'];
-                  }
-                } catch {
-                  // If JSON parsing fails, continue to treat as regular string
-                }
-              }
-
-              // Handle comma-separated specialties
-              if (trimmed.includes(',')) {
-                const specialties = trimmed.split(',').map(s => s.trim()).filter(s => s !== '');
-                return specialties.length > 0 ? specialties : ['General Practice'];
-              }
-
-              // Single specialty string
-              return [trimmed];
-            }
-
-            return ['General Practice'];
-          })(),
           services: [
             { name: 'Initial Consultation', duration: '60min', price: 100 },
             { name: 'Follow-up Session', duration: '45min', price: 50 },

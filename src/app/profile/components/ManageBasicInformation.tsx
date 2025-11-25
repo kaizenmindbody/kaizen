@@ -95,6 +95,38 @@ const parseDegree = (degree: any): string[] => {
   return [];
 };
 
+// Helper function to parse specialty field (same logic as degree)
+const parseSpecialty = (specialty: any): string[] => {
+  if (!specialty) return [];
+
+  // If it's already an array, return it
+  if (Array.isArray(specialty)) {
+    return specialty.filter(Boolean).map(s => String(s).trim());
+  }
+
+  // If it's a string, try to parse it
+  if (typeof specialty === 'string') {
+    const trimmed = specialty.trim();
+
+    // Check if it's a JSON array string
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(Boolean).map(s => String(s).trim());
+        }
+      } catch (e) {
+        // If JSON parsing fails, fall through to comma-separated parsing
+      }
+    }
+
+    // Treat as comma-separated string
+    return trimmed.split(',').map(s => s.trim()).filter(Boolean);
+  }
+
+  return [];
+};
+
 // Helper function to parse practitioner type field (same logic as degree)
 const parsePractitionerType = (ptype: any): string[] => {
   if (!ptype) return [];
@@ -184,7 +216,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
     title: profile?.title || '',
     degree: parseDegree(profile?.degree),
     type_of_practitioner: parsePractitionerType(profile?.ptype),
-    specialty: profile?.specialty || '',
+    specialty: parseSpecialty(profile?.specialty),
     clinic_name: profile?.clinic || '',
     create_clinic_page: profile?.clinicpage || 'no',
     website: profile?.website || '',
@@ -462,7 +494,9 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
       type_of_practitioner: Array.isArray(formData.type_of_practitioner)
         ? formData.type_of_practitioner.join(', ')
         : formData.type_of_practitioner,
-      specialty: formData.specialty,
+      specialty: Array.isArray(formData.specialty)
+        ? formData.specialty
+        : formData.specialty ? [formData.specialty] : [],
       clinic_name: formData.clinic_name,
       create_clinic_page: formData.create_clinic_page,
       website: formData.website,
@@ -503,7 +537,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
         title: profile.title || '',
         degree: parseDegree(profile.degree),
         type_of_practitioner: parsePractitionerType(profile.ptype),
-        specialty: profile.specialty || '',
+        specialty: parseSpecialty(profile.specialty),
         clinic_name: profile.clinic || '',
         create_clinic_page: profile.clinicpage || 'no',
         website: profile.website || '',
@@ -532,7 +566,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
         title: profile.title || '',
         degree: parseDegree(profile.degree),
         type_of_practitioner: parsedPtype,
-        specialty: profile.specialty || '',
+        specialty: parseSpecialty(profile.specialty),
         clinic_name: profile.clinic || '',
         create_clinic_page: profile.clinicpage || 'no',
         website: profile.website || '',
@@ -743,11 +777,17 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Specialty</label>
             <Select
-              value={formData.specialty ? { value: formData.specialty, label: formData.specialty } : null}
-              onChange={(option) => handleInputChange('specialty', option?.value || '')}
+              key={`specialties-${JSON.stringify(formData.specialty)}`}
+              isMulti
+              components={animatedComponents}
+              value={Array.isArray(formData.specialty)
+                ? formData.specialty.map(s => ({ value: s, label: s }))
+                : []
+              }
+              onChange={(options: MultiValue<{ value: string; label: string }>) => handleInputChange('specialty', options ? options.map(opt => opt.value) : [])}
               options={specialties.map(specialty => ({ value: specialty.title, label: specialty.title }))}
               styles={customSelectStyles}
-              placeholder="Select your specialty"
+              placeholder="Select your specialties"
               isClearable
               isDisabled={saving}
             />
@@ -904,9 +944,6 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
                   Add Business Email
                 </button>
               </div>
-              <p className="mt-1 text-xs text-gray-500">
-                Add additional business email addresses. Your login email will always be displayed as the default contact email.
-              </p>
             </div>
           </div>
 

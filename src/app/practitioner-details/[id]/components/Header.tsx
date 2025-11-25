@@ -100,7 +100,19 @@ export const Header = ({ practitioner, user, descriptionsData }: HeaderProps) =>
                     {practitioner.degree && (
                       <div className="flex items-center mb-4">
                         <CheckCircle className="w-4 h-4 text-gray-400 mr-2" />
-                        <p className="text-sm text-gray-500">{practitioner.degree}</p>
+                        <p className="text-sm text-gray-500">
+                          <span className="font-medium text-gray-700">Degrees: </span>
+                          {practitioner.degree}
+                        </p>
+                      </div>
+                    )}
+                    {practitioner.specialties && Array.isArray(practitioner.specialties) && practitioner.specialties.length > 0 && (
+                      <div className="flex items-center mb-4">
+                        <CheckCircle className="w-4 h-4 text-gray-400 mr-2" />
+                        <p className="text-sm text-gray-500">
+                          <span className="font-medium text-gray-700">Specialties: </span>
+                          {practitioner.specialties.join(', ')}
+                        </p>
                       </div>
                     )}
 

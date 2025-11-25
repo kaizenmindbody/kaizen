@@ -110,7 +110,25 @@ export async function PUT(request: NextRequest) {
     if (address !== undefined) updateData.address = address;
     if (degree !== undefined) updateData.degree = degree;
     if (title !== undefined) updateData.title = title;
-    if (specialty !== undefined) updateData.specialty = specialty;
+    if (specialty !== undefined) {
+      // Handle specialty - convert to array format for database storage
+      if (Array.isArray(specialty)) {
+        // If it's already an array, filter and store as array
+        const filtered = specialty.filter(Boolean).map(s => String(s).trim()).filter(s => s !== '');
+        updateData.specialty = filtered.length > 0 ? filtered : null;
+      } else if (typeof specialty === 'string') {
+        // If it's a comma-separated string, convert to array
+        const trimmed = specialty.trim();
+        if (trimmed === '') {
+          updateData.specialty = null;
+        } else {
+          const specialties = trimmed.split(',').map(s => s.trim()).filter(s => s !== '');
+          updateData.specialty = specialties.length > 0 ? specialties : null;
+        }
+      } else {
+        updateData.specialty = null;
+      }
+    }
     if (clinic !== undefined) updateData.clinic = clinic;
     if (ptype !== undefined) updateData.ptype = ptype;
     if (clinicpage !== undefined) updateData.clinicpage = clinicpage;

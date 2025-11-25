@@ -184,9 +184,9 @@ export const Events = ({ practitionerId }: EventsProps) => {
         <p className="text-gray-600">Upcoming events hosted by this practitioner</p>
       </div>
 
-      <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {events.map((event) => (
-          <div key={event.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+          <div key={event.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow flex flex-col">
             {/* Event Image */}
             {event.event_image && (
               <div className="relative h-48 w-full overflow-hidden">
@@ -201,7 +201,7 @@ export const Events = ({ practitionerId }: EventsProps) => {
             )}
 
             {/* Event Content */}
-            <div className="p-4 md:p-6">
+            <div className="p-4 md:p-6 flex-1 flex flex-col">
               <div className="mb-4">
                 <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-4">
                   <div className="flex-1">
@@ -395,10 +395,10 @@ export const Events = ({ practitionerId }: EventsProps) => {
 
                 {/* Register Button (for events without ticketing) */}
                 {!event.enable_ticketing && (
-                  <div className="flex justify-center gap-3 pt-4 border-t">
+                  <div className="flex justify-center gap-3 pt-4 border-t mt-auto">
                     <button
                       onClick={() => handleRegister(event)}
-                      className="bg-orange-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-600 transition-colors flex items-center gap-2"
+                      className="bg-orange-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-600 transition-colors flex items-center gap-2 w-full justify-center"
                     >
                       YES! I WANT TO REGISTER
                     </button>

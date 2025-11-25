@@ -93,6 +93,10 @@ export function useImageVideo(userId?: string): UseImageVideoReturn {
           throw new Error('Not authenticated. Please sign in again.');
         }
 
+        if (videos.length === 0) {
+          throw new Error('No video files selected for upload');
+        }
+
         const formData = new FormData();
         formData.append('userId', userId);
 
@@ -113,10 +117,14 @@ export function useImageVideo(userId?: string): UseImageVideoReturn {
           // Reload data after successful upload
           await dispatch(fetchMediaAction(userId));
           return true;
+        } else {
+          // Try to get error message from response
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+          throw new Error(errorData.error || `Upload failed with status ${response.status}`);
         }
-        return false;
-      } catch (error) {
-        return false;
+      } catch (error: any) {
+        // Re-throw error so it can be caught by the component
+        throw error;
       }
     },
     [dispatch]
@@ -131,6 +139,11 @@ export function useImageVideo(userId?: string): UseImageVideoReturn {
 
         if (!token) {
           throw new Error('Not authenticated. Please sign in again.');
+        }
+
+        // Check if there are any files to upload
+        if (images.length === 0 && videos.length === 0) {
+          throw new Error('No files selected for upload');
         }
 
         const formData = new FormData();
@@ -158,10 +171,14 @@ export function useImageVideo(userId?: string): UseImageVideoReturn {
           // Reload data after successful upload
           await dispatch(fetchMediaAction(userId));
           return true;
+        } else {
+          // Try to get error message from response
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+          throw new Error(errorData.error || `Upload failed with status ${response.status}`);
         }
-        return false;
-      } catch (error) {
-        return false;
+      } catch (error: any) {
+        // Re-throw error so it can be caught by the component
+        throw error;
       }
     },
     [dispatch]

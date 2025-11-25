@@ -4,6 +4,7 @@ import { ProfileData } from '@/types/user';
 import { useState, useEffect, useCallback } from 'react';
 import CreateEvent from '@/app/eventhost/components/CreateEvent';
 import ManageEvents from '@/app/eventhost/components/ManageEvents';
+import ManageCoupons from '@/app/profile/components/ManageCoupons';
 
 interface EventsProps {
   profile: ProfileData | null;
@@ -102,6 +103,10 @@ const Events: React.FC<EventsProps> = ({ profile, activeSubTab, onNavigate }) =>
           onEventDeleted={handleEventDeleted}
           hostId={profile?.id || ''}
         />
+      )}
+
+      {activeSubTab === 'Manage Coupons' && profile?.id && (
+        <ManageCoupons practitionerId={profile.id} />
       )}
     </div>
   );

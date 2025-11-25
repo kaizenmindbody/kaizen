@@ -106,7 +106,9 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
 
   const handleVideoSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (!files || files.length === 0) return;
+    if (!files || files.length === 0) {
+      return;
+    }
 
     // Convert FileList to Array
     const filesArray = Array.from(files);
@@ -116,12 +118,15 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
       // Validate file type
       if (!file.type.startsWith('video/')) {
         showToast.error(`${file.name} is not a valid video file`);
+        if (videoInputRef.current) videoInputRef.current.value = '';
         return;
       }
 
       // Validate file size (600MB)
       if (file.size > 600 * 1024 * 1024) {
         showToast.error(`${file.name} is larger than 600MB`);
+        // Reset input
+        if (videoInputRef.current) videoInputRef.current.value = '';
         return;
       }
     }
@@ -137,7 +142,12 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
       newPreviews.push(previewUrl);
     });
 
-    setPendingVideos(prev => [...prev, ...newFiles]);
+    console.log(`Adding ${newFiles.length} video(s) to pending uploads`);
+    setPendingVideos(prev => {
+      const updated = [...prev, ...newFiles];
+      console.log(`Pending videos count: ${updated.length}`);
+      return updated;
+    });
     setVideosPreviews(prev => [...prev, ...newPreviews]);
     showToast.success(`${filesArray.length} video${filesArray.length > 1 ? 's' : ''} added! Click "Save Changes" to upload.`);
 
@@ -202,11 +212,10 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
         setVideosPreviews([]);
 
         showToast.success('Media uploaded successfully!');
-      } else {
-        showToast.error('Upload failed. Please check console for details.');
       }
     } catch (err: any) {
-      showToast.error(err.message || 'Failed to upload media');
+      console.error('Media upload error:', err);
+      showToast.error(err.message || 'Failed to upload media. Please try again.');
     }
   };
 
@@ -364,7 +373,15 @@ const ManageImagesVideo: React.FC<ManageImagesVideoProps> = ({ profile }) => {
               disabled={saving}
             />
             <button
-              onClick={() => videoInputRef.current?.click()}
+              onClick={() => {
+                console.log('Add Videos button clicked');
+                if (videoInputRef.current) {
+                  videoInputRef.current.click();
+                } else {
+                  console.error('Video input ref is not available');
+                  showToast.error('Video input not available. Please refresh the page.');
+                }
+              }}
               disabled={saving}
               className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >

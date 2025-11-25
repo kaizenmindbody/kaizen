@@ -250,7 +250,7 @@ const ProfilePage = () => {
             setExpandedMenu('Profile');
           } else if (['View Clinic Profile', 'Update Clinic Page', 'Manage Practitioner Info'].includes(mappedTab)) {
             setExpandedMenu('Clinic');
-          } else if (['Create Event', 'Manage Events'].includes(mappedTab)) {
+          } else if (['Create Event', 'Manage Events', 'Manage Coupons'].includes(mappedTab)) {
             setExpandedMenu('Events');
           }
         }
@@ -1182,8 +1182,7 @@ const ProfilePage = () => {
                         'Manage Basic Information',
                         'Manage Services and Pricing',
                         'Manage Descriptions',
-                        'Manage Images and Video',
-                        'Manage Coupons'
+                        'Manage Images and Video'
                       ];
 
                       // Clinic sub-items
@@ -1413,7 +1412,7 @@ const ProfilePage = () => {
                                 }
                               }}
                               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg font-medium transition-all text-sm ${
-                                ['Create Event', 'Manage Events'].includes(activeTab)
+                                ['Create Event', 'Manage Events', 'Manage Coupons'].includes(activeTab)
                                   ? 'bg-primary text-white shadow-sm'
                                   : 'text-gray-700 hover:bg-gray-50'
                               }`}
@@ -1436,7 +1435,7 @@ const ProfilePage = () => {
                               expandedMenu === 'Events' ? 'max-h-96 opacity-100 mt-3' : 'max-h-0 opacity-0 mt-0'
                             }`}>
                               <div className="ml-8 space-y-2">
-                                {['Create Event', 'Manage Events'].map((subItem) => {
+                                {['Create Event', 'Manage Events', 'Manage Coupons'].map((subItem) => {
                                   const getEventSubItemIcon = (subItemName: string) => {
                                     switch(subItemName) {
                                       case 'Create Event':
@@ -1449,6 +1448,12 @@ const ProfilePage = () => {
                                         return (
                                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                          </svg>
+                                        );
+                                      case 'Manage Coupons':
+                                        return (
+                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
                                           </svg>
                                         );
                                       default:
@@ -1596,7 +1601,6 @@ const ProfilePage = () => {
                  activeTab === 'Manage Services and Pricing' ? 'Configure services and pricing' :
                  activeTab === 'Manage Descriptions' ? 'Edit professional bio' :
                  activeTab === 'Manage Images and Video' ? 'Upload and manage media' :
-                 activeTab === 'Manage Coupons' ? 'Create and manage discount coupons' :
                  activeTab === 'View Clinic Profile' ? 'View your clinic profile' :
                  activeTab === 'Update Clinic Page' ? 'Update your clinic information' :
                  activeTab === 'Manage Practitioner Info' ? 'Manage practitioner information' :
@@ -1633,9 +1637,6 @@ const ProfilePage = () => {
               <ManageImagesVideo profile={profile} />
             )}
 
-            {activeTab === 'Manage Coupons' && user && (
-              <ManageCoupons practitionerId={user.id} />
-            )}
 
             {activeTab === 'Dashboard' && (
               <Dashboard profile={profile} handleTabChange={handleTabChange} />
@@ -1655,7 +1656,7 @@ const ProfilePage = () => {
               <ManagePractitionerInfo profile={profile} />
             )}
 
-            {(activeTab === 'Create Event' || activeTab === 'Manage Events') && (
+            {(activeTab === 'Create Event' || activeTab === 'Manage Events' || activeTab === 'Manage Coupons') && (
               <Events profile={profile} activeSubTab={activeTab} onNavigate={handleTabChange} />
             )}
 

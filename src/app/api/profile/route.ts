@@ -65,7 +65,8 @@ export async function PUT(request: NextRequest) {
       avatar,
       aboutme,
       gender,
-      specialty_rate
+      specialty_rate,
+      business_emails
     } = body;
 
     if (!user_id) {
@@ -109,7 +110,25 @@ export async function PUT(request: NextRequest) {
     if (address !== undefined) updateData.address = address;
     if (degree !== undefined) updateData.degree = degree;
     if (title !== undefined) updateData.title = title;
-    if (specialty !== undefined) updateData.specialty = specialty;
+    if (specialty !== undefined) {
+      // Handle specialty - convert to array format for database storage
+      if (Array.isArray(specialty)) {
+        // If it's already an array, filter and store as array
+        const filtered = specialty.filter(Boolean).map(s => String(s).trim()).filter(s => s !== '');
+        updateData.specialty = filtered.length > 0 ? filtered : null;
+      } else if (typeof specialty === 'string') {
+        // If it's a comma-separated string, convert to array
+        const trimmed = specialty.trim();
+        if (trimmed === '') {
+          updateData.specialty = null;
+        } else {
+          const specialties = trimmed.split(',').map(s => s.trim()).filter(s => s !== '');
+          updateData.specialty = specialties.length > 0 ? specialties : null;
+        }
+      } else {
+        updateData.specialty = null;
+      }
+    }
     if (clinic !== undefined) updateData.clinic = clinic;
     if (ptype !== undefined) updateData.ptype = ptype;
     if (clinicpage !== undefined) updateData.clinicpage = clinicpage;
@@ -119,6 +138,15 @@ export async function PUT(request: NextRequest) {
     if (aboutme !== undefined) updateData.aboutme = aboutme;
     if (gender !== undefined) updateData.gender = gender;
     if (specialty_rate !== undefined) updateData.specialty_rate = specialty_rate ? JSON.stringify(specialty_rate) : null;
+    if (business_emails !== undefined) {
+      // Handle business_emails array - filter out empty strings and ensure it's an array
+      if (Array.isArray(business_emails)) {
+        const filteredEmails = business_emails.filter(email => email && email.trim() !== '');
+        updateData.business_emails = filteredEmails.length > 0 ? filteredEmails : null;
+      } else {
+        updateData.business_emails = null;
+      }
+    }
 
 
     // Update profile in database

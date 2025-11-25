@@ -233,6 +233,127 @@ layer(base);
     transform: scale(0.95);
   }
 
+  /* ConvertKit Form Styling */
+  #convertkit-form-container,
+  .convertkit-form-wrapper {
+    width: 100%;
+    max-width: 20rem;
+    margin: 0 auto;
+  }
+
+  #convertkit-form-container form,
+  .convertkit-form-wrapper form,
+  [data-uid="b5dc5d3bda"] form {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 0 !important;
+    width: 100% !important;
+    max-width: 20rem !important;
+    margin: 0 !important;
+    align-items: stretch !important;
+  }
+
+  #convertkit-form-container input[type="email"],
+  #convertkit-form-container input[type="text"],
+  .convertkit-form-wrapper input[type="email"],
+  .convertkit-form-wrapper input[type="text"],
+  [data-uid="b5dc5d3bda"] input[type="email"],
+  [data-uid="b5dc5d3bda"] input[type="text"] {
+    flex: 1 !important;
+    min-width: 0 !important;
+    padding: 0.75rem 0.5rem !important;
+    font-size: 0.875rem !important;
+    border: 1px solid #d1d5db !important;
+    border-right: none !important;
+    border-radius: 0.5rem 0 0 0.5rem !important;
+    background-color: white !important;
+    outline: none !important;
+    margin: 0 !important;
+  }
+
+  #convertkit-form-container input[type="email"]:focus,
+  #convertkit-form-container input[type="text"]:focus,
+  .convertkit-form-wrapper input[type="email"]:focus,
+  .convertkit-form-wrapper input[type="text"]:focus,
+  [data-uid="b5dc5d3bda"] input[type="email"]:focus,
+  [data-uid="b5dc5d3bda"] input[type="text"]:focus {
+    border-color: #EA7D00 !important;
+    box-shadow: 0 0 0 1px #EA7D00 !important;
+  }
+
+  #convertkit-form-container button[type="submit"],
+  #convertkit-form-container input[type="submit"],
+  .convertkit-form-wrapper button[type="submit"],
+  .convertkit-form-wrapper input[type="submit"],
+  [data-uid="b5dc5d3bda"] button[type="submit"],
+  [data-uid="b5dc5d3bda"] input[type="submit"] {
+    padding: 0.75rem 1rem !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    background-color: #EA7D00 !important;
+    color: white !important;
+    border: 1px solid #EA7D00 !important;
+    border-left: none !important;
+    border-radius: 0 0.5rem 0.5rem 0 !important;
+    cursor: pointer !important;
+    transition: background-color 0.2s !important;
+    flex-shrink: 0 !important;
+    margin: 0 !important;
+  }
+
+  #convertkit-form-container button[type="submit"]:hover,
+  #convertkit-form-container input[type="submit"]:hover,
+  .convertkit-form-wrapper button[type="submit"]:hover,
+  .convertkit-form-wrapper input[type="submit"]:hover,
+  [data-uid="b5dc5d3bda"] button[type="submit"]:hover,
+  [data-uid="b5dc5d3bda"] input[type="submit"]:hover {
+    background-color: rgba(234, 125, 0, 0.9) !important;
+  }
+
+  #convertkit-form-container label,
+  .convertkit-form-wrapper label,
+  [data-uid="b5dc5d3bda"] label {
+    display: none !important;
+  }
+
+  #convertkit-form-container .formkit-subtitle,
+  #convertkit-form-container .formkit-powered-by,
+  .convertkit-form-wrapper .formkit-subtitle,
+  .convertkit-form-wrapper .formkit-powered-by,
+  [data-uid="b5dc5d3bda"] .formkit-subtitle,
+  [data-uid="b5dc5d3bda"] .formkit-powered-by {
+    display: none !important;
+  }
+
+  @media (min-width: 768px) {
+    #convertkit-form-container,
+    .convertkit-form-wrapper {
+      margin: 0 !important;
+    }
+  }
+
+  /* ConvertKit Success Message - Hide and show toast instead */
+  [data-sv-form-success],
+  .formkit-success,
+  div:has-text("Yay! Welcome"),
+  div:has-text("check your email"),
+  div:has-text("confirm your subscription"),
+  p:has-text("Yay! Welcome"),
+  p:has-text("check your email"),
+  span:has-text("Yay! Welcome"),
+  span:has-text("check your email") {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Hide any element containing the success message text */
+  *:not(form):not(footer):not(#convertkit-form-container):not(.convertkit-form-wrapper) {
+    /* This will be handled by JavaScript, but CSS as backup */
+  }
+
   .touch-manipulation {
     touch-action: manipulation;
   }

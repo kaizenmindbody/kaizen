@@ -11,6 +11,7 @@ export interface User {
   updated_at?: string;
   phone?: string;
   address?: string;  // Full address as single field (street, city, state, zip)
+  business_emails?: string[]; // Array of business email addresses
   country?: string;
   date_of_birth?: string;
   gender?: string;

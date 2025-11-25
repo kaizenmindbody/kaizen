@@ -80,7 +80,7 @@ export const Header = ({ clinic, user }: HeaderProps) => {
                           alt={clinic.clinic_name}
                           width={192}
                           height={192}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-contain"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-gray-100">

@@ -72,6 +72,7 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
 
   // Form state
   const [eventName, setEventName] = useState('');
+  const [eventFormat, setEventFormat] = useState<'in-person' | 'virtual' | 'tba'>('in-person');
   const [eventSummary, setEventSummary] = useState('');
   const [eventDescription, setEventDescription] = useState('');
   const [whatToBring, setWhatToBring] = useState('');
@@ -107,6 +108,11 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
   const [showWaiverModal, setShowWaiverModal] = useState(false);
   const [editingWaiver, setEditingWaiver] = useState<Waiver | null>(null);
 
+  // Coupons state
+  const [availableCoupons, setAvailableCoupons] = useState<any[]>([]);
+  const [selectedCoupons, setSelectedCoupons] = useState<string[]>([]);
+  const [loadingCoupons, setLoadingCoupons] = useState(false);
+
   // Google Maps Autocomplete states
   const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
   const [isGoogleMapsLoaded, setIsGoogleMapsLoaded] = useState(false);
@@ -138,6 +144,10 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
 
   // Handle add ticket type
   const handleAddTicketType = () => {
+    if (!eventStartDate) {
+      showToast.error('Please set the event start date first before adding tickets');
+      return;
+    }
     setEditingTicket(null);
     setShowTicketModal(true);
   };
@@ -223,6 +233,7 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
           if (hasData) {
             setHasSavedData(true);
             setEventName(parsed.eventName || '');
+            setEventFormat(parsed.eventFormat || 'in-person');
             setEventSummary(parsed.eventSummary || '');
             setEventDescription(parsed.eventDescription || '');
             setWhatToBring(parsed.whatToBring || '');
@@ -256,6 +267,7 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
     if (!editingEvent && typeof window !== 'undefined') {
       const formData = {
         eventName,
+        eventFormat,
         eventSummary,
         eventDescription,
         whatToBring,
@@ -273,6 +285,7 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
     }
   }, [
     eventName,
+    eventFormat,
     eventSummary,
     eventDescription,
     whatToBring,
@@ -300,6 +313,7 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
   const handleStartFresh = () => {
     clearSavedFormData();
     setEventName('');
+    setEventFormat('in-person');
     setEventSummary('');
     setEventDescription('');
     setWhatToBring('');
@@ -326,6 +340,7 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
     const loadEventData = async () => {
       if (editingEvent) {
         setEventName(editingEvent.event_name);
+        setEventFormat((editingEvent as any).event_format || 'in-person');
         setEventSummary(editingEvent.event_summary);
         setEventDescription(editingEvent.event_description);
         setWhatToBring(editingEvent.what_to_bring || '');
@@ -433,9 +448,26 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
           // If there's an error, just start with empty tickets
           setTicketTypes([]);
         }
+
+        // Fetch and load selected coupons for this event
+        try {
+          const response = await fetch(`/api/events/${editingEvent.id}/coupons`);
+          const result = await response.json();
+
+          if (response.ok && result.success && result.couponIds) {
+            setSelectedCoupons(result.couponIds.map((id: number) => id.toString()));
+          } else {
+            // If fetching fails, just start with empty coupons
+            setSelectedCoupons([]);
+          }
+        } catch (error) {
+          // If there's an error, just start with empty coupons
+          setSelectedCoupons([]);
+        }
       } else {
         // Clear all form fields when not editing
         setEventName('');
+        setEventFormat('in-person');
         setEventSummary('');
         setEventDescription('');
         setWhatToBring('');
@@ -454,11 +486,46 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
         setEventImagePreview('');
         setTicketTypes([]);
         setWaivers([]);
+        setSelectedCoupons([]);
       }
     };
 
     loadEventData();
   }, [editingEvent]);
+
+  // Fetch available coupons for the host
+  useEffect(() => {
+    const fetchCoupons = async () => {
+      if (!user?.id) return;
+
+      setLoadingCoupons(true);
+      try {
+        const response = await fetch(`/api/coupons?host_id=${user.id}`);
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          // Only show active coupons
+          const activeCoupons = result.coupons.filter((c: any) => c.is_active);
+          setAvailableCoupons(activeCoupons);
+        }
+      } catch (error) {
+        console.error('Failed to fetch coupons:', error);
+      } finally {
+        setLoadingCoupons(false);
+      }
+    };
+
+    fetchCoupons();
+  }, [user]);
+
+  // Handle coupon selection toggle
+  const handleToggleCoupon = (couponId: string) => {
+    setSelectedCoupons(prev =>
+      prev.includes(couponId)
+        ? prev.filter(id => id !== couponId)
+        : [...prev, couponId]
+    );
+  };
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent, saveAsDraft = false) => {
@@ -469,69 +536,96 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
       return;
     }
 
-    // Validate required fields
-    if (!eventName.trim()) {
-      showToast.error('Event name is required');
-      return;
-    }
+    // Only validate required fields if publishing (not saving as draft)
+    if (!saveAsDraft) {
+      if (!eventName.trim()) {
+        showToast.error('Event name is required');
+        return;
+      }
 
-    if (!eventSummary.trim()) {
-      showToast.error('Event summary is required');
-      return;
-    }
+      if (!eventSummary.trim()) {
+        showToast.error('Event summary is required');
+        return;
+      }
 
-    if (!eventDescription.trim()) {
-      showToast.error('Event description is required');
-      return;
-    }
+      if (!eventDescription.trim()) {
+        showToast.error('Event description is required');
+        return;
+      }
 
-    if (!eventStartDate || !eventEndDate) {
-      showToast.error('Event start and end dates are required');
-      return;
-    }
+      if (!eventStartDate || !eventEndDate) {
+        showToast.error('Event start and end dates are required');
+        return;
+      }
 
-    // Validate address fields
-    if (!addressFields.street.trim() || !addressFields.city.trim() || !addressFields.state.trim() || !addressFields.zipCode.trim()) {
-      showToast.error('Complete address is required (street, city, state, and zip code)');
-      return;
-    }
+      // Validate address fields
+      if (!addressFields.street.trim() || !addressFields.city.trim() || !addressFields.state.trim() || !addressFields.zipCode.trim()) {
+        showToast.error('Complete address is required (street, city, state, and zip code)');
+        return;
+      }
 
-    // Validate event dates
-    const startDate = new Date(eventStartDate);
-    const endDate = new Date(eventEndDate);
+      // Validate event dates
+      const startDate = new Date(eventStartDate);
+      const endDate = new Date(eventEndDate);
 
-    if (endDate < startDate) {
-      showToast.error('Event End Date and Time cannot be before Event Start Date and Time');
-      return;
-    }
+      if (endDate < startDate) {
+        showToast.error('Event End Date and Time cannot be before Event Start Date and Time');
+        return;
+      }
 
-    // For create mode, image is required. For edit mode, image is optional
-    if (!editingEvent && !eventImageFile) {
-      showToast.error('Event image is required');
-      return;
+      // For create mode, image is required. For edit mode, image is optional
+      if (!editingEvent && !eventImageFile) {
+        showToast.error('Event image is required');
+        return;
+      }
+    } else {
+      // When saving as draft, only require event name at minimum
+      if (!eventName.trim()) {
+        showToast.error('Event name is required to save as draft');
+        return;
+      }
+
+      // If dates are provided, still validate that end date is after start date
+      if (eventStartDate && eventEndDate) {
+        const startDate = new Date(eventStartDate);
+        const endDate = new Date(eventEndDate);
+
+        if (endDate < startDate) {
+          showToast.error('Event End Date and Time cannot be before Event Start Date and Time');
+          return;
+        }
+      }
     }
 
     setIsSubmitting(true);
 
     try {
-      // Combine address fields into single string
-      const fullAddress = `${addressFields.street}, ${addressFields.city}, ${addressFields.state}, ${addressFields.zipCode}`;
+      // Combine address fields into single string (filter out empty parts for drafts)
+      const addressParts = [
+        addressFields.street,
+        addressFields.city,
+        addressFields.state,
+        addressFields.zipCode
+      ].filter(part => part?.trim());
+      const fullAddress = addressParts.join(', ');
 
       // Prepare form data
       const formData = new FormData();
       formData.append('host_id', user.id);
       formData.append('title', eventName);
-      formData.append('summary', eventSummary);
-      formData.append('description', eventDescription);
-      formData.append('what_to_bring', whatToBring);
-      formData.append('start_date', eventStartDate);
-      formData.append('end_date', eventEndDate);
+      formData.append('event_format', eventFormat);
+      formData.append('summary', eventSummary || '');
+      formData.append('description', eventDescription || '');
+      formData.append('what_to_bring', whatToBring || '');
+      formData.append('start_date', eventStartDate || '');
+      formData.append('end_date', eventEndDate || '');
       formData.append('location', fullAddress);
       formData.append('hide_address', hideAddress.toString());
       formData.append('enable_ticketing', enableTicketing.toString());
       formData.append('non_refundable', nonRefundable.toString());
       formData.append('status', saveAsDraft ? 'draft' : 'published');
       formData.append('ticket_types', JSON.stringify(ticketTypes));
+      formData.append('selected_coupons', JSON.stringify(selectedCoupons));
 
       // Add event image if new file selected
       if (eventImageFile) {
@@ -562,7 +656,8 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
       }
 
       // Success!
-      showToast.success(result.message || `Event ${editingEvent ? 'updated' : 'created'} successfully!`);
+      const successAction = editingEvent ? 'updated' : (saveAsDraft ? 'saved as draft' : 'created');
+      showToast.success(result.message || `Event ${successAction} successfully!`);
 
       // Clear saved form data from localStorage
       clearSavedFormData();
@@ -570,6 +665,7 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
       // Reset form only if creating (not editing)
       if (!editingEvent) {
         setEventName('');
+        setEventFormat('in-person');
         setEventSummary('');
         setEventDescription('');
         setWhatToBring('');
@@ -588,6 +684,7 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
         setEventImagePreview('');
         setTicketTypes([]);
         setWaivers([]);
+        setSelectedCoupons([]);
       }
 
       // Callback for refresh
@@ -714,8 +811,24 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
               placeholder="Enter event name"
               disabled={isSubmitting}
-              required
             />
+          </div>
+
+          {/* Event Format */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Event Format *
+            </label>
+            <select
+              value={eventFormat}
+              onChange={(e) => setEventFormat(e.target.value as 'in-person' | 'virtual' | 'tba')}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              disabled={isSubmitting}
+            >
+              <option value="in-person">In-person</option>
+              <option value="virtual">Virtual</option>
+              <option value="tba">To Be Announced</option>
+            </select>
           </div>
 
           {/* Date and Time */}
@@ -731,7 +844,6 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
                   value={eventStartDate}
                   onChange={(e) => setEventStartDate(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  required
                 />
               </div>
               <div>
@@ -742,7 +854,6 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
                   onChange={(e) => setEventEndDate(e.target.value)}
                   min={eventStartDate}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  required
                 />
               </div>
             </div>
@@ -776,7 +887,6 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                       placeholder="Start typing your address..."
                       autoComplete="off"
-                      required
                     />
                   </Autocomplete>
                 ) : (
@@ -803,7 +913,6 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
                     onChange={(e) => setAddressFields({ ...addressFields, city: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                     placeholder="City"
-                    required
                   />
                 </div>
                 <div>
@@ -817,7 +926,6 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                     placeholder="State"
                     maxLength={2}
-                    required
                   />
                 </div>
                 <div>
@@ -830,7 +938,6 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
                     onChange={(e) => setAddressFields({ ...addressFields, zipCode: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                     placeholder="Zip Code"
-                    required
                   />
                 </div>
               </div>
@@ -869,7 +976,6 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
               placeholder="Brief summary of your event (2-3 sentences)"
               disabled={isSubmitting}
-              required
             ></textarea>
           </div>
 
@@ -885,7 +991,6 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
               placeholder="Detailed description of your event..."
               disabled={isSubmitting}
-              required
             ></textarea>
           </div>
 
@@ -1168,6 +1273,86 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
                 </div>
               )}
             </div>
+
+            {/* Card 4: Coupons */}
+            <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Discount Coupons (Optional)</h3>
+
+              {loadingCoupons ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                  <p className="text-sm text-gray-500 mt-2">Loading coupons...</p>
+                </div>
+              ) : availableCoupons.length === 0 ? (
+                <div className="text-center py-8">
+                  <svg className="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                  </svg>
+                  <p className="text-gray-600 font-medium mb-2">No Active Coupons</p>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Create discount coupons in the Manage Coupons section to apply them to your events.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Select which discount coupons can be used for this event. Attendees can apply these codes at checkout.
+                  </p>
+                  <div className="space-y-3">
+                    {availableCoupons.map((coupon) => (
+                      <div
+                        key={coupon.id}
+                        className={`p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                          selectedCoupons.includes(coupon.id.toString())
+                            ? 'border-primary bg-blue-50'
+                            : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}
+                        onClick={() => handleToggleCoupon(coupon.id.toString())}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="flex items-center h-5 mt-0.5">
+                            <input
+                              type="checkbox"
+                              checked={selectedCoupons.includes(coupon.id.toString())}
+                              onChange={() => handleToggleCoupon(coupon.id.toString())}
+                              className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-bold text-gray-900 font-mono text-sm">
+                                {coupon.code}
+                              </span>
+                              <span className="text-sm font-semibold text-primary">
+                                {coupon.discount_type === 'percentage'
+                                  ? `${coupon.discount_value}% OFF`
+                                  : `$${coupon.discount_value} OFF`}
+                              </span>
+                            </div>
+                            {coupon.description && (
+                              <p className="text-xs text-gray-600 mb-1">{coupon.description}</p>
+                            )}
+                            <div className="flex items-center gap-3 text-xs text-gray-500">
+                              <span>Uses: {coupon.used_count} / {coupon.max_uses}</span>
+                              <span>•</span>
+                              <span>Valid until: {new Date(coupon.valid_until).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {selectedCoupons.length > 0 && (
+                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-blue-800 font-medium">
+                        {selectedCoupons.length} coupon{selectedCoupons.length !== 1 ? 's' : ''} selected for this event
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Submit Buttons */}
@@ -1224,6 +1409,7 @@ export default function CreateEvent({ setActiveTab, editingEvent, onEventUpdated
           ticket={editingTicket}
           onSave={handleSaveTicketType}
           onClose={() => setShowTicketModal(false)}
+          eventStartDate={eventStartDate}
         />
       )}
 
@@ -1244,9 +1430,10 @@ interface TicketTypeModalProps {
   ticket: TicketType | null;
   onSave: (ticket: Omit<TicketType, 'id'>) => void;
   onClose: () => void;
+  eventStartDate: string;
 }
 
-function TicketTypeModal({ ticket, onSave, onClose }: TicketTypeModalProps) {
+function TicketTypeModal({ ticket, onSave, onClose, eventStartDate }: TicketTypeModalProps) {
   const [formData, setFormData] = useState({
     name: ticket?.name || '',
     description: ticket?.description || '',
@@ -1285,9 +1472,16 @@ function TicketTypeModal({ ticket, onSave, onClose }: TicketTypeModalProps) {
     // Validate that end date is not before start date
     const startDate = new Date(formData.salesStartDate);
     const endDate = new Date(formData.salesEndDate);
+    const eventStart = new Date(eventStartDate);
 
     if (endDate < startDate) {
       alert('Sales End Date and Time cannot be before Sales Start Date and Time');
+      return;
+    }
+
+    // Validate that sales end date doesn't exceed event start date
+    if (endDate > eventStart) {
+      alert('Ticket sales must end before or at the event start time');
       return;
     }
 
@@ -1389,9 +1583,13 @@ function TicketTypeModal({ ticket, onSave, onClose }: TicketTypeModalProps) {
                     value={formData.salesEndDate}
                     onChange={(e) => setFormData({ ...formData, salesEndDate: e.target.value })}
                     min={formData.salesStartDate}
+                    max={eventStartDate}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                     required
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Sales must end before or at the event start time
+                  </p>
                 </div>
               </div>
             </div>

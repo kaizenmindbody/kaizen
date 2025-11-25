@@ -280,8 +280,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       }
 
-      // Always redirect regardless of Supabase result
-      window.location.href = '/';
+      // Always redirect to home page with a full reload to ensure clean state
+      if (typeof window !== 'undefined') {
+        window.location.replace('/');
+      }
     } catch (error) {
       // Ensure cleanup always happens
       setUserProfile(null);
@@ -294,7 +296,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         clearTimeout(fetchTimeoutRef.current);
         fetchTimeoutRef.current = null;
       }
-      window.location.href = '/';
+      if (typeof window !== 'undefined') {
+        window.location.replace('/');
+      }
     }
   };
 

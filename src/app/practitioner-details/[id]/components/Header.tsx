@@ -77,7 +77,7 @@ export const Header = ({ practitioner, user, descriptionsData }: HeaderProps) =>
                 <div className="lg:col-span-2 space-y-6">
                   <div>
                     <h1 className="text-4xl font-bold mb-3" style={{ color: '#35375F' }}>
-                      {practitioner.title ? `${practitioner.title} ` : ''}{practitioner.full_name}
+                      {practitioner.title ? `${practitioner.title}. ` : ''}{practitioner.full_name}
                     </h1>
                     <div className="flex items-start mb-3">
                       <div className="flex flex-wrap gap-2">

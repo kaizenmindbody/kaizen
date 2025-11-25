@@ -52,7 +52,7 @@ export const About = ({ practitioner, descriptionsData }: AboutProps) => {
       <div className="space-y-6">
         {/* Page Title */}
         <div className="mb-8">
-          <h3 className="text-3xl font-bold text-gray-900 mb-2">About {practitioner.full_name}</h3>
+          <h3 className="text-3xl font-bold text-gray-900 mb-2">{practitioner.title ? `${practitioner.title}. ` : ''}{practitioner.full_name}</h3>
           <div className="h-1 w-24 bg-gradient-to-r from-orange-500 to-orange-300 rounded-full"></div>
         </div>
 
@@ -84,7 +84,14 @@ export const About = ({ practitioner, descriptionsData }: AboutProps) => {
               </div>
               <div className="flex-1">
                 <h4 className="text-xl font-bold text-gray-900 mb-3">Education & Credentials</h4>
-                <p className="text-gray-700 leading-relaxed text-base">{descriptions.education}</p>
+                <ul className="space-y-2">
+                  {descriptions.education.split('\n').filter((item: string) => item.trim()).map((credential: string, index: number) => (
+                    <li key={index} className="flex items-start gap-3 text-gray-700 text-base">
+                      <div className="w-2 h-2 bg-gray-500 rounded-full mt-2 flex-shrink-0"></div>
+                      <span className="leading-relaxed">{credential.trim()}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
           </div>

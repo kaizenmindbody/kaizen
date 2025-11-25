@@ -9,6 +9,7 @@ export async function PUT(request: NextRequest) {
     const eventId = formData.get('event_id') as string;
     const hostId = formData.get('host_id') as string;
     const title = formData.get('title') as string;
+    const eventFormat = formData.get('event_format') as string || 'in-person';
     const summary = formData.get('summary') as string;
     const description = formData.get('description') as string;
     const whatToBring = formData.get('what_to_bring') as string;
@@ -100,6 +101,7 @@ export async function PUT(request: NextRequest) {
       .from('Events')
       .update({
         event_name: title,
+        event_format: eventFormat,
         event_summary: summary,
         event_description: description,
         what_to_bring: whatToBring || null,

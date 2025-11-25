@@ -13,7 +13,6 @@ import Image from 'next/image';
 import { Building2, Globe, Phone, Mail, MapPin, Upload, X, Film, Image as ImageIcon } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import 'react-phone-input-2/lib/style.css';
-import '@placekit/autocomplete-js/dist/placekit-autocomplete.css';
 
 interface UpdateClinicProfileProps {
   profile: ProfileData | null;
@@ -34,6 +33,19 @@ const PhoneInput = dynamic(() => import('react-phone-input-2'), {
   ssr: false,
   loading: () => <div className="w-full h-12 bg-gray-100 animate-pulse rounded-lg"></div>
 });
+
+const Autocomplete = dynamic(
+  () => import('@react-google-maps/api').then(mod => ({ default: mod.Autocomplete })),
+  {
+    ssr: false,
+    loading: () => <input
+      type="text"
+      placeholder="Loading address autocomplete..."
+      className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100"
+      disabled
+    />
+  }
+);
 
 const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) => {
   const dispatch = useAppDispatch();
@@ -78,9 +90,9 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
   const [existingVideos, setExistingVideos] = useState<string[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
 
-  // PlaceKit ref
+  // Google Autocomplete
+  const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
   const addressInputRef = useRef<HTMLInputElement>(null);
-  const placekitInstance = useRef<any>(null);
 
   // Address field handlers
   const handleAddressFieldChange = (field: keyof typeof addressFields, value: string) => {
@@ -265,60 +277,48 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
     fetchClinicInfo();
   }, [profile]);
 
-  // Initialize PlaceKit for address autocomplete
-  useEffect(() => {
-    const initPlaceKit = async () => {
-      // Only run on client-side
-      if (typeof window === 'undefined') return;
-      if (!addressInputRef.current || placekitInstance.current) return;
+  // Google Autocomplete handlers
+  const onLoadAutocomplete = (autocompleteInstance: google.maps.places.Autocomplete) => {
+    setAutocomplete(autocompleteInstance);
+  };
 
-      try {
-        const placekit = await import('@placekit/autocomplete-js');
+  const onPlaceChanged = () => {
+    if (autocomplete !== null) {
+      const place = autocomplete.getPlace();
 
-        const pk = placekit.default(process.env.NEXT_PUBLIC_PLACEKIT_API_KEY || '', {
-          target: addressInputRef.current,
-          countries: ['us', 'ca'],
-          maxResults: 5,
+      if (place.address_components) {
+        const components = place.address_components;
+        let street = '';
+        let city = '';
+        let state = '';
+        let zipCode = '';
+
+        // Extract street number and route
+        const streetNumber = components.find(c => c.types.includes('street_number'))?.long_name || '';
+        const route = components.find(c => c.types.includes('route'))?.long_name || '';
+        street = `${streetNumber} ${route}`.trim();
+
+        // Extract city
+        city = components.find(c => c.types.includes('locality'))?.long_name ||
+               components.find(c => c.types.includes('sublocality'))?.long_name || '';
+
+        // Extract state
+        state = components.find(c => c.types.includes('administrative_area_level_1'))?.short_name || '';
+
+        // Extract zip code
+        zipCode = components.find(c => c.types.includes('postal_code'))?.long_name || '';
+
+        setAddressFields({
+          address1: street,
+          address2: '',
+          city,
+          state,
+          zip: zipCode,
+          country: 'US',
         });
-
-        pk.on('pick', (value, item) => {
-          // Extract zip code - handle both string and array formats
-          const zipCode = Array.isArray(item.zipcode)
-            ? item.zipcode[0] || ''
-            : item.zipcode || '';
-
-          // Populate separate address fields
-          setAddressFields({
-            address1: item.name || '',
-            address2: '',
-            city: item.city || '',
-            state: item.administrative || '',
-            zip: zipCode,
-            country: item.country || 'US',
-          });
-
-          // Close the dropdown by blurring the input
-          setTimeout(() => {
-            if (addressInputRef.current) {
-              addressInputRef.current.blur();
-            }
-          }, 100);
-        });
-
-        placekitInstance.current = pk;
-      } catch (error) {
       }
-    };
-
-    initPlaceKit();
-
-    return () => {
-      if (placekitInstance.current) {
-        placekitInstance.current.destroy();
-        placekitInstance.current = null;
-      }
-    };
-  }, []);
+    }
+  };
 
   // Sync service pricing with store data
   useEffect(() => {
@@ -861,36 +861,49 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
         throw clinicError;
       }
 
-      // Save service pricing if any services are filled
-      const hasServices = servicePricings.some(sp => sp.service_name) ||
-                         virtualPricings.some(vp => vp.service_name) ||
-                         packagePricings.some(pkg => pkg.service_name);
+      // Filter out completely empty entries before saving
+      const isEntryEmpty = (entry: any) => {
+        return !entry.service_name?.trim() &&
+               !entry.first_time_price?.trim() &&
+               !entry.returning_price?.trim() &&
+               !entry.first_time_duration?.trim() &&
+               !entry.returning_duration?.trim();
+      };
 
-      if (hasServices) {
-        try {
-          await saveServicePricing(
-            profile.id,
-            [...servicePricings, ...virtualPricings],
-            packagePricings,
-            true // true = clinic-specific pricing
-          );
-        } catch (pricingError: any) {
-          throw new Error(`Failed to save service pricing: ${pricingError.message || JSON.stringify(pricingError)}`);
-        }
-      } else {
+      const isPackageEmpty = (pkg: any) => {
+        return !pkg.service_name?.trim() &&
+               !pkg.no_of_sessions?.trim() &&
+               !pkg.price?.trim();
+      };
+
+      const filteredInPerson = servicePricings.filter(sp => !isEntryEmpty(sp));
+      const filteredVirtual = virtualPricings.filter(vp => !isEntryEmpty(vp));
+      const filteredPackages = packagePricings.filter(pkg => !isPackageEmpty(pkg));
+
+      // Always save service pricing to ensure deletions are persisted
+      try {
+        await saveServicePricing(
+          profile.id,
+          [...filteredInPerson, ...filteredVirtual],
+          filteredPackages,
+          true // true = clinic-specific pricing
+        );
+      } catch (pricingError: any) {
+        throw new Error(`Failed to save service pricing: ${pricingError.message || JSON.stringify(pricingError)}`);
       }
 
       // Clear logo file state
       setLogoFile(null);
       setLogoPreview(null);
 
-      // Update clinic videos to mark all as existing (no longer new)
-      const updatedVideos = clinicVideos.map(video => ({
-        ...video,
-        isNew: false
-      }));
-      setClinicVideos(updatedVideos);
-      setExistingVideos(allVideoUrls);
+      // Update clinic videos with uploaded URLs (replace blob URLs with actual URLs)
+      if (allVideoUrls.length > 0) {
+        setClinicVideos(allVideoUrls.map(url => ({ url, isNew: false, file: undefined })));
+        setExistingVideos(allVideoUrls);
+      } else {
+        setClinicVideos([]);
+        setExistingVideos([]);
+      }
 
       // Update clinic images to mark all as existing
       if (allImageUrls.length > 0) {
@@ -1059,20 +1072,29 @@ const UpdateClinicProfile: React.FC<UpdateClinicProfileProps> = ({ profile }) =>
               Clinic Address
             </h4>
 
-            {/* Address Line 1 with PlaceKit autocomplete */}
+            {/* Address Line 1 with Google Autocomplete */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Address Line 1 <span className="text-gray-500 text-xs">(Street Address)</span>
               </label>
-              <input
-                ref={addressInputRef}
-                type="text"
-                value={addressFields.address1}
-                onChange={(e) => handleAddressFieldChange('address1', e.target.value)}
-                placeholder="Start typing your address..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                autoComplete="off"
-              />
+              <Autocomplete
+                onLoad={onLoadAutocomplete}
+                onPlaceChanged={onPlaceChanged}
+                options={{
+                  componentRestrictions: { country: ['us', 'ca'] },
+                  types: ['address'],
+                }}
+              >
+                <input
+                  ref={addressInputRef}
+                  type="text"
+                  value={addressFields.address1}
+                  onChange={(e) => handleAddressFieldChange('address1', e.target.value)}
+                  placeholder="Start typing your address..."
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                  autoComplete="off"
+                />
+              </Autocomplete>
               <p className="text-xs text-gray-500 mt-1">
                 Start typing to search for your address
               </p>

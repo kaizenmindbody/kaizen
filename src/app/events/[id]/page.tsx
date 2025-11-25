@@ -99,10 +99,10 @@ const EventDetailPage = () => {
           return;
         }
 
-        // Fetch host description from Descriptions table
-        const { data: descriptionData } = await supabase
-          .from('Descriptions')
-          .select('background')
+        // Fetch host profile from EventHosts table
+        const { data: hostProfileData } = await supabase
+          .from('EventHosts')
+          .select('bio, avatar')
           .eq('user_id', (event as any).host_id)
           .single();
 
@@ -110,8 +110,8 @@ const EventDetailPage = () => {
           id: hostData.id,
           firstname: hostData.firstname || '',
           lastname: hostData.lastname || '',
-          avatar: hostData.avatar || 'https://vbioebgdmwgrykkphupd.supabase.co/storage/v1/object/public/kaizen/avatars/default.jpg',
-          bio: descriptionData?.background || '',
+          avatar: hostProfileData?.avatar || hostData.avatar || 'https://vbioebgdmwgrykkphupd.supabase.co/storage/v1/object/public/kaizen/avatars/default.jpg',
+          bio: hostProfileData?.bio || '',
           email: hostData.email || '',
           phone: hostData.phone || ''
         });

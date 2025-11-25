@@ -319,14 +319,6 @@ const Footer = () => {
                       FAQs
                     </Link>
                   </li>
-                  <li>
-                    <Link
-                      href="/video-consult"
-                      className="block sm:mb-4 text-sm sm:text-base duration-300 hover:text-primary py-1"
-                    >
-                      Video Consult
-                    </Link>
-                  </li>
                 </ul>
               </div>
             </div>

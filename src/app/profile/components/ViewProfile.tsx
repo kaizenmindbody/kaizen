@@ -127,7 +127,7 @@ const ViewProfile: React.FC<ViewProfileProps> = ({ profile }) => {
               {(() => {
                 const parsedTitle = parseFieldValue(profile?.title);
                 const titleStr = Array.isArray(parsedTitle) ? parsedTitle[0] : parsedTitle;
-                return titleStr ? `${titleStr} ` : '';
+                return titleStr ? `${titleStr}. ` : '';
               })()}
               {profile?.full_name || `${profile?.firstname} ${profile?.lastname}` || 'User Name'}
               {(() => {

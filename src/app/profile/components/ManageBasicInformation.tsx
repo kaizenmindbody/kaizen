@@ -9,16 +9,29 @@ import Select, { MultiValue } from 'react-select';
 import makeAnimated from 'react-select/animated';
 import { useDegrees } from '@/hooks/useDegrees';
 import { usePractitionerTypes } from '@/hooks/usePractitionerTypes';
+import { useSpecialty } from '@/hooks/useSpecialty';
 import { useBasicInformation } from '@/hooks/useBasicInformation';
 import Image from 'next/image';
 import { Plus, X } from 'lucide-react';
 import 'react-phone-input-2/lib/style.css';
-import '@placekit/autocomplete-js/dist/placekit-autocomplete.css';
 
 const PhoneInput = dynamic(() => import('react-phone-input-2'), {
   ssr: false,
   loading: () => <div className="w-full h-12 bg-gray-100 animate-pulse rounded-lg"></div>
 });
+
+const Autocomplete = dynamic(
+  () => import('@react-google-maps/api').then(mod => ({ default: mod.Autocomplete })),
+  {
+    ssr: false,
+    loading: () => <input
+      type="text"
+      placeholder="Loading address autocomplete..."
+      className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100"
+      disabled
+    />
+  }
+);
 
 interface ManageBasicInformationProps {
   profile: ProfileData | null;
@@ -118,6 +131,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
   const { user, refreshProfile } = useAuth();
   const { degrees } = useDegrees();
   const { practitionerTypes } = usePractitionerTypes();
+  const { specialties } = useSpecialty();
   const {
     saving,
     uploadingAvatar,
@@ -170,6 +184,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
     title: profile?.title || '',
     degree: parseDegree(profile?.degree),
     type_of_practitioner: parsePractitionerType(profile?.ptype),
+    specialty: profile?.specialty || '',
     clinic_name: profile?.clinic || '',
     create_clinic_page: profile?.clinicpage || 'no',
     website: profile?.website || '',
@@ -190,9 +205,9 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(profile?.avatar || null);
+  const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const addressInputRef = useRef<HTMLInputElement>(null);
-  const placekitInstance = useRef<any>(null);
   const animatedComponents = makeAnimated();
 
   // Show success/error toasts
@@ -355,71 +370,48 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
     // Error toast will be shown by the useEffect hook
   };
 
-  // Initialize PlaceKit autocomplete
-  useEffect(() => {
-    const initPlaceKit = async () => {
-      // Only run on client-side
-      if (typeof window === 'undefined') return;
-      if (!addressInputRef.current || placekitInstance.current) return;
+  // Google Autocomplete handlers
+  const onLoadAutocomplete = (autocompleteInstance: google.maps.places.Autocomplete) => {
+    setAutocomplete(autocompleteInstance);
+  };
 
-      try {
-        // Dynamically import PlaceKit to avoid SSR issues
-        const placekit = await import('@placekit/autocomplete-js');
+  const onPlaceChanged = () => {
+    if (autocomplete !== null) {
+      const place = autocomplete.getPlace();
 
-        const apiKey = process.env.NEXT_PUBLIC_PLACEKIT_API_KEY;
-        if (!apiKey) {
-          return;
-        }
+      if (place.address_components) {
+        const components = place.address_components;
+        let street = '';
+        let city = '';
+        let state = '';
+        let zipCode = '';
 
-        placekitInstance.current = placekit.default(apiKey, {
-          target: addressInputRef.current,
-          countries: ['us', 'ca'],
-          types: ['street', 'city', 'administrative'],
-          maxResults: 5,
-          panel: {
-            className: 'placekit-panel',
-          },
+        // Extract street number and route
+        const streetNumber = components.find(c => c.types.includes('street_number'))?.long_name || '';
+        const route = components.find(c => c.types.includes('route'))?.long_name || '';
+        street = `${streetNumber} ${route}`.trim();
+
+        // Extract city
+        city = components.find(c => c.types.includes('locality'))?.long_name ||
+               components.find(c => c.types.includes('sublocality'))?.long_name || '';
+
+        // Extract state
+        state = components.find(c => c.types.includes('administrative_area_level_1'))?.short_name || '';
+
+        // Extract zip code
+        zipCode = components.find(c => c.types.includes('postal_code'))?.long_name || '';
+
+        setAddressFields({
+          address1: street,
+          address2: '',
+          city,
+          state,
+          zip: zipCode,
+          country: 'US',
         });
-
-        // Listen for address selection
-        placekitInstance.current.on('pick', (value: any, item: any) => {
-          // Extract zip code - handle both string and array formats
-          const zipCode = Array.isArray(item.zipcode)
-            ? item.zipcode[0] || ''
-            : item.zipcode || '';
-
-          // Populate separate address fields
-          setAddressFields({
-            address1: item.name || '',
-            address2: '',
-            city: item.city || '',
-            state: item.administrative || '',
-            zip: zipCode,
-            country: item.country || 'US',
-          });
-
-          // Close the dropdown by blurring the input
-          setTimeout(() => {
-            if (addressInputRef.current) {
-              addressInputRef.current.blur();
-            }
-          }, 100);
-        });
-
-      } catch (error) {
       }
-    };
-
-    initPlaceKit();
-
-    // Cleanup
-    return () => {
-      if (placekitInstance.current) {
-        placekitInstance.current.destroy();
-        placekitInstance.current = null;
-      }
-    };
-  }, []);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -470,6 +462,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
       type_of_practitioner: Array.isArray(formData.type_of_practitioner)
         ? formData.type_of_practitioner.join(', ')
         : formData.type_of_practitioner,
+      specialty: formData.specialty,
       clinic_name: formData.clinic_name,
       create_clinic_page: formData.create_clinic_page,
       website: formData.website,
@@ -510,6 +503,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
         title: profile.title || '',
         degree: parseDegree(profile.degree),
         type_of_practitioner: parsePractitionerType(profile.ptype),
+        specialty: profile.specialty || '',
         clinic_name: profile.clinic || '',
         create_clinic_page: profile.clinicpage || 'no',
         website: profile.website || '',
@@ -538,6 +532,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
         title: profile.title || '',
         degree: parseDegree(profile.degree),
         type_of_practitioner: parsedPtype,
+        specialty: profile.specialty || '',
         clinic_name: profile.clinic || '',
         create_clinic_page: profile.clinicpage || 'no',
         website: profile.website || '',
@@ -697,9 +692,9 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
               <Select
-                value={formData.title ? { value: formData.title, label: formData.title } : null}
+                value={formData.title ? { value: formData.title, label: `${formData.title}.` } : null}
                 onChange={(option) => handleInputChange('title', option?.value || '')}
-                options={[{ value: 'Dr', label: 'Dr' }]}
+                options={[{ value: 'Dr', label: 'Dr.' }]}
                 styles={customSelectStyles}
                 placeholder="Select title"
                 isClearable
@@ -742,6 +737,23 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
               placeholder="Select practitioner types"
               isDisabled={saving}
             />
+          </div>
+
+          {/* Specialty */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Specialty</label>
+            <Select
+              value={formData.specialty ? { value: formData.specialty, label: formData.specialty } : null}
+              onChange={(option) => handleInputChange('specialty', option?.value || '')}
+              options={specialties.map(specialty => ({ value: specialty.title, label: specialty.title }))}
+              styles={customSelectStyles}
+              placeholder="Select your specialty"
+              isClearable
+              isDisabled={saving}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              This helps patients find you when searching by specialty
+            </p>
           </div>
 
           {/* Clinic Information */}
@@ -902,21 +914,30 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
           <div className="space-y-4">
             <h3 className="text-md font-semibold text-gray-800">Address Information</h3>
 
-            {/* Address Line 1 with PlaceKit autocomplete */}
+            {/* Address Line 1 with Google Autocomplete */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Address Line 1 <span className="text-gray-500 text-xs">(Street Address)</span>
               </label>
-              <input
-                ref={addressInputRef}
-                type="text"
-                value={addressFields.address1}
-                onChange={(e) => handleAddressFieldChange('address1', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-                placeholder="Start typing your address..."
-                disabled={saving}
-                autoComplete="off"
-              />
+              <Autocomplete
+                onLoad={onLoadAutocomplete}
+                onPlaceChanged={onPlaceChanged}
+                options={{
+                  componentRestrictions: { country: ['us', 'ca'] },
+                  types: ['address'],
+                }}
+              >
+                <input
+                  ref={addressInputRef}
+                  type="text"
+                  value={addressFields.address1}
+                  onChange={(e) => handleAddressFieldChange('address1', e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  placeholder="Start typing your address..."
+                  disabled={saving}
+                  autoComplete="off"
+                />
+              </Autocomplete>
               <p className="text-xs text-gray-500 mt-1">
                 Start typing to search for your address
               </p>

@@ -133,25 +133,82 @@ export function useImageVideo(userId?: string): UseImageVideoReturn {
           throw new Error('Not authenticated. Please sign in again.');
         }
 
-        const formData = new FormData();
-        formData.append('userId', userId);
+        const uploadedMedia: Array<{
+          file_url: string;
+          file_name: string;
+          file_type: 'image' | 'video';
+          mime_type: string;
+        }> = [];
 
-        // Add images to formData
-        images.forEach((image, index) => {
-          formData.append(`image_${index}`, image);
-        });
+        // Upload images directly to Supabase storage
+        for (let i = 0; i < images.length; i++) {
+          const image = images[i];
+          const fileExt = image.name.split('.').pop();
+          const fileName = `${userId}_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+          const filePath = `usermedia/${fileName}`;
 
-        // Add videos to formData
-        videos.forEach((video, index) => {
-          formData.append(`video_${index}`, video);
-        });
+          // Upload to storage
+          const { error: uploadError } = await supabase.storage
+            .from('kaizen')
+            .upload(filePath, image);
 
+          if (uploadError) {
+            throw new Error(`Failed to upload ${image.name}: ${uploadError.message}`);
+          }
+
+          // Get public URL
+          const { data: { publicUrl } } = supabase.storage
+            .from('kaizen')
+            .getPublicUrl(filePath);
+
+          uploadedMedia.push({
+            file_url: publicUrl,
+            file_name: image.name,
+            file_type: 'image',
+            mime_type: image.type,
+          });
+        }
+
+        // Upload videos directly to Supabase storage
+        for (let i = 0; i < videos.length; i++) {
+          const video = videos[i];
+          const fileExt = video.name.split('.').pop();
+          const fileName = `${userId}_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+          const filePath = `usermedia/${fileName}`;
+
+          // Upload to storage
+          const { error: uploadError } = await supabase.storage
+            .from('kaizen')
+            .upload(filePath, video);
+
+          if (uploadError) {
+            throw new Error(`Failed to upload ${video.name}: ${uploadError.message}`);
+          }
+
+          // Get public URL
+          const { data: { publicUrl } } = supabase.storage
+            .from('kaizen')
+            .getPublicUrl(filePath);
+
+          uploadedMedia.push({
+            file_url: publicUrl,
+            file_name: video.name,
+            file_type: 'video',
+            mime_type: video.type,
+          });
+        }
+
+        // Now send only metadata to the API route
         const response = await fetch('/api/media', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
           },
-          body: formData,
+          body: JSON.stringify({
+            userId,
+            media: uploadedMedia,
+          }),
         });
 
         if (response.ok) {

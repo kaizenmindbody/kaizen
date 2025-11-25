@@ -42,9 +42,111 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST: Upload media files (images and/or video)
+// POST: Save media metadata (files are uploaded directly from client to storage)
 export async function POST(request: NextRequest) {
   try {
+    const contentType = request.headers.get('content-type');
+
+    // Check if this is a JSON request (new metadata-only approach)
+    if (contentType?.includes('application/json')) {
+      const body = await request.json();
+      const { userId, media } = body;
+
+      if (!userId) {
+        return NextResponse.json(
+          { error: 'User ID is required' },
+          { status: 400 }
+        );
+      }
+
+      if (!media || !Array.isArray(media)) {
+        return NextResponse.json(
+          { error: 'Media array is required' },
+          { status: 400 }
+        );
+      }
+
+      const supabase = createServerSupabaseClient();
+      const insertedMedia: any[] = [];
+
+      // Get current image count to set display_order
+      const { data: existingMedia } = await supabase
+        .from('UserMedia')
+        .select('display_order')
+        .eq('user_id', userId)
+        .eq('file_type', 'image')
+        .order('display_order', { ascending: false })
+        .limit(1);
+
+      let nextImageDisplayOrder = existingMedia && existingMedia.length > 0
+        ? (existingMedia[0].display_order || 0) + 1
+        : 0;
+
+      // Get current video count to set display_order
+      const { data: existingVideos } = await supabase
+        .from('UserMedia')
+        .select('display_order')
+        .eq('user_id', userId)
+        .eq('file_type', 'video')
+        .order('display_order', { ascending: false })
+        .limit(1);
+
+      let nextVideoDisplayOrder = existingVideos && existingVideos.length > 0
+        ? (existingVideos[0].display_order || 0) + 1
+        : 0;
+
+      // Check if there's already an image marked as primary
+      const { data: primaryImage } = await supabase
+        .from('UserMedia')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('file_type', 'image')
+        .eq('is_primary', true)
+        .limit(1);
+
+      const hasPrimaryImage = primaryImage && primaryImage.length > 0;
+      let firstImageProcessed = false;
+
+      // Insert metadata for each media item
+      for (const item of media) {
+        const isFirstImage = item.file_type === 'image' && !hasPrimaryImage && !firstImageProcessed;
+        const displayOrder = item.file_type === 'image'
+          ? nextImageDisplayOrder++
+          : nextVideoDisplayOrder++;
+
+        const { data: insertedItem, error: dbError } = await supabase
+          .from('UserMedia')
+          .insert({
+            user_id: userId,
+            file_url: item.file_url,
+            file_name: item.file_name,
+            file_type: item.file_type,
+            mime_type: item.mime_type,
+            is_primary: isFirstImage,
+            display_order: displayOrder,
+          })
+          .select()
+          .single();
+
+        if (dbError) {
+          throw new Error(`Failed to save ${item.file_name} to database: ${dbError.message}`);
+        }
+
+        if (isFirstImage) {
+          firstImageProcessed = true;
+        }
+
+        insertedMedia.push(insertedItem);
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: 'Media metadata saved successfully',
+        media: insertedMedia,
+      });
+    }
+
+    // Fallback to FormData approach (legacy support)
     const formData = await request.formData();
     const userId = formData.get('userId') as string;
 

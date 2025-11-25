@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     // Email to admin (you)
     const adminMailOptions = {
       from: process.env.EMAIL_USER,
-      to: process.env.ADMIN_EMAIL, // Your email where you want to receive messages
+      to: process.env.ADMIN_EMAIL || 'hello@kaizenmindbody.com', // Default to hello@kaizenmindbody.com if ADMIN_EMAIL not set
       subject: `New Contact Form Message from ${name}`,
       html: `
         <h2>New Contact Form Submission</h2>

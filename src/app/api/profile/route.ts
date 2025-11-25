@@ -65,7 +65,8 @@ export async function PUT(request: NextRequest) {
       avatar,
       aboutme,
       gender,
-      specialty_rate
+      specialty_rate,
+      business_emails
     } = body;
 
     if (!user_id) {
@@ -119,6 +120,15 @@ export async function PUT(request: NextRequest) {
     if (aboutme !== undefined) updateData.aboutme = aboutme;
     if (gender !== undefined) updateData.gender = gender;
     if (specialty_rate !== undefined) updateData.specialty_rate = specialty_rate ? JSON.stringify(specialty_rate) : null;
+    if (business_emails !== undefined) {
+      // Handle business_emails array - filter out empty strings and ensure it's an array
+      if (Array.isArray(business_emails)) {
+        const filteredEmails = business_emails.filter(email => email && email.trim() !== '');
+        updateData.business_emails = filteredEmails.length > 0 ? filteredEmails : null;
+      } else {
+        updateData.business_emails = null;
+      }
+    }
 
 
     // Update profile in database

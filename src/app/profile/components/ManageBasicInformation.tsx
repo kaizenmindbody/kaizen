@@ -11,6 +11,7 @@ import { useDegrees } from '@/hooks/useDegrees';
 import { usePractitionerTypes } from '@/hooks/usePractitionerTypes';
 import { useBasicInformation } from '@/hooks/useBasicInformation';
 import Image from 'next/image';
+import { Plus, X } from 'lucide-react';
 import 'react-phone-input-2/lib/style.css';
 import '@placekit/autocomplete-js/dist/placekit-autocomplete.css';
 
@@ -129,6 +130,40 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
     clearSuccessMessage,
   } = useBasicInformation();
 
+  // Helper function to parse business emails from profile (excluding login email)
+  const parseBusinessEmails = (emails: any, loginEmail: string): string[] => {
+    const loginEmailLower = loginEmail?.toLowerCase().trim();
+    
+    if (!emails) {
+      // If no business emails, return empty array (login email will be shown separately)
+      return [];
+    }
+    
+    let parsedEmails: string[] = [];
+    
+    if (Array.isArray(emails)) {
+      parsedEmails = emails.filter(email => email && email.trim() !== '');
+    } else if (typeof emails === 'string') {
+      const trimmed = emails.trim();
+      if (trimmed.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (Array.isArray(parsed)) {
+            parsedEmails = parsed.filter(email => email && email.trim() !== '');
+          }
+        } catch {
+          // If JSON parsing fails, treat as single email
+          parsedEmails = trimmed ? [trimmed] : [];
+        }
+      } else {
+        parsedEmails = trimmed ? [trimmed] : [];
+      }
+    }
+    
+    // Filter out login email from business emails
+    return parsedEmails.filter(email => email.toLowerCase().trim() !== loginEmailLower);
+  };
+
   const [formData, setFormData] = useState({
     first_name: capitalizeName(profile?.firstname || ''),
     last_name: capitalizeName(profile?.lastname || ''),
@@ -139,7 +174,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
     create_clinic_page: profile?.clinicpage || 'no',
     website: profile?.website || '',
     business_phone: profile?.phone || '',
-    business_email: profile?.email || '',
+    business_emails: parseBusinessEmails(profile?.business_emails, profile?.email || user?.email || ''),
     address: profile?.address || '',
   });
 
@@ -183,6 +218,37 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
     } else {
       setFormData(prev => ({ ...prev, [field]: value }));
     }
+  };
+
+  // Email management functions
+  const handleEmailChange = (index: number, value: string) => {
+    setFormData(prev => {
+      const newEmails = [...(prev.business_emails || [])];
+      newEmails[index] = value;
+      return { ...prev, business_emails: newEmails };
+    });
+  };
+
+  const handleAddEmail = () => {
+    setFormData(prev => ({
+      ...prev,
+      business_emails: [...(prev.business_emails || []), '']
+    }));
+  };
+
+  const handleRemoveEmail = (index: number) => {
+    setFormData(prev => {
+      const newEmails = [...(prev.business_emails || [])];
+      newEmails.splice(index, 1);
+      return { ...prev, business_emails: newEmails };
+    });
+  };
+
+  // Email validation helper
+  const isValidEmail = (email: string): boolean => {
+    if (!email || email.trim() === '') return false;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email.trim());
   };
 
   const handleAddressFieldChange = (field: keyof typeof addressFields, value: string) => {
@@ -374,6 +440,15 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
       return;
     }
 
+    // Validate business emails
+    if (formData.business_emails && formData.business_emails.length > 0) {
+      const invalidEmails = formData.business_emails.filter(email => email.trim() !== '' && !isValidEmail(email));
+      if (invalidEmails.length > 0) {
+        showToast.error(`Please enter valid email addresses: ${invalidEmails.join(', ')}`);
+        return;
+      }
+    }
+
     // Upload avatar first if there's a pending file
     if (avatarFile) {
       const avatarSuccess = await uploadAvatar(user.id, avatarFile, profile?.avatar || null);
@@ -399,6 +474,11 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
       create_clinic_page: formData.create_clinic_page,
       website: formData.website,
       business_phone: formData.business_phone,
+      business_emails: formData.business_emails
+        ? formData.business_emails
+            .map(email => email.trim())
+            .filter(email => email !== '')
+        : [],
       // Send separate address fields instead of combined address
       address_line1: addressFields.address1,
       address_line2: addressFields.address2,
@@ -434,7 +514,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
         create_clinic_page: profile.clinicpage || 'no',
         website: profile.website || '',
         business_phone: profile.phone || '',
-        business_email: profile.email || '',
+        business_emails: parseBusinessEmails(profile.business_emails, profile.email || user?.email || ''),
         address: profile.address || '',
       });
 
@@ -462,7 +542,7 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
         create_clinic_page: profile.clinicpage || 'no',
         website: profile.website || '',
         business_phone: profile.phone || '',
-        business_email: profile.email || '',
+        business_emails: parseBusinessEmails(profile.business_emails, profile.email || user?.email || ''),
         address: profile.address || '',
       });
 
@@ -760,15 +840,61 @@ const ManageBasicInformation: React.FC<ManageBasicInformationProps> = ({ profile
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Business Email</label>
-              <input
-                type="email"
-                value={formData.business_email}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-gray-100 cursor-not-allowed"
-                placeholder="Enter your email"
-                disabled
-                readOnly
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Business Email(s)
+              </label>
+              
+              {/* Login Email (Read-only) */}
+              <div className="mb-3">
+                <label className="block text-xs text-gray-500 mb-1">Login Email (Default)</label>
+                <input
+                  type="email"
+                  value={user?.email || ''}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+                  disabled
+                  readOnly
+                />
+              </div>
+
+              {/* Business Emails (Editable) */}
+              <div className="space-y-2">
+                {formData.business_emails && formData.business_emails.length > 0 && (
+                  <label className="block text-xs text-gray-500 mb-1">Additional Business Emails</label>
+                )}
+                {formData.business_emails?.map((email, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => handleEmailChange(index, e.target.value)}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      placeholder={`Business email ${index + 1}`}
+                      disabled={saving}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveEmail(index)}
+                      disabled={saving}
+                      className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Remove email"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={handleAddEmail}
+                  disabled={saving}
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-primary hover:text-primary/80 hover:bg-primary/5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-dashed border-gray-300 hover:border-primary"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Business Email
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Add additional business email addresses. Your login email will always be displayed as the default contact email.
+              </p>
             </div>
           </div>
 

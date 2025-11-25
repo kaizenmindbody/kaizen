@@ -10,6 +10,7 @@ export interface BasicInfoData {
   create_clinic_page?: string;
   website?: string;
   business_phone?: string;
+  business_emails?: string[];
   address_line1?: string;
   address_line2?: string;
   city?: string;
@@ -157,6 +158,9 @@ export const updateBasicInfo = createAsyncThunk(
         clinicpage: data.create_clinic_page || null,
         website: data.website?.trim() || null,
         phone: data.business_phone || null,
+        business_emails: data.business_emails && data.business_emails.length > 0 
+          ? data.business_emails.filter(email => email.trim() !== '') 
+          : null,
         address: addressParts || null,
       };
 

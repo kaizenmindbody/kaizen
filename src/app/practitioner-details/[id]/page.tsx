@@ -154,7 +154,8 @@ const PractitionerDetailsPage = () => {
             clinic,
             website,
             title,
-            clinicpage
+            clinicpage,
+            business_emails
           `)
           .eq('id', practitionerId)
           .maybeSingle();
@@ -239,9 +240,24 @@ const PractitionerDetailsPage = () => {
         // Update processedUser with languages from Descriptions
         processedUser.languages = languagesFromDescriptions.length > 0 ? languagesFromDescriptions : ['English'];
 
+        // Determine email to display: use ONLY the first business email if available, otherwise fallback to login email
+        const getDisplayEmail = () => {
+          if (processedUser.business_emails && Array.isArray(processedUser.business_emails) && processedUser.business_emails.length > 0) {
+            // Filter out empty emails and return ONLY the first valid business email
+            const validEmails = processedUser.business_emails.filter(email => email && email.trim() !== '');
+            if (validEmails.length > 0) {
+              // Return only the first business email (index 0)
+              return validEmails[0];
+            }
+          }
+          // Fallback to login email if no business emails are available
+          return processedUser.email;
+        };
+
         // Transform the data for the detail page
         const transformedPractitioner = {
           ...processedUser,
+          email: getDisplayEmail(), // Use business email if available, otherwise login email
           avatar: {
             url: processedUser.avatar || "https://vbioebgdmwgrykkphupd.supabase.co/storage/v1/object/public/kaizen/avatars/default.jpg",
             alt: processedUser.full_name || "Practitioner"

@@ -17,14 +17,14 @@ export async function POST(request: NextRequest) {
     const transporter = nodemailer.createTransport({
       service: 'gmail', // or your email service
       auth: {
-        user: process.env.EMAIL_USER, // Your email
-        pass: process.env.EMAIL_PASS, // Your email app password
+        user: process.env.EMAIL_USER || 'hello@kaizenmindbody.com', // Default to hello@kaizenmindbody.com
+        pass: process.env.EMAIL_PASS, // Your email app password (required)
       },
     });
 
     // Email to admin (you)
     const adminMailOptions = {
-      from: process.env.EMAIL_USER,
+      from: process.env.EMAIL_USER || 'hello@kaizenmindbody.com', // Default to hello@kaizenmindbody.com
       to: process.env.ADMIN_EMAIL || 'hello@kaizenmindbody.com', // Default to hello@kaizenmindbody.com if ADMIN_EMAIL not set
       subject: `New Contact Form Message from ${name}`,
       html: `
